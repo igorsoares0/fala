@@ -1,0 +1,24 @@
+{
+  "clips": [
+    {
+      "file": "en-synthetic.mp4",
+      "language": "en",
+      "reference": "Captions help people follow your video without sound. Every word appears right when it is spoken."
+    },
+    {
+      "file": "es-synthetic.mp4",
+      "language": "es",
+      "reference": "Los subtítulos ayudan a seguir tu video sin sonido. Cada palabra aparece justo cuando se dice."
+    },
+    {
+      "file": "de-synthetic.mp4",
+      "language": "de",
+      "reference": "Untertitel helfen, dein Video ohne Ton zu verstehen. Jedes Wort erscheint genau dann, wenn es gesprochen wird."
+    },
+    {
+      "file": "fr-synthetic.mp4",
+      "language": "fr",
+      "reference": "Les sous-titres aident à suivre ta vidéo sans le son. Chaque mot apparaît au moment où il est prononcé."
+    }
+  ]
+}

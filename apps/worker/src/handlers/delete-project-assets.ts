@@ -1,17 +1,21 @@
+import { Prisma } from "@fala/db";
 import { projectPrefix, type JobPayload } from "@fala/shared";
 import type { JobHandler } from "./types";
 
 type Payload = JobPayload<"DELETE_PROJECT_ASSETS">;
 
-/** Removes every stored object of a deleted project (source, thumbnails…). Safe to repeat. */
+/** Removes every stored object and the captions of a deleted project (spec FR-16). Safe to repeat. */
 export const deleteProjectAssets: JobHandler<Payload> = {
   async run({ payload, storage }) {
     await storage.deletePrefix(projectPrefix(payload.userId, payload.projectId));
     return async (tx) => {
-      await tx.project.updateMany({
+      const { count } = await tx.project.updateMany({
         where: { id: payload.projectId, status: "DELETION_PENDING" },
-        data: { status: "DELETED" },
+        data: { status: "DELETED", captionSample: Prisma.DbNull },
       });
+      if (count !== 1) return;
+      await tx.transcript.deleteMany({ where: { projectId: payload.projectId } });
+      await tx.captionTrack.deleteMany({ where: { projectId: payload.projectId } });
     };
   },
 

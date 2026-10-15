@@ -5,3 +5,5 @@ export * from "./upload";
 export * from "./storage-keys";
 export * from "./jobs";
 export * from "./project-errors";
+export * from "./captions";
+export * from "./segment";

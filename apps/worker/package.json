@@ -7,7 +7,8 @@
     "dev": "dotenv -e ../../.env -- tsx watch src/main.ts",
     "start": "tsx src/main.ts",
     "start:local": "dotenv -e ../../.env -- tsx src/main.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "eval": "dotenv -e ../../.env -- tsx scripts/eval-transcription.ts"
   },
   "dependencies": {
     "@fala/db": "*",

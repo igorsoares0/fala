@@ -3,6 +3,7 @@ import type { ProjectErrorCode } from "@fala/shared";
 import type { Storage } from "@fala/storage";
 import type { WorkerConfig } from "../config";
 import type { ClaimedJob } from "../queue";
+import type { TranscriptionProvider } from "../transcription";
 
 export type HandlerContext<Payload> = {
   job: ClaimedJob;
@@ -10,6 +11,7 @@ export type HandlerContext<Payload> = {
   signal: AbortSignal;
   storage: Storage;
   config: WorkerConfig;
+  transcriber: TranscriptionProvider;
 };
 
 /** Database changes that publish a job's result; committed atomically with the job's completion. */

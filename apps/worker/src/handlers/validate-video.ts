@@ -1,5 +1,5 @@
 import path from "node:path";
-import { db } from "@fala/db";
+import { db, enqueueJob } from "@fala/db";
 import { thumbnailKey, uploadIdFromSourceKey, type JobPayload } from "@fala/shared";
 import { JobError } from "../errors";
 import { evaluateProbe } from "../media/evaluate-probe";
@@ -19,8 +19,8 @@ const stillWaitingFor = (payload: Payload) => ({
 });
 
 /**
- * Checks the uploaded file with ffprobe, extracts a thumbnail and marks the
- * project READY with its metadata (spec FR-04). The original is never modified.
+ * Checks the uploaded file with ffprobe, extracts a thumbnail, stores the metadata
+ * and hands the project to transcription (spec FR-04). The original is never modified.
  */
 export const validateVideo: JobHandler<Payload> = {
   async run({ job, payload, signal, storage, config }) {
@@ -48,11 +48,16 @@ export const validateVideo: JobHandler<Payload> = {
       await storage.uploadFile(thumbnailObjectKey, thumbnailPath, "image/jpeg");
 
       return async (tx) => {
-        // Phase 3 moves this to PROCESSING and enqueues transcription instead.
-        await tx.project.updateMany({
+        const { count } = await tx.project.updateMany({
           where: stillWaitingFor(payload),
-          data: { status: "READY", errorCode: null, thumbnailObjectKey, ...metadata },
+          data: { status: "PROCESSING", errorCode: null, thumbnailObjectKey, ...metadata },
         });
+        if (count === 1) {
+          await enqueueJob(tx, "TRANSCRIBE_VIDEO", payload.projectId, {
+            projectId: payload.projectId,
+            sourceObjectKey: payload.sourceObjectKey,
+          });
+        }
       };
     });
   },

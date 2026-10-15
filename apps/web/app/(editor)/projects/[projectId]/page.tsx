@@ -3,12 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/dal";
 import { getProject } from "@/lib/projects";
+import { getCaptionTrack } from "@/lib/transcription";
 import { ProjectBody } from "./project-body";
 import { ProjectNameInput } from "./project-name-input";
 
 export default function ProjectPage({ params }: PageProps<"/projects/[projectId]">) {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex h-screen flex-col">
       <Suspense fallback={<EditorHeaderShell />}>
         <Editor params={params} />
       </Suspense>
@@ -21,13 +22,14 @@ async function Editor({ params }: { params: PageProps<"/projects/[projectId]">["
   const project = await getProject(user.id, projectId);
   // Missing and foreign projects look identical, so ids from other accounts reveal nothing.
   if (!project) notFound();
+  const track = project.status === "READY" ? await getCaptionTrack(user.id, project.id) : null;
 
   return (
     <>
       <EditorHeaderShell>
         <ProjectNameInput projectId={project.id} initialName={project.name} />
       </EditorHeaderShell>
-      <ProjectBody project={project} />
+      <ProjectBody project={project} track={track} />
     </>
   );
 }

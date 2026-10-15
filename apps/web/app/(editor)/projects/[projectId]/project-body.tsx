@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { formatDuration, projectErrorFor } from "@fala/shared";
+import { formatDuration, isRetryableProjectError, projectErrorFor, type CaptionTrack } from "@fala/shared";
 import { ChooseFileButton } from "@/components/choose-file-button";
 import { ProcessingSteps, ProgressBar } from "@/components/processing-steps";
+import { RetryTranscriptionButton } from "@/components/retry-transcription-button";
 import { StatusPoller } from "@/components/status-poller";
 import { smallCreamButton } from "@/components/ui";
 import type { ProjectSummary } from "@/lib/projects";
 import { needsPolling, projectView, type ProcessingStage } from "@/lib/project-view";
 import { thumbnailSrc } from "@/lib/thumbnail";
 import { retryUpload, useLocalUpload } from "@/lib/upload-store";
+import { CaptionsView } from "./captions-view";
 
 const PROCESSING_TITLES: Record<ProcessingStage, string> = {
   upload: "Uploading the video",
@@ -17,11 +19,25 @@ const PROCESSING_TITLES: Record<ProcessingStage, string> = {
   transcribe: "Transcribing the audio",
 };
 
-/** Editor body for Phase 2: processing progress, problems, or the validated video. */
-export function ProjectBody({ project }: { project: ProjectSummary }) {
+/** Editor body: processing progress, problems, or the video with its captions. */
+export function ProjectBody({ project, track }: { project: ProjectSummary; track: CaptionTrack | null }) {
   const local = useLocalUpload(project.id);
   const view = projectView(project.status, local);
   const [error, setError] = useState<string | null>(null);
+
+  if (view.kind === "settled" && track) {
+    return (
+      <main className="flex min-h-0 flex-1 flex-col">
+        <CaptionsView
+          projectId={project.id}
+          track={track}
+          width={project.width}
+          height={project.height}
+          posterSrc={thumbnailSrc(project)}
+        />
+      </main>
+    );
+  }
 
   return (
     <main className="flex flex-1 items-center justify-center bg-[radial-gradient(70%_60%_at_50%_45%,#1d1b18,#12110f)] p-8">
@@ -71,6 +87,8 @@ export function ProjectBody({ project }: { project: ProjectSummary }) {
                 >
                   Try again
                 </button>
+              ) : view.kind === "failed" && isRetryableProjectError(project.errorCode) ? (
+                <RetryTranscriptionButton projectId={project.id} className={smallCreamButton} onError={setError} />
               ) : (
                 <ChooseFileButton projectId={project.id} className={smallCreamButton} onError={setError}>
                   {view.kind === "failed" ? "Upload another file" : "Choose the file"}
@@ -92,6 +110,7 @@ export function ProjectBody({ project }: { project: ProjectSummary }) {
   );
 }
 
+/** A finished project without captions (e.g. processed before transcription existed). */
 function ReadyVideo({ project }: { project: ProjectSummary }) {
   const aspectRatio = project.width && project.height ? `${project.width} / ${project.height}` : "9 / 16";
   return (
@@ -112,9 +131,7 @@ function ReadyVideo({ project }: { project: ProjectSummary }) {
           <img src={thumbnailSrc(project)} alt="First frame of your video" className="size-full object-cover" />
         )}
       </div>
-      <p className="text-center text-[13px] text-pretty text-muted">
-        Your video is ready. Captions show up here once transcription is available.
-      </p>
+      <p className="text-center text-[13px] text-pretty text-muted">This video has no captions.</p>
     </section>
   );
 }

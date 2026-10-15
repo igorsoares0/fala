@@ -6,8 +6,10 @@ export const PROJECT_ERROR_CODES = [
   "FILE_TOO_LARGE",
   "VIDEO_TOO_LONG",
   "NO_AUDIO",
+  "NO_SPEECH",
   "UNSUPPORTED_FILE",
   "UPLOAD_MISSING",
+  "TRANSCRIPTION_FAILED",
   "PROCESSING_FAILED",
 ] as const;
 
@@ -31,6 +33,10 @@ export const PROJECT_ERRORS: Record<ProjectErrorCode, { title: string; body: str
     title: "This video has no sound",
     body: "There's no audio track to caption. Upload a version with sound — nothing was deducted from your usage.",
   },
+  NO_SPEECH: {
+    title: "We couldn't find speech in this file",
+    body: "The audio seems silent. Upload another version — nothing was deducted from your usage.",
+  },
   UNSUPPORTED_FILE: {
     title: "We couldn't read this file",
     body: "It doesn't look like a video we can open. Try an MP4, MOV or WEBM.",
@@ -38,6 +44,10 @@ export const PROJECT_ERRORS: Record<ProjectErrorCode, { title: string; body: str
   UPLOAD_MISSING: {
     title: "The upload didn't finish",
     body: "The file never fully arrived. Choose it again to restart the upload.",
+  },
+  TRANSCRIPTION_FAILED: {
+    title: "Transcription didn't finish",
+    body: "It was a problem on our side, not your video. Try again — your upload is kept.",
   },
   PROCESSING_FAILED: {
     title: "Something went wrong on our side",
@@ -49,4 +59,9 @@ export const PROJECT_ERRORS: Record<ProjectErrorCode, { title: string; body: str
 export function projectErrorFor(code: string | null | undefined) {
   const parsed = projectErrorCodeSchema.safeParse(code);
   return PROJECT_ERRORS[parsed.success ? parsed.data : "PROCESSING_FAILED"];
+}
+
+/** Failures the user can retry without uploading again: the stored video is fine. */
+export function isRetryableProjectError(code: string | null | undefined): boolean {
+  return code === "TRANSCRIPTION_FAILED";
 }

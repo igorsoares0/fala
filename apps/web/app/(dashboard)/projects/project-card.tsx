@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { formatDuration, projectErrorFor } from "@fala/shared";
+import { DEFAULT_PRESET_KEY, formatDuration, isRetryableProjectError, PRESETS, projectErrorFor } from "@fala/shared";
+import { CaptionSample } from "@/components/caption-sample";
 import { ChooseFileButton } from "@/components/choose-file-button";
 import { ProcessingSteps, ProgressBar } from "@/components/processing-steps";
+import { RetryTranscriptionButton } from "@/components/retry-transcription-button";
 import { StatusChip } from "@/components/status-chip";
 import { thumbnailSrc } from "@/lib/thumbnail";
 import { deleteProjectAction } from "@/lib/project-actions";
@@ -67,7 +69,14 @@ export function ProjectCard({ project }: { project: ProjectCardData }) {
             />
           )}
           <span className="absolute inset-0 bg-[radial-gradient(90%_60%_at_50%_100%,rgba(0,0,0,.55),transparent_70%)]" />
-          {/* A caption sample in the project's preset joins here once transcripts exist (Phase 3). */}
+          {view.kind === "settled" && project.captionSample && (
+            // Projects don't have their own style yet (Phase 4), so the sample uses the default preset.
+            <CaptionSample
+              style={PRESETS[DEFAULT_PRESET_KEY].style}
+              words={project.captionSample}
+              activeIndex={project.captionSample.length - 1}
+            />
+          )}
           {project.durationMs != null && (
             <span className="absolute bottom-2.5 left-2.5 rounded-[5px] bg-[rgba(18,17,15,.7)] px-[7px] py-[3px] font-mono text-[11px] font-medium text-text">
               {formatDuration(project.durationMs)}
@@ -187,6 +196,8 @@ function CardOverlay({
         >
           Try again
         </button>
+      ) : view.kind === "failed" && isRetryableProjectError(project.errorCode) ? (
+        <RetryTranscriptionButton projectId={project.id} className={overlayButton} onError={onError} />
       ) : (
         <ChooseFileButton projectId={project.id} className={overlayButton} onError={onError}>
           {view.kind === "failed" ? "Upload another file" : "Choose the file"}

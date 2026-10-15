@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { db, enqueueJob, type ProjectStatus } from "@fala/db";
+import { db, enqueueJob, Prisma, type ProjectStatus } from "@fala/db";
 import {
   ACCEPTED_VIDEO_TYPES,
   sourceKey,
@@ -22,6 +22,7 @@ export type UploadResult<T> = { ok: true; data: T } | { ok: false; status: 404 |
 
 const UPLOAD_URL_TTL_SECONDS = 15 * 60;
 export const THUMBNAIL_URL_TTL_SECONDS = 5 * 60;
+export const SOURCE_URL_TTL_SECONDS = 60 * 60;
 
 /** A new file can be sent until one has been accepted. */
 const UPLOADABLE: ProjectStatus[] = ["CREATED", "UPLOADING", "FAILED"];
@@ -48,16 +49,24 @@ export async function startUpload(
 
   const uploadId = randomUUID().replaceAll("-", "");
   const key = sourceKey(userId, projectId, uploadId, ACCEPTED_VIDEO_TYPES[mimeType]);
-  const { count } = await db.project.updateMany({
-    where: { id: projectId, userId, deletedAt: null, status: { in: UPLOADABLE } },
-    data: {
-      status: "UPLOADING",
-      sourceObjectKey: key,
-      sourceMimeType: mimeType,
-      errorCode: null,
-    },
+  const updated = await db.$transaction(async (tx) => {
+    const { count } = await tx.project.updateMany({
+      where: { id: projectId, userId, deletedAt: null, status: { in: UPLOADABLE } },
+      data: {
+        status: "UPLOADING",
+        sourceObjectKey: key,
+        sourceMimeType: mimeType,
+        errorCode: null,
+        captionSample: Prisma.DbNull,
+      },
+    });
+    if (count !== 1) return false;
+    // Captions of a previous file must never show up for the new one.
+    await tx.transcript.deleteMany({ where: { projectId } });
+    await tx.captionTrack.deleteMany({ where: { projectId } });
+    return true;
   });
-  if (count !== 1) return { ok: false, status: 409, error: "This project already has a video." };
+  if (!updated) return { ok: false, status: 409, error: "This project already has a video." };
 
   const storage = getStorage();
   // A previous attempt's file was never accepted; it's garbage now.
@@ -127,4 +136,13 @@ export async function getThumbnailUrl(userId: string, projectId: string): Promis
   const project = await findOwned(userId, projectId);
   if (!project?.thumbnailObjectKey) return null;
   return getStorage().presignGet(project.thumbnailObjectKey, THUMBNAIL_URL_TTL_SECONDS);
+}
+
+/** Signed URL of the project's video for the editor's player, or null when not the caller's. */
+export async function getSourceUrl(userId: string, projectId: string): Promise<string | null> {
+  const project = await findOwned(userId, projectId);
+  // Only a validated video (it has a thumbnail) is streamed, never one mid-upload.
+  if (!project?.sourceObjectKey || !project.thumbnailObjectKey) return null;
+  if (project.status === "CREATED" || project.status === "UPLOADING") return null;
+  return getStorage().presignGet(project.sourceObjectKey, SOURCE_URL_TTL_SECONDS);
 }

@@ -5,6 +5,7 @@ import { JobError, LeaseLostError, ShutdownError } from "./errors";
 import { handlers } from "./handlers";
 import type { JobHandler } from "./handlers/types";
 import { log, sanitizeErrorMessage } from "./log";
+import { createTranscriptionProvider, type TranscriptionProvider } from "./transcription";
 import {
   backoffMs,
   claimJob,
@@ -19,7 +20,15 @@ import {
 type InFlight = { job: ClaimedJob; controller: AbortController };
 
 /** Claims and runs jobs one at a time per call; `main.ts` drives it from N loops. */
-export function createRunner({ config, storage }: { config: WorkerConfig; storage: Storage }) {
+export function createRunner({
+  config,
+  storage,
+  transcriber = createTranscriptionProvider(config.transcription),
+}: {
+  config: WorkerConfig;
+  storage: Storage;
+  transcriber?: TranscriptionProvider;
+}) {
   const inFlight = new Map<string, InFlight>();
   const { workerId, leaseMs } = config;
 
@@ -53,7 +62,7 @@ export function createRunner({ config, storage }: { config: WorkerConfig; storag
         throw new JobError("PROCESSING_FAILED", "Lease expired on the last attempt", { retryable: false });
       }
 
-      const apply = await handler.run({ job, payload, signal: controller.signal, storage, config });
+      const apply = await handler.run({ job, payload, signal: controller.signal, storage, config, transcriber });
       controller.signal.throwIfAborted();
       await completeJob(job, workerId, apply);
       log.info("job.succeeded", { ...fields, durationMs: Date.now() - startedAt });

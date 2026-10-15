@@ -34,13 +34,13 @@ async function runJob(expectedJobId: string) {
 const project = (id: string) => db.project.findUniqueOrThrow({ where: { id } });
 
 describe("VALIDATE_VIDEO", () => {
-  it("marks a valid vertical video READY with its metadata and a thumbnail", async () => {
-    const { projectId, jobId } = await createUploadedProject(userId, "vertical-2s.mp4");
+  it("stores a valid vertical video's metadata and thumbnail, then queues transcription", async () => {
+    const { projectId, jobId, sourceObjectKey } = await createUploadedProject(userId, "vertical-2s.mp4");
 
     expect(await runJob(jobId)).toMatchObject({ status: "SUCCEEDED", attempts: 1 });
     const ready = await project(projectId);
     expect(ready).toMatchObject({
-      status: "READY",
+      status: "PROCESSING",
       width: 720,
       height: 1280,
       videoCodec: "h264",
@@ -50,18 +50,20 @@ describe("VALIDATE_VIDEO", () => {
     expect(ready.durationMs).toBeGreaterThanOrEqual(1_950);
     expect(ready.durationMs).toBeLessThanOrEqual(2_100);
     expect(await storage.headObject(ready.thumbnailObjectKey!)).toMatchObject({ contentType: "image/jpeg" });
+    const queued = await db.job.findMany({ where: { projectId, type: "TRANSCRIBE_VIDEO" } });
+    expect(queued).toMatchObject([{ status: "PENDING", payload: { projectId, sourceObjectKey } }]);
   });
 
   it("reports the display size of a video recorded sideways", async () => {
     const { projectId, jobId } = await createUploadedProject(userId, "rotated-2s.mp4");
     await runJob(jobId);
-    expect(await project(projectId)).toMatchObject({ status: "READY", width: 720, height: 1280 });
+    expect(await project(projectId)).toMatchObject({ status: "PROCESSING", width: 720, height: 1280 });
   });
 
   it("accepts WEBM", async () => {
     const { projectId, jobId } = await createUploadedProject(userId, "landscape-2s.webm");
     await runJob(jobId);
-    expect(await project(projectId)).toMatchObject({ status: "READY", width: 640, height: 360, videoCodec: "vp9" });
+    expect(await project(projectId)).toMatchObject({ status: "PROCESSING", width: 640, height: 360, videoCodec: "vp9" });
   });
 
   it("fails a video without audio right away, without retrying", async () => {
@@ -107,9 +109,12 @@ describe("VALIDATE_VIDEO", () => {
 });
 
 describe("DELETE_PROJECT_ASSETS", () => {
-  it("removes every object under the project and marks it DELETED", async () => {
+  it("removes every object and the captions of the project and marks it DELETED", async () => {
     const { projectId, jobId: validateJobId } = await createUploadedProject(userId, "vertical-2s.mp4");
     await runJob(validateJobId);
+    const transcribeJob = await db.job.findFirstOrThrow({ where: { projectId, type: "TRANSCRIBE_VIDEO" } });
+    await runJob(transcribeJob.id);
+    expect(await db.captionTrack.count({ where: { projectId } })).toBe(1);
     const prefix = projectPrefix(userId, projectId);
     expect((await storage.listKeys(prefix)).length).toBe(2); // source + thumbnail
 
@@ -118,6 +123,8 @@ describe("DELETE_PROJECT_ASSETS", () => {
 
     expect(await runJob(deleteJobId)).toMatchObject({ status: "SUCCEEDED" });
     expect(await storage.listKeys(prefix)).toEqual([]);
-    expect(await project(projectId)).toMatchObject({ status: "DELETED" });
+    expect(await project(projectId)).toMatchObject({ status: "DELETED", captionSample: null });
+    expect(await db.transcript.count({ where: { projectId } })).toBe(0);
+    expect(await db.captionTrack.count({ where: { projectId } })).toBe(0);
   });
 });

@@ -107,7 +107,11 @@ model Project {
   audioCodec         String?
   /// Set when status is FAILED; one of PROJECT_ERROR_CODES in @fala/shared.
   errorCode          String?
+  /// First caption block's words, for the dashboard card's caption sample.
+  captionSample      Json?
   jobs               Job[]
+  transcript         Transcript?
+  captionTrack       CaptionTrack?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   deletedAt          DateTime?
@@ -119,6 +123,7 @@ model Project {
 
 enum JobType {
   VALIDATE_VIDEO
+  TRANSCRIBE_VIDEO
   DELETE_PROJECT_ASSETS
 }
 
@@ -157,4 +162,40 @@ model Job {
   @@index([status, availableAt])
   @@index([projectId])
   @@map("job")
+}
+
+/// What the transcription provider returned, kept unchanged so edits never lose
+/// the original word timings (spec §9.3). Tied to the upload it was made from.
+model Transcript {
+  id                 String   @id @default(cuid())
+  projectId          String   @unique
+  project            Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  sourceObjectKey    String
+  provider           String
+  model              String?
+  language           String?
+  languageConfidence Float?
+  fullText           String
+  /// TranscriptWord[] (see captionTrackSchema in @fala/shared).
+  words              Json
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("transcript")
+}
+
+/// The captions the editor shows and edits: { words, blocks } validated by
+/// captionTrackSchema. `version` increases on every save (optimistic concurrency).
+model CaptionTrack {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  language  String?
+  words     Json
+  blocks    Json
+  version   Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("caption_track")
 }

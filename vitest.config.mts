@@ -11,6 +11,8 @@ const migrateTestDatabase = path.resolve(import.meta.dirname, "test/migrate-test
 const testEnv = {
   DATABASE_URL: process.env.DATABASE_URL_TEST ?? "",
   R2_BUCKET_NAME: process.env.R2_BUCKET_NAME_TEST ?? "",
+  // Tests never call a real transcription service.
+  TRANSCRIPTION_PROVIDER: "fake",
 };
 
 export default defineConfig({

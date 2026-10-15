@@ -39,3 +39,16 @@ export async function createUploadedProject(userId: string, fixture: string, sta
   const job = await enqueueJob(db, "VALIDATE_VIDEO", project.id, { projectId: project.id, sourceObjectKey: key });
   return { projectId: project.id, sourceObjectKey: key, jobId: job.id };
 }
+
+/** A validated project waiting for transcription (status PROCESSING) with its source in the test bucket. */
+export async function createProjectAwaitingTranscription(userId: string, fixture = "vertical-2s.mp4", durationMs = 2_000) {
+  const project = await db.project.create({
+    data: { userId, name: fixture, status: "PROCESSING", durationMs, width: 720, height: 1280 },
+    select: { id: true },
+  });
+  const key = sourceKey(userId, project.id, randomUUID().replaceAll("-", ""), path.extname(fixture).slice(1));
+  await testStorage().uploadFile(key, path.join(FIXTURES, fixture), "video/mp4");
+  await db.project.update({ where: { id: project.id }, data: { sourceObjectKey: key } });
+  const job = await enqueueJob(db, "TRANSCRIBE_VIDEO", project.id, { projectId: project.id, sourceObjectKey: key });
+  return { projectId: project.id, sourceObjectKey: key, jobId: job.id };
+}

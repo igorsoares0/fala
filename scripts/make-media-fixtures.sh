@@ -15,6 +15,10 @@ $FFMPEG "${common[@]}" -f lavfi -i "testsrc2=size=720x1280:rate=30:duration=2" -
 $FFMPEG "${common[@]}" -f lavfi -i "testsrc2=size=720x1280:rate=30:duration=2" \
   -c:v libx264 -preset veryfast -crf 35 -pix_fmt yuv420p -movflags +faststart no-audio-2s.mp4
 
+# Has an audio track, but it's silent: transcription finds no speech.
+$FFMPEG "${common[@]}" -f lavfi -i "testsrc2=size=720x1280:rate=30:duration=2" -f lavfi -i "anullsrc=r=48000:cl=mono" \
+  -c:v libx264 -preset veryfast -crf 35 -pix_fmt yuv420p -c:a aac -b:a 32k -movflags +faststart -shortest silent-2s.mp4
+
 # Stored landscape 1280x720 with 90° display rotation, as phones record portrait video.
 $FFMPEG "${common[@]}" -noautorotate -display_rotation 90 -f lavfi -i "testsrc2=size=1280x720:rate=30:duration=2" -f lavfi -i "sine=frequency=330:duration=2" \
   -c:v libx264 -preset veryfast -crf 35 -pix_fmt yuv420p -c:a aac -b:a 48k -shortest rotated-2s.mp4

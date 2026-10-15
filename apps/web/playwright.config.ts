@@ -49,6 +49,8 @@ export default defineConfig({
         ...testDatabaseAndBucket,
         WORKER_CONCURRENCY: "2",
         TEMP_DIR: "/tmp/fala-worker-e2e",
+        // Scripted captions, no network: E2E never calls the real transcription service.
+        TRANSCRIPTION_PROVIDER: "fake",
       },
     },
   ],
