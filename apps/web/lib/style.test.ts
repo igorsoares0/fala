@@ -60,16 +60,12 @@ describe("saveProjectStyle", () => {
     expect((await trackOf(id)).version).toBe(1);
   });
 
-  it("re-segments the captions when words per block changes", async () => {
+  it("leaves the captions alone: the editor re-segments and saves them itself", async () => {
     const id = await readyProject();
-    expect((await trackOf(id)).blocks).toHaveLength(2);
-
     await saveProjectStyle(owner.id, id, { presetKey: "bold", style: { ...PRESETS.bold.style, maxW: 1 } });
 
     const track = await trackOf(id);
-    expect(track.version).toBe(2);
-    expect(track.blocks).toHaveLength(6);
-    expect(track.words).toEqual(words);
-    expect((await db.project.findUniqueOrThrow({ where: { id } })).captionSample).toEqual(["one"]);
+    expect(track.version).toBe(1);
+    expect(track.blocks).toHaveLength(2);
   });
 });

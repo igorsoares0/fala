@@ -30,6 +30,8 @@ export const captionBlockSchema = z.object({
   wordEnd: z.int().min(0),
   startMs: ms,
   endMs: ms,
+  /** Timing was estimated after a text edit changed the word count ("estimated timing — check it"). */
+  realign: z.boolean().optional(),
 });
 
 export type CaptionBlock = z.infer<typeof captionBlockSchema>;

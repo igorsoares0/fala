@@ -34,13 +34,16 @@ export async function retryTranscription(userId: string, projectId: string): Pro
   return queued ? { ok: true } : { ok: false, status: 409, error: "Transcription is already running." };
 }
 
-/** The editable captions of a READY project, validated; null when there are none. */
-export async function getCaptionTrack(userId: string, projectId: string): Promise<CaptionTrack | null> {
-  const track = await db.captionTrack.findFirst({
+/** The editable captions of a READY project, validated, with their version; null when there are none. */
+export async function getCaptionTrack(
+  userId: string,
+  projectId: string,
+): Promise<{ track: CaptionTrack; version: number } | null> {
+  const row = await db.captionTrack.findFirst({
     where: { projectId, project: { userId, deletedAt: null } },
-    select: { language: true, words: true, blocks: true },
+    select: { language: true, words: true, blocks: true, version: true },
   });
-  if (!track) return null;
-  const parsed = captionTrackSchema.safeParse(track);
-  return parsed.success ? parsed.data : null;
+  if (!row) return null;
+  const parsed = captionTrackSchema.safeParse(row);
+  return parsed.success ? { track: parsed.data, version: row.version } : null;
 }

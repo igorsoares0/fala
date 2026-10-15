@@ -7,3 +7,4 @@ export * from "./jobs";
 export * from "./project-errors";
 export * from "./captions";
 export * from "./segment";
+export * from "./caption-edits";

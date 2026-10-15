@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatDuration, isRetryableProjectError, projectErrorFor, type CaptionTrack } from "@fala/shared";
+import { formatDuration, isRetryableProjectError, projectErrorFor } from "@fala/shared";
 import { ChooseFileButton } from "@/components/choose-file-button";
 import { ProcessingSteps, ProgressBar } from "@/components/processing-steps";
 import { RetryTranscriptionButton } from "@/components/retry-transcription-button";
@@ -11,7 +11,6 @@ import type { ProjectSummary } from "@/lib/projects";
 import { needsPolling, projectView, type ProcessingStage } from "@/lib/project-view";
 import { thumbnailSrc } from "@/lib/thumbnail";
 import { retryUpload, useLocalUpload } from "@/lib/upload-store";
-import { EditorShell } from "./editor/editor-shell";
 
 const PROCESSING_TITLES: Record<ProcessingStage, string> = {
   upload: "Uploading the video",
@@ -19,25 +18,12 @@ const PROCESSING_TITLES: Record<ProcessingStage, string> = {
   transcribe: "Transcribing the audio",
 };
 
-/** Editor body: processing progress, problems, or the video with its captions. */
-export function ProjectBody({ project, track }: { project: ProjectSummary; track: CaptionTrack | null }) {
+/** Editor body until captions exist: processing progress, problems, or a video without captions. The editor itself is EditorShell. */
+export function ProjectBody({ project }: { project: ProjectSummary }) {
   const local = useLocalUpload(project.id);
   const view = projectView(project.status, local);
   const [error, setError] = useState<string | null>(null);
 
-  if (view.kind === "settled" && track && project.durationMs) {
-    return (
-      <EditorShell
-        projectId={project.id}
-        durationMs={project.durationMs}
-        track={track}
-        style={project.style}
-        width={project.width}
-        height={project.height}
-        posterSrc={thumbnailSrc(project)}
-      />
-    );
-  }
 
   return (
     <main className="flex flex-1 items-center justify-center bg-[radial-gradient(70%_60%_at_50%_45%,#1d1b18,#12110f)] p-8">

@@ -4,18 +4,27 @@ import { createContext, useContext, useState } from "react";
 import { createStore, useStore, type StoreApi } from "zustand";
 import {
   activeBlockIndex,
+  editBlockText,
+  mergeWithNext,
+  nudgeBlock,
   PRESETS,
+  replaceMatches,
   segmentWords,
+  splitBlock,
   type CaptionStyle,
   type CaptionTrack,
   type PresetKey,
   type ProjectStyleInput,
 } from "@fala/shared";
+import { emptyHistory, recordChange, redoChange, undoChange, type History } from "@/lib/editor-history";
 
 /**
  * Editor state (spec §2: Zustand). One store per open editor, created from the
  * server's data. Playback time always comes from the <video> element (see
  * use-video-clock.ts); actions that move playback go through the element.
+ *
+ * The editable document is { track, presetKey, styleConfig }. Every change to it goes
+ * through `change()`, which records an undo step; autosave watches the same fields.
  */
 
 export const PLAYBACK_RATES = [1, 1.25, 1.5, 0.75] as const;
@@ -27,55 +36,132 @@ export type EditorInit = {
   projectId: string;
   durationMs: number;
   track: CaptionTrack;
+  /** Stored caption-track version; every save must be based on it (optimistic concurrency). */
+  version: number;
   style: ProjectStyleInput;
 };
 
-export type EditorState = EditorInit & {
-  presetKey: PresetKey;
-  styleConfig: CaptionStyle;
-  timeMs: number;
-  playing: boolean;
-  rate: number;
-  video: HTMLVideoElement | null;
+export type EditorDocument = { track: CaptionTrack; presetKey: PresetKey; styleConfig: CaptionStyle };
 
-  attachVideo: (video: HTMLVideoElement | null) => void;
-  setClock: (timeMs: number) => void;
-  setPlaying: (playing: boolean) => void;
-  seek: (timeMs: number) => void;
-  togglePlay: () => void;
-  prevBlock: () => void;
-  nextBlock: () => void;
-  cycleRate: () => void;
-  applyPreset: (presetKey: PresetKey) => void;
-  updateStyle: (patch: Partial<CaptionStyle>) => void;
-  restorePreset: () => void;
-};
+export type Toast = { id: number; message: string; action?: "undo" | "redo" };
 
-export function createEditorStore(init: EditorInit) {
+export type EditorState = Omit<EditorInit, "style"> &
+  EditorDocument & {
+    timeMs: number;
+    playing: boolean;
+    rate: number;
+    video: HTMLVideoElement | null;
+    selectedId: string | null;
+    editingId: string | null;
+    findOpen: boolean;
+    drawerOpen: boolean;
+    history: History<EditorDocument>;
+    toast: Toast | null;
+
+    attachVideo: (video: HTMLVideoElement | null) => void;
+    reloadSource: () => void;
+    setClock: (timeMs: number) => void;
+    setPlaying: (playing: boolean) => void;
+    seek: (timeMs: number) => void;
+    togglePlay: () => void;
+    prevBlock: () => void;
+    nextBlock: () => void;
+    cycleRate: () => void;
+
+    select: (blockId: string | null) => void;
+    startEditing: (blockId: string | null) => void;
+    applyText: (blockId: string, text: string) => void;
+    split: (blockId: string, afterWord: number) => void;
+    merge: (blockId: string) => void;
+    nudge: (blockId: string, edge: "start" | "end", deltaMs: number) => void;
+    replaceAll: (query: string, replacement: string) => number;
+
+    applyPreset: (presetKey: PresetKey) => void;
+    updateStyle: (patch: Partial<CaptionStyle>) => void;
+    restorePreset: () => void;
+
+    undo: () => void;
+    redo: () => void;
+    restoreDraft: (document: EditorDocument) => void;
+    setVersion: (version: number) => void;
+
+    setFindOpen: (open: boolean) => void;
+    setDrawerOpen: (open: boolean) => void;
+    showToast: (message: string, action?: Toast["action"]) => void;
+    dismissToast: () => void;
+  };
+
+export function createEditorStore({ style, ...init }: EditorInit) {
   return createStore<EditorState>()((set, get) => {
-    /** New style; when words per block changes, the blocks are re-segmented from the words. */
-    const setStyle = (presetKey: PresetKey, styleConfig: CaptionStyle) => {
-      const { track, durationMs, styleConfig: previous } = get();
-      const blocks =
-        styleConfig.maxW === previous.maxW
-          ? track.blocks
-          : segmentWords(track.words, { maxWords: styleConfig.maxW, durationMs, language: track.language });
-      set({ presetKey, styleConfig, track: { ...track, blocks } });
+    const documentOf = (state: EditorState): EditorDocument => ({
+      track: state.track,
+      presetKey: state.presetKey,
+      styleConfig: state.styleConfig,
+    });
+
+    /** Applies an edit to the document and records the previous state as an undo step. */
+    const change = (label: string, edit: (document: EditorDocument) => EditorDocument, coalesceKey?: string) => {
+      const before = documentOf(get());
+      const after = edit(before);
+      if (after.track === before.track && after.presetKey === before.presetKey && after.styleConfig === before.styleConfig) {
+        return false;
+      }
+      set({ ...after, history: recordChange(get().history, label, before, Date.now(), coalesceKey) });
+      return true;
     };
+
+    const indexOf = (blockId: string) => get().track.blocks.findIndex((block) => block.id === blockId);
+
+    /** New style; when words per block changes, the blocks are re-segmented from the words. */
+    const withStyle = (document: EditorDocument, presetKey: PresetKey, styleConfig: CaptionStyle): EditorDocument => {
+      if (styleConfig.maxW === document.styleConfig.maxW) return { ...document, presetKey, styleConfig };
+      const { durationMs } = get();
+      const blocks = segmentWords(document.track.words, {
+        maxWords: styleConfig.maxW,
+        durationMs,
+        language: document.track.language,
+      });
+      return { track: { ...document.track, blocks }, presetKey, styleConfig };
+    };
+
+    let toastId = 0;
+    let lastReloadAt = 0;
 
     return {
       ...init,
-      presetKey: init.style.presetKey,
-      styleConfig: init.style.style,
+      presetKey: style.presetKey,
+      styleConfig: style.style,
       timeMs: 0,
       playing: false,
       rate: 1,
       video: null,
+      selectedId: null,
+      editingId: null,
+      findOpen: false,
+      drawerOpen: false,
+      history: emptyHistory<EditorDocument>(),
+      toast: null,
 
       attachVideo: (video) => {
         // A new element (e.g. after the layout changes) keeps the chosen speed.
         if (video) video.playbackRate = get().rate;
         set({ video });
+      },
+      reloadSource: () => {
+        // The video URL is a signed redirect that expires after an hour: ask for a fresh one,
+        // then continue where playback was. At most every 10 s, so a broken file can't loop.
+        const { video, projectId, timeMs, playing } = get();
+        if (!video || Date.now() - lastReloadAt < 10_000) return;
+        lastReloadAt = Date.now();
+        video.addEventListener(
+          "loadedmetadata",
+          () => {
+            video.currentTime = timeMs / 1000;
+            if (playing) void video.play().catch(() => {});
+          },
+          { once: true },
+        );
+        video.src = `/api/projects/${projectId}/source?r=${lastReloadAt}`;
       },
       setClock: (timeMs) => set({ timeMs }),
       setPlaying: (playing) => set({ playing }),
@@ -118,9 +204,83 @@ export function createEditorStore(init: EditorInit) {
         set({ rate: next });
       },
 
-      applyPreset: (presetKey) => setStyle(presetKey, PRESETS[presetKey].style),
-      updateStyle: (patch) => setStyle(get().presetKey, { ...get().styleConfig, ...patch }),
-      restorePreset: () => setStyle(get().presetKey, PRESETS[get().presetKey].style),
+      select: (blockId) => set({ selectedId: blockId, editingId: blockId === get().editingId ? blockId : null }),
+      startEditing: (blockId) => set({ editingId: blockId, selectedId: blockId ?? get().selectedId }),
+
+      applyText: (blockId, text) => {
+        const index = indexOf(blockId);
+        if (index >= 0) change("text edit", (document) => ({ ...document, track: editBlockText(document.track, index, text) }));
+        set({ editingId: null });
+      },
+
+      split: (blockId, afterWord) => {
+        const index = indexOf(blockId);
+        if (index >= 0) change("split block", (document) => ({ ...document, track: splitBlock(document.track, index, afterWord) }));
+      },
+
+      merge: (blockId) => {
+        const index = indexOf(blockId);
+        if (index >= 0) change("merge blocks", (document) => ({ ...document, track: mergeWithNext(document.track, index) }));
+      },
+
+      nudge: (blockId, edge, deltaMs) => {
+        const index = indexOf(blockId);
+        if (index < 0) return;
+        const { durationMs } = get();
+        const moved = change(
+          "timing change",
+          (document) => ({ ...document, track: nudgeBlock(document.track, index, edge, deltaMs, durationMs) }),
+          `nudge:${blockId}:${edge}`,
+        );
+        // Moving a start: show the caption from its new start.
+        if (moved && edge === "start") get().seek(get().track.blocks[index].startMs + 1);
+      },
+
+      replaceAll: (query, replacement) => {
+        let count = 0;
+        change("replace", (document) => {
+          const result = replaceMatches(document.track, query, replacement);
+          count = result.count;
+          return { ...document, track: result.track };
+        });
+        if (count > 0) get().showToast(`${count} ${count === 1 ? "word replaced" : "words replaced"} · timing kept`, "undo");
+        return count;
+      },
+
+      applyPreset: (presetKey) =>
+        void change("preset change", (document) => withStyle(document, presetKey, PRESETS[presetKey].style)),
+      updateStyle: (patch) =>
+        void change(
+          "maxW" in patch ? "words per block" : "style change",
+          (document) => withStyle(document, document.presetKey, { ...document.styleConfig, ...patch }),
+          `style:${Object.keys(patch).join(",")}`,
+        ),
+      restorePreset: () =>
+        void change("restore preset", (document) => withStyle(document, document.presetKey, PRESETS[document.presetKey].style)),
+
+      undo: () => {
+        const step = undoChange(get().history, documentOf(get()));
+        if (!step) return;
+        set({ ...step.state, history: step.history, editingId: null });
+        get().showToast(`Undone: ${step.label}`, "redo");
+      },
+      redo: () => {
+        const step = redoChange(get().history, documentOf(get()));
+        if (!step) return;
+        set({ ...step.state, history: step.history, editingId: null });
+        get().showToast(`Redone: ${step.label}`, "undo");
+      },
+
+      restoreDraft: (document) => {
+        set({ ...document });
+        get().showToast("Restored changes that hadn't synced");
+      },
+      setVersion: (version) => set({ version }),
+
+      setFindOpen: (findOpen) => set({ findOpen }),
+      setDrawerOpen: (drawerOpen) => set({ drawerOpen }),
+      showToast: (message, action) => set({ toast: { id: ++toastId, message, action } }),
+      dismissToast: () => set({ toast: null }),
     };
   });
 }

@@ -1,17 +1,20 @@
 import { create } from "zustand";
 
 /**
- * Save state of everything the editor persists (project name, style; captions in 4b),
- * so the header shows one indicator. Only ever changed in the browser.
+ * Save state of everything the editor persists (project name, style, captions), so
+ * the header shows one indicator. Only ever changed in the browser.
+ *
+ * offline: couldn't reach the server — changes are kept in this browser and retried.
+ * conflict: another tab saved newer captions — this one must reload.
  */
-export type SaveState = "saved" | "saving" | "error";
-export type SaveSource = "name" | "style";
+export type SaveState = "saved" | "saving" | "offline" | "error" | "conflict";
+export type SaveSource = "name" | "style" | "captions";
 
-type Entry = { state: SaveState; retry?: () => void; error?: string };
+export type SaveEntry = { state: SaveState; retry?: () => void; error?: string };
 
 type SaveStatusStore = {
-  entries: Partial<Record<SaveSource, Entry>>;
-  report: (source: SaveSource, entry: Entry) => void;
+  entries: Partial<Record<SaveSource, SaveEntry>>;
+  report: (source: SaveSource, entry: SaveEntry) => void;
   reset: () => void;
 };
 
@@ -21,8 +24,19 @@ export const useSaveStatus = create<SaveStatusStore>((set) => ({
   reset: () => set({ entries: {} }),
 }));
 
-/** An error wins over saving, which wins over saved. */
-export function combineSaveStatus(entries: Partial<Record<SaveSource, Entry>>): Entry {
+const PRIORITY: SaveState[] = ["conflict", "error", "offline", "saving"];
+
+/** The most serious state wins: conflict, error, offline, saving, then saved. */
+export function combineSaveStatus(entries: Partial<Record<SaveSource, SaveEntry>>): SaveEntry {
   const all = Object.values(entries);
-  return all.find((entry) => entry.state === "error") ?? all.find((entry) => entry.state === "saving") ?? { state: "saved" };
+  for (const state of PRIORITY) {
+    const match = all.find((entry) => entry.state === state);
+    if (match) return match;
+  }
+  return { state: "saved" };
+}
+
+/** Changes exist that the server doesn't have and won't get without help. */
+export function hasUnsyncedChanges(entries: Partial<Record<SaveSource, SaveEntry>>): boolean {
+  return Object.values(entries).some((entry) => entry.state === "offline" || entry.state === "error" || entry.state === "conflict");
 }

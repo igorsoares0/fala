@@ -1,35 +1,58 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SaveIndicator } from "@/components/save-indicator";
+import { EditorHeader } from "../editor-header";
+import { ProjectNameInput } from "../project-name-input";
 import { CaptionsPanel } from "./captions-panel";
-import { EditorStoreProvider, type EditorInit } from "./editor-store";
-import { useEditorUi } from "./editor-ui";
+import { EditorStoreProvider, useEditor, useEditorStore, type EditorInit } from "./editor-store";
+import { EditorHeaderControls, UndoRedo } from "./header-controls";
 import { PreviewPanel } from "./preview-panel";
 import { StylePanel } from "./style-panel";
+import { EditorToast } from "./toast";
+import { readDraft, useAutosave } from "./use-autosave";
 import { useEditorShortcuts } from "./use-editor-shortcuts";
-import { useStyleAutosave } from "./use-style-autosave";
 
-type Props = EditorInit & { width: number | null; height: number | null; posterSrc: string };
+type Props = EditorInit & { name: string; width: number | null; height: number | null; posterSrc: string };
 
 /**
  * The editor for a project with captions (handoff §3):
  * ≥1100px three columns (captions · preview · style); 720–1099px captions + preview
  * with style in a drawer; <720px preview on top and Captions | Style tabs.
  */
-export function EditorShell({ width, height, posterSrc, ...init }: Props) {
+export function EditorShell({ name, width, height, posterSrc, ...init }: Props) {
   return (
     <EditorStoreProvider init={init}>
+      <EditorHeader>
+        <ProjectNameInput projectId={init.projectId} initialName={name} />
+        <SaveIndicator />
+        <UndoRedo />
+        <EditorHeaderControls />
+      </EditorHeader>
       <EditorLayout width={width} height={height} posterSrc={posterSrc} />
+      <EditorToast />
     </EditorStoreProvider>
   );
 }
 
+/** Brings back changes a previous visit couldn't sync (offline, closed tab), then autosave sends them. */
+function useRestoreDraft() {
+  const store = useEditorStore();
+  useEffect(() => {
+    const { projectId, version, restoreDraft } = store.getState();
+    const draft = readDraft(projectId, version);
+    if (draft) restoreDraft(draft);
+  }, [store]);
+}
+
 function EditorLayout({ width, height, posterSrc }: { width: number | null; height: number | null; posterSrc: string }) {
-  useStyleAutosave();
+  // Autosave subscribes first, so a restored draft is saved right away.
+  useAutosave();
+  useRestoreDraft();
   useEditorShortcuts();
   const [tab, setTab] = useState<"captions" | "style">("captions");
-  const drawerOpen = useEditorUi((ui) => ui.drawerOpen);
-  const setDrawerOpen = useEditorUi((ui) => ui.setDrawerOpen);
+  const drawerOpen = useEditor((state) => state.drawerOpen);
+  const setDrawerOpen = useEditor((state) => state.setDrawerOpen);
 
   useEffect(() => {
     if (!drawerOpen) return;
@@ -37,8 +60,6 @@ function EditorLayout({ width, height, posterSrc }: { width: number | null; heig
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [drawerOpen, setDrawerOpen]);
-  // The drawer is per editor visit.
-  useEffect(() => () => setDrawerOpen(false), [setDrawerOpen]);
 
   const tabButton = (value: typeof tab, label: string) => (
     <button

@@ -11,7 +11,7 @@ export function useVideoClock(video: HTMLVideoElement | null) {
 
   useEffect(() => {
     if (!video) return;
-    const { attachVideo, setClock, setPlaying } = store.getState();
+    const { attachVideo, setClock, setPlaying, reloadSource } = store.getState();
     attachVideo(video);
 
     let frame = 0;
@@ -31,6 +31,17 @@ export function useVideoClock(video: HTMLVideoElement | null) {
       read();
     };
 
+    // A network error mid-session usually means the signed URL expired.
+    let loaded = false;
+    const onLoaded = () => {
+      loaded = true;
+    };
+    const onError = () => {
+      if (loaded || video.error?.code === MediaError.MEDIA_ERR_NETWORK) reloadSource();
+    };
+
+    video.addEventListener("loadedmetadata", onLoaded);
+    video.addEventListener("error", onError);
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onStop);
     video.addEventListener("ended", onStop);
@@ -38,6 +49,8 @@ export function useVideoClock(video: HTMLVideoElement | null) {
     video.addEventListener("timeupdate", read);
     return () => {
       cancelAnimationFrame(frame);
+      video.removeEventListener("loadedmetadata", onLoaded);
+      video.removeEventListener("error", onError);
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onStop);
       video.removeEventListener("ended", onStop);

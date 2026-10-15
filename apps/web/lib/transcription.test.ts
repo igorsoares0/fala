@@ -67,7 +67,10 @@ describe("captions access", () => {
   it("returns the validated caption track to the owner only", async () => {
     const id = await processedProject({ status: "READY" });
     expect(await getCaptionTrack(intruder.id, id)).toBeNull();
-    expect(await getCaptionTrack(owner.id, id)).toMatchObject({ language: "en", words, blocks: [{ id: "b1" }] });
+    expect(await getCaptionTrack(owner.id, id)).toMatchObject({
+      version: 1,
+      track: { language: "en", words, blocks: [{ id: "b1" }] },
+    });
   });
 
   it("signs the video for the owner only", async () => {

@@ -23,6 +23,8 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   expect: { timeout: 10_000 },
+  // Most tests upload a video and wait for the worker to validate and transcribe it.
+  timeout: 60_000,
   webServer: [
     {
       // A production build: no on-demand compilation, so timings match real use.
@@ -47,7 +49,7 @@ export default defineConfig({
       gracefulShutdown: { signal: "SIGTERM", timeout: 10_000 },
       env: {
         ...testDatabaseAndBucket,
-        WORKER_CONCURRENCY: "2",
+        WORKER_CONCURRENCY: "4",
         TEMP_DIR: "/tmp/fala-worker-e2e",
         // Scripted captions, no network: E2E never calls the real transcription service.
         TRANSCRIPTION_PROVIDER: "fake",
