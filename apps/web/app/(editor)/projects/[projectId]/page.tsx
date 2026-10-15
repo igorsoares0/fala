@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/dal";
 import { getProject } from "@/lib/projects";
 import { getCaptionTrack } from "@/lib/transcription";
+import { SaveIndicator } from "@/components/save-indicator";
+import { EditorHeaderControls } from "./editor/header-controls";
 import { ProjectBody } from "./project-body";
 import { ProjectNameInput } from "./project-name-input";
 
@@ -28,6 +30,8 @@ async function Editor({ params }: { params: PageProps<"/projects/[projectId]">["
     <>
       <EditorHeaderShell>
         <ProjectNameInput projectId={project.id} initialName={project.name} />
+        <SaveIndicator />
+        {track && <EditorHeaderControls />}
       </EditorHeaderShell>
       <ProjectBody project={project} track={track} />
     </>
@@ -41,7 +45,7 @@ function EditorHeaderShell({ children }: { children?: React.ReactNode }) {
         href="/projects"
         className="rounded-lg px-2.5 py-1.5 text-[13.5px] font-semibold text-muted transition-colors hover:bg-panel-1 hover:text-text"
       >
-        ← Projects
+        ← <span className="max-[719px]:sr-only">Projects</span>
       </Link>
       <span className="h-5 w-px bg-line" aria-hidden />
       {children}

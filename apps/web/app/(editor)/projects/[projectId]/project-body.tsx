@@ -11,7 +11,7 @@ import type { ProjectSummary } from "@/lib/projects";
 import { needsPolling, projectView, type ProcessingStage } from "@/lib/project-view";
 import { thumbnailSrc } from "@/lib/thumbnail";
 import { retryUpload, useLocalUpload } from "@/lib/upload-store";
-import { CaptionsView } from "./captions-view";
+import { EditorShell } from "./editor/editor-shell";
 
 const PROCESSING_TITLES: Record<ProcessingStage, string> = {
   upload: "Uploading the video",
@@ -25,17 +25,17 @@ export function ProjectBody({ project, track }: { project: ProjectSummary; track
   const view = projectView(project.status, local);
   const [error, setError] = useState<string | null>(null);
 
-  if (view.kind === "settled" && track) {
+  if (view.kind === "settled" && track && project.durationMs) {
     return (
-      <main className="flex min-h-0 flex-1 flex-col">
-        <CaptionsView
-          projectId={project.id}
-          track={track}
-          width={project.width}
-          height={project.height}
-          posterSrc={thumbnailSrc(project)}
-        />
-      </main>
+      <EditorShell
+        projectId={project.id}
+        durationMs={project.durationMs}
+        track={track}
+        style={project.style}
+        width={project.width}
+        height={project.height}
+        posterSrc={thumbnailSrc(project)}
+      />
     );
   }
 

@@ -3,20 +3,13 @@
 import { useRef, useState, useTransition } from "react";
 import { PROJECT_NAME_MAX_LENGTH } from "@fala/shared";
 import { renameProjectAction } from "@/lib/project-actions";
+import { useSaveStatus } from "@/lib/save-status";
 
-type SaveState = "saved" | "saving" | "error";
-
-const SAVE_INDICATOR: Record<SaveState, { dot: string; label: string }> = {
-  saved: { dot: "bg-success", label: "Saved" },
-  saving: { dot: "bg-warning", label: "Saving…" },
-  error: { dot: "bg-danger", label: "Not saved" },
-};
-
+/** Inline project name: saves on blur or Enter, Esc reverts. Reports to the header's save indicator. */
 export function ProjectNameInput({ projectId, initialName }: { projectId: string; initialName: string }) {
   const [name, setName] = useState(initialName);
   const [savedName, setSavedName] = useState(initialName);
-  const [state, setState] = useState<SaveState>("saved");
-  const [error, setError] = useState<string | null>(null);
+  const report = useSaveStatus((store) => store.report);
   const [, startSaving] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -30,25 +23,20 @@ export function ProjectNameInput({ projectId, initialName }: { projectId: string
       setName(savedName);
       return;
     }
-    setState("saving");
-    setError(null);
+    report("name", { state: "saving" });
     startSaving(async () => {
       const result = await renameProjectAction(projectId, next);
       if (result.ok) {
         setSavedName(next);
         setName(next);
-        setState("saved");
+        report("name", { state: "saved" });
       } else {
-        setState("error");
-        setError(result.error);
+        report("name", { state: "error", error: result.error, retry: save });
       }
     });
   }
 
-  const indicator = SAVE_INDICATOR[state];
-
   return (
-    <div className="flex min-w-0 items-center gap-3">
       <input
         ref={inputRef}
         aria-label="Project name"
@@ -65,10 +53,5 @@ export function ProjectNameInput({ projectId, initialName }: { projectId: string
         }}
         className="w-[min(320px,40vw)] min-w-0 truncate rounded-lg border border-transparent bg-transparent px-2.5 py-1.5 text-[15px] font-semibold text-text outline-none transition-colors hover:border-line-strong focus:border-line-strong focus:bg-panel-1"
       />
-      <span className="flex items-center gap-2 font-mono text-[11.5px] text-muted" role="status" title={error ?? undefined}>
-        <span className={`size-1.5 rounded-full ${indicator.dot}`} aria-hidden />
-        <span className="max-sm:sr-only">{indicator.label}</span>
-      </span>
-    </div>
   );
 }

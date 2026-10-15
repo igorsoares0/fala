@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { activeBlockIndex, blockText, captionTrackSchema, isNoSpaceLanguage, normalizeWords } from "./captions";
+import { activeBlockIndex, activeWordIndex, blockText, captionTrackSchema, isNoSpaceLanguage, normalizeWords } from "./captions";
 
 const words = [
   { text: "Hello", startMs: 0, endMs: 300 },
@@ -73,5 +73,22 @@ describe("isNoSpaceLanguage", () => {
     expect(isNoSpaceLanguage("zh-TW")).toBe(true);
     expect(isNoSpaceLanguage("pt")).toBe(false);
     expect(isNoSpaceLanguage(null)).toBe(false);
+  });
+});
+
+describe("activeWordIndex", () => {
+  const block = { id: "b1", wordStart: 0, wordEnd: 1, startMs: 0, endMs: 900 };
+
+  it("is the last word of the block that has started", () => {
+    expect(activeWordIndex(words, block, 0)).toBe(0);
+    expect(activeWordIndex(words, block, 320)).toBe(0);
+    expect(activeWordIndex(words, block, 350)).toBe(1);
+    expect(activeWordIndex(words, block, 899)).toBe(1);
+  });
+
+  it("is relative to the block and -1 before its first word", () => {
+    const second = { id: "b2", wordStart: 2, wordEnd: 2, startMs: 1100, endMs: 1700 };
+    expect(activeWordIndex(words, second, 1150)).toBe(-1);
+    expect(activeWordIndex(words, second, 1200)).toBe(0);
   });
 });

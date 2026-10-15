@@ -9,7 +9,8 @@ import {
 /** Scales a px value authored at the 360px reference width to the container width. */
 const u = (value: number) => `${((value / CAPTION_REFERENCE_WIDTH) * 100).toFixed(3)}cqw`;
 
-const FONT_FAMILY: Record<CaptionStyle["font"], string> = {
+/** CSS font stacks of the caption faces (loaded with next/font in app/layout.tsx). */
+export const CAPTION_FONT_FAMILY: Record<CaptionStyle["font"], string> = {
   Anton: "var(--font-anton)",
   "Archivo Black": "var(--font-archivo-black)",
   "Schibsted Grotesk": "var(--font-schibsted)",
@@ -53,7 +54,7 @@ export function CaptionSample({
   return (
     <div style={box} aria-hidden>
       {words.map((word, index) => (
-        <span key={index} style={wordStyle(style, index, activeIndex)}>
+        <span key={index} style={wordStyle(style, index, activeIndex)} data-active={index === activeIndex || undefined}>
           {word}
         </span>
       ))}
@@ -63,7 +64,7 @@ export function CaptionSample({
 
 function wordStyle(style: CaptionStyle, index: number, activeIndex: number): CSSProperties {
   const s: CSSProperties = {
-    fontFamily: FONT_FAMILY[style.font],
+    fontFamily: CAPTION_FONT_FAMILY[style.font],
     fontWeight: CAPTION_FONT_WEIGHTS[style.font],
     fontSize: u(style.size),
     color: style.color,
@@ -75,6 +76,8 @@ function wordStyle(style: CaptionStyle, index: number, activeIndex: number): CSS
     WebkitTextStroke: style.outline ? `${u(style.ow)} #000` : "0",
     paintOrder: "stroke fill",
     textShadow: style.shadow ? `0 ${u(2)} ${u(10)} rgba(0,0,0,.6)` : "none",
+    // "Soft pop": the active word springs in; instant styles simply have no transform to animate.
+    transition: "transform 120ms cubic-bezier(.3,1.7,.5,1)",
   };
 
   if (index === activeIndex) {

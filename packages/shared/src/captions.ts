@@ -93,6 +93,20 @@ export function activeBlockIndex(blocks: readonly CaptionBlock[], timeMs: number
 }
 
 /**
+ * Index (within the block) of the word being spoken at `timeMs`: the last word that
+ * has started. Between two words the previous one stays active, so it never flickers.
+ * -1 before the block's first word.
+ */
+export function activeWordIndex(words: readonly TranscriptWord[], block: CaptionBlock, timeMs: number): number {
+  let active = -1;
+  for (let index = block.wordStart; index <= block.wordEnd; index++) {
+    if (words[index].startMs <= timeMs) active = index - block.wordStart;
+    else break;
+  }
+  return active;
+}
+
+/**
  * Cleans a provider's raw words: drops empty tokens, rounds to whole ms, keeps
  * them inside the video and in order, and guarantees every word has a duration.
  * Never invents timing by spreading words evenly (spec §9.1).

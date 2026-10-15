@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { db, enqueueJob } from "@fala/db";
+import { parseProjectStyle } from "./style";
 
 /**
  * Project data access. Every function takes the owner's `userId` and scopes the
@@ -18,6 +19,7 @@ const projectSummarySelect = {
   height: true,
   thumbnailObjectKey: true,
   captionSample: true,
+  style: { select: { presetKey: true, configuration: true } },
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -37,12 +39,13 @@ function findProjects(userId: string) {
 const captionSampleSchema = z.array(z.string()).max(20);
 
 /** Object keys stay on the server; the UI only needs to know a thumbnail exists. */
-function toSummary({ thumbnailObjectKey, captionSample, ...project }: ProjectRow) {
+function toSummary({ thumbnailObjectKey, captionSample, style, ...project }: ProjectRow) {
   const sample = captionSampleSchema.safeParse(captionSample);
   return {
     ...project,
     hasThumbnail: thumbnailObjectKey !== null,
     captionSample: sample.success && sample.data.length > 0 ? sample.data : null,
+    style: parseProjectStyle(style),
   };
 }
 

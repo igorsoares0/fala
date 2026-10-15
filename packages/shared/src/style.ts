@@ -173,3 +173,39 @@ export function contrastTextColor(background: string): "#111111" | "#ffffff" {
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.55 ? "#111111" : "#ffffff";
 }
+
+/** Text color swatches offered in the style panel. */
+export const TEXT_COLORS = [
+  { value: "#ffffff", name: "White" },
+  { value: "#f4efe6", name: "Cream" },
+  { value: "#ffd400", name: "Yellow" },
+  { value: "#111111", name: "Black" },
+] as const;
+
+/** Spoken-word highlight swatches offered in the style panel. */
+export const HIGHLIGHT_COLORS = [
+  { value: "#ffd400", name: "Yellow" },
+  { value: "#3ee07a", name: "Green" },
+  { value: "#ff5a1f", name: "Orange" },
+  { value: "#7ab8ff", name: "Blue" },
+  { value: "#ffffff", name: "White" },
+] as const;
+
+/** A project's caption style: the preset it started from plus the full, possibly adjusted, configuration. */
+export const projectStyleInputSchema = z.object({
+  presetKey: presetKeySchema,
+  style: captionStyleSchema,
+});
+
+export type ProjectStyleInput = z.infer<typeof projectStyleInputSchema>;
+
+/** True when `style` differs from the defaults of `presetKey` ("edited" tag, "Restore default"). */
+export function isPresetModified(presetKey: PresetKey, style: CaptionStyle): boolean {
+  const defaults = PRESETS[presetKey].style;
+  return (Object.keys(defaults) as (keyof CaptionStyle)[]).some((key) => defaults[key] !== style[key]);
+}
+
+export const DEFAULT_PROJECT_STYLE: ProjectStyleInput = {
+  presetKey: DEFAULT_PRESET_KEY,
+  style: PRESETS[DEFAULT_PRESET_KEY].style,
+};

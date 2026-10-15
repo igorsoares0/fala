@@ -4,7 +4,7 @@ import type { JobHandler } from "./types";
 
 type Payload = JobPayload<"DELETE_PROJECT_ASSETS">;
 
-/** Removes every stored object and the captions of a deleted project (spec FR-16). Safe to repeat. */
+/** Removes every stored object, the captions and the style of a deleted project (spec FR-16). Safe to repeat. */
 export const deleteProjectAssets: JobHandler<Payload> = {
   async run({ payload, storage }) {
     await storage.deletePrefix(projectPrefix(payload.userId, payload.projectId));
@@ -16,6 +16,7 @@ export const deleteProjectAssets: JobHandler<Payload> = {
       if (count !== 1) return;
       await tx.transcript.deleteMany({ where: { projectId: payload.projectId } });
       await tx.captionTrack.deleteMany({ where: { projectId: payload.projectId } });
+      await tx.projectStyle.deleteMany({ where: { projectId: payload.projectId } });
     };
   },
 

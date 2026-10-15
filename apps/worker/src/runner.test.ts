@@ -115,6 +115,7 @@ describe("DELETE_PROJECT_ASSETS", () => {
     const transcribeJob = await db.job.findFirstOrThrow({ where: { projectId, type: "TRANSCRIBE_VIDEO" } });
     await runJob(transcribeJob.id);
     expect(await db.captionTrack.count({ where: { projectId } })).toBe(1);
+    await db.projectStyle.create({ data: { projectId, presetKey: "word", configuration: {} } });
     const prefix = projectPrefix(userId, projectId);
     expect((await storage.listKeys(prefix)).length).toBe(2); // source + thumbnail
 
@@ -126,5 +127,6 @@ describe("DELETE_PROJECT_ASSETS", () => {
     expect(await project(projectId)).toMatchObject({ status: "DELETED", captionSample: null });
     expect(await db.transcript.count({ where: { projectId } })).toBe(0);
     expect(await db.captionTrack.count({ where: { projectId } })).toBe(0);
+    expect(await db.projectStyle.count({ where: { projectId } })).toBe(0);
   });
 });

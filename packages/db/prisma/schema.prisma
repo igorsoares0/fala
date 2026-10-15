@@ -112,6 +112,7 @@ model Project {
   jobs               Job[]
   transcript         Transcript?
   captionTrack       CaptionTrack?
+  style              ProjectStyle?
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   deletedAt          DateTime?
@@ -198,4 +199,18 @@ model CaptionTrack {
   updatedAt DateTime @updatedAt
 
   @@map("caption_track")
+}
+
+/// The project's caption style: the preset it started from plus the full configuration
+/// (validated with captionStyleSchema). Absent until the user changes the style.
+model ProjectStyle {
+  id            String   @id @default(cuid())
+  projectId     String   @unique
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  presetKey     String
+  configuration Json
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@map("project_style")
 }

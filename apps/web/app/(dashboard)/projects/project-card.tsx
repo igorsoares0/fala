@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { DEFAULT_PRESET_KEY, formatDuration, isRetryableProjectError, PRESETS, projectErrorFor } from "@fala/shared";
+import { formatDuration, isRetryableProjectError, projectErrorFor } from "@fala/shared";
 import { CaptionSample } from "@/components/caption-sample";
 import { ChooseFileButton } from "@/components/choose-file-button";
 import { ProcessingSteps, ProgressBar } from "@/components/processing-steps";
@@ -70,9 +70,8 @@ export function ProjectCard({ project }: { project: ProjectCardData }) {
           )}
           <span className="absolute inset-0 bg-[radial-gradient(90%_60%_at_50%_100%,rgba(0,0,0,.55),transparent_70%)]" />
           {view.kind === "settled" && project.captionSample && (
-            // Projects don't have their own style yet (Phase 4), so the sample uses the default preset.
             <CaptionSample
-              style={PRESETS[DEFAULT_PRESET_KEY].style}
+              style={project.style.style}
               words={project.captionSample}
               activeIndex={project.captionSample.length - 1}
             />
