@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
   },
   cacheComponents: true,
   partialPrefetching: true,
-  transpilePackages: ["@fala/shared", "@fala/db"],
+  transpilePackages: ["@fala/shared", "@fala/db", "@fala/storage"],
   serverExternalPackages: ["@prisma/client", "@prisma/adapter-pg", "pg"],
   turbopack: {
     root: repoRoot,

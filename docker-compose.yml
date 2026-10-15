@@ -17,5 +17,46 @@ services:
       timeout: 3s
       retries: 20
 
+  # S3-compatible object storage standing in for Cloudflare R2 locally.
+  # (MinIO no longer publishes community images.) Buckets are created on startup.
+  storage:
+    image: chrislusf/seaweedfs:4.48
+    restart: unless-stopped
+    command: >
+      mini -dir=/data -s3.config=/etc/seaweedfs/s3.json
+      -bucket=fala-dev,fala-test -admin.ui=false
+    ports:
+      - "8333:8333"
+    volumes:
+      - storage-data:/data
+      - ./docker/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
+
+  # Production image of the worker. Day-to-day development runs it on the host
+  # (`npm run dev:worker`); start this with `docker compose --profile worker up --build`.
+  worker:
+    profiles: ["worker"]
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      DATABASE_URL: postgresql://fala:fala@postgres:5432/fala_dev
+      R2_ENDPOINT: http://storage:8333
+      R2_REGION: auto
+      R2_ACCESS_KEY_ID: fala
+      R2_SECRET_ACCESS_KEY: fala-local-secret
+      R2_BUCKET_NAME: fala-dev
+      WORKER_CONCURRENCY: "1"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      storage:
+        condition: service_started
+    mem_limit: 2g
+    cpus: 2
+    stop_grace_period: 30s
+
 volumes:
   postgres-data:
+  storage-data:

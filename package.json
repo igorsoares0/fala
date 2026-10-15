@@ -15,7 +15,8 @@
     "test": "vitest run",
     "test:e2e": "npm run test:e2e -w @fala/web",
     "db:generate": "npm run generate -w @fala/db",
-    "db:migrate": "npm run migrate -w @fala/db"
+    "db:migrate": "npm run migrate -w @fala/db",
+    "dev:worker": "npm run dev -w @fala/worker"
   },
   "devDependencies": {
     "@types/node": "^24",

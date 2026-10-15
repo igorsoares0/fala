@@ -1,0 +1,10 @@
+**/node_modules
+**/.next
+**/test-results
+**/playwright-report
+.git
+.env
+.env.*
+docs
+fixtures
+apps/web

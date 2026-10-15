@@ -2,12 +2,17 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { formatDuration } from "@fala/shared";
+import { formatDuration, projectErrorFor } from "@fala/shared";
+import { ChooseFileButton } from "@/components/choose-file-button";
+import { ProcessingSteps, ProgressBar } from "@/components/processing-steps";
 import { StatusChip } from "@/components/status-chip";
+import { thumbnailSrc } from "@/lib/thumbnail";
 import { deleteProjectAction } from "@/lib/project-actions";
+import { chipStatus, projectView, type ProjectView } from "@/lib/project-view";
+import { cancelUpload, retryUpload, useLocalUpload } from "@/lib/upload-store";
 import type { ProjectCardData } from "./project-grid";
 
-/** Placeholder thumbnails until real ones come from the worker (Phase 2). */
+/** Placeholder backgrounds for projects without a thumbnail yet. */
 const THUMBNAIL_GRADIENTS = [
   "radial-gradient(45% 30% at 50% 55%,#7a5640,transparent),radial-gradient(120% 80% at 25% 15%,#4a3526,#1d1611 55%,#0d0b09)",
   "radial-gradient(50% 35% at 45% 50%,#3f5550,transparent),radial-gradient(120% 90% at 70% 10%,#24302d,#121615 60%,#0a0c0b)",
@@ -23,13 +28,19 @@ function gradientFor(id: string) {
   return THUMBNAIL_GRADIENTS[hash % THUMBNAIL_GRADIENTS.length];
 }
 
+const overlayButton =
+  "pointer-events-auto mt-1 self-start rounded-lg border border-[rgba(236,230,218,.25)] px-3 py-[7px] text-[12.5px] font-semibold text-text transition-colors hover:bg-text hover:text-ink";
+
 export function ProjectCard({ project }: { project: ProjectCardData }) {
+  const local = useLocalUpload(project.id);
+  const view = projectView(project.status, local);
   const [confirming, setConfirming] = useState(false);
   const [deleting, startDeleting] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   function confirmDelete() {
     startDeleting(async () => {
+      cancelUpload(project.id);
       const result = await deleteProjectAction(project.id);
       if (!result.ok) {
         setError(result.error);
@@ -45,6 +56,16 @@ export function ProjectCard({ project }: { project: ProjectCardData }) {
         style={{ background: gradientFor(project.id) }}
       >
         <Link href={`/projects/${project.id}`} className="absolute inset-0" aria-label={`Open ${project.name}`}>
+          {project.hasThumbnail && (
+            // A signed redirect from the private bucket; next/image can't optimize it.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={thumbnailSrc(project)}
+              alt=""
+              className="absolute inset-0 size-full object-cover"
+              data-testid="project-thumbnail"
+            />
+          )}
           <span className="absolute inset-0 bg-[radial-gradient(90%_60%_at_50%_100%,rgba(0,0,0,.55),transparent_70%)]" />
           {/* A caption sample in the project's preset joins here once transcripts exist (Phase 3). */}
           {project.durationMs != null && (
@@ -53,6 +74,8 @@ export function ProjectCard({ project }: { project: ProjectCardData }) {
             </span>
           )}
         </Link>
+
+        <CardOverlay view={view} project={project} onError={setError} />
 
         <button
           type="button"
@@ -97,7 +120,7 @@ export function ProjectCard({ project }: { project: ProjectCardData }) {
       <div className="flex flex-col gap-1.5 px-0.5">
         <span className="text-[14.5px] leading-[1.3] font-semibold tracking-[-0.01em] text-pretty">{project.name}</span>
         <div className="flex flex-wrap items-center gap-2">
-          <StatusChip status={project.status} />
+          <StatusChip status={chipStatus(project.status, view)} />
           <span className="font-mono text-[11px] text-muted">{project.dateLabel}</span>
         </div>
         {error && (
@@ -107,5 +130,68 @@ export function ProjectCard({ project }: { project: ProjectCardData }) {
         )}
       </div>
     </article>
+  );
+}
+
+/**
+ * Progress or problem shown over the thumbnail. Clicks pass through to the
+ * "open project" link except on the overlay's own button.
+ */
+function CardOverlay({
+  view,
+  project,
+  onError,
+}: {
+  view: ProjectView;
+  project: ProjectCardData;
+  onError: (message: string | null) => void;
+}) {
+  if (view.kind === "processing") {
+    return (
+      <div
+        className="pointer-events-none absolute inset-0 flex flex-col justify-end gap-3.5 bg-[rgba(18,17,15,.72)] px-4 py-[18px] backdrop-blur-[6px]"
+        data-testid="processing-overlay"
+      >
+        <span className="text-[30px] font-bold tracking-[-0.04em] tabular-nums">{view.percent}%</span>
+        <div className="text-[12.5px]">
+          <ProcessingSteps stage={view.stage} />
+        </div>
+        <ProgressBar percent={view.percent} />
+      </div>
+    );
+  }
+
+  if (view.kind === "settled") return null;
+
+  const copy =
+    view.kind === "failed"
+      ? projectErrorFor(project.errorCode)
+      : view.kind === "upload-failed"
+        ? { title: "The upload stopped", body: view.error }
+        : { title: "Upload interrupted", body: "The page closed before the video finished sending. Choose the file again." };
+
+  return (
+    <div className="pointer-events-none absolute inset-0 flex flex-col justify-end gap-2.5 bg-[rgba(18,17,15,.8)] px-4 py-[18px]">
+      <span aria-hidden className="text-[22px] text-danger-text">
+        ▲
+      </span>
+      <span className="text-[15px] font-bold tracking-[-0.01em]">{copy.title}</span>
+      <span className="text-[12.5px] text-pretty text-muted">{copy.body}</span>
+      {view.kind === "upload-failed" ? (
+        <button
+          type="button"
+          className={overlayButton}
+          onClick={() => {
+            if (!retryUpload(project.id)) onError("Choose the file again to retry.");
+          }}
+        >
+          Try again
+        </button>
+      ) : (
+        <ChooseFileButton projectId={project.id} className={overlayButton} onError={onError}>
+          {view.kind === "failed" ? "Upload another file" : "Choose the file"}
+        </ChooseFileButton>
+      )}
+    </div>
   );
 }

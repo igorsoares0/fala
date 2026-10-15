@@ -8,7 +8,7 @@ export default function setup() {
     throw new Error("DATABASE_URL_TEST is not set. Copy .env.example to .env and start `docker compose up -d`.");
   }
   execFileSync("npx", ["prisma", "migrate", "deploy"], {
-    cwd: path.resolve(__dirname, "../../../packages/db"),
+    cwd: path.resolve(__dirname, "../packages/db"),
     env: { ...process.env, DATABASE_URL: databaseUrl },
     stdio: "inherit",
   });

@@ -1,5 +1,5 @@
 import "server-only";
-import { db } from "@fala/db";
+import { db, enqueueJob } from "@fala/db";
 
 /**
  * Project data access. Every function takes the owner's `userId` and scopes the
@@ -11,16 +11,20 @@ const projectSummarySelect = {
   id: true,
   name: true,
   status: true,
+  errorCode: true,
   durationMs: true,
   width: true,
   height: true,
+  thumbnailObjectKey: true,
   createdAt: true,
   updatedAt: true,
 } as const;
 
+type ProjectRow = Awaited<ReturnType<typeof findProjects>>[number];
+
 const ownedAndLive = (userId: string) => ({ userId, deletedAt: null });
 
-export async function listProjects(userId: string) {
+function findProjects(userId: string) {
   return db.project.findMany({
     where: ownedAndLive(userId),
     select: projectSummarySelect,
@@ -28,13 +32,23 @@ export async function listProjects(userId: string) {
   });
 }
 
+/** Object keys stay on the server; the UI only needs to know a thumbnail exists. */
+function toSummary({ thumbnailObjectKey, ...project }: ProjectRow) {
+  return { ...project, hasThumbnail: thumbnailObjectKey !== null };
+}
+
+export async function listProjects(userId: string) {
+  return (await findProjects(userId)).map(toSummary);
+}
+
 export type ProjectSummary = Awaited<ReturnType<typeof listProjects>>[number];
 
 export async function getProject(userId: string, projectId: string) {
-  return db.project.findFirst({
+  const project = await db.project.findFirst({
     where: { id: projectId, ...ownedAndLive(userId) },
     select: projectSummarySelect,
   });
+  return project ? toSummary(project) : null;
 }
 
 export async function createProject(userId: string, name: string) {
@@ -54,13 +68,22 @@ export async function renameProject(userId: string, projectId: string, name: str
 }
 
 /**
- * Soft delete: hides the project immediately and marks it for asset cleanup,
- * which the worker performs in a later phase. Returns false when not owned.
+ * Soft delete: hides the project immediately, cancels its queued work and asks the
+ * worker to remove its stored files (spec FR-16). Returns false when not owned.
  */
 export async function deleteProject(userId: string, projectId: string) {
-  const { count } = await db.project.updateMany({
-    where: { id: projectId, ...ownedAndLive(userId) },
-    data: { deletedAt: new Date(), status: "DELETION_PENDING" },
+  return db.$transaction(async (tx) => {
+    const { count } = await tx.project.updateMany({
+      where: { id: projectId, ...ownedAndLive(userId) },
+      data: { deletedAt: new Date(), status: "DELETION_PENDING" },
+    });
+    if (count !== 1) return false;
+
+    await tx.job.updateMany({
+      where: { projectId, status: { in: ["PENDING", "RETRY_WAIT"] } },
+      data: { status: "CANCELLED", completedAt: new Date() },
+    });
+    await enqueueJob(tx, "DELETE_PROJECT_ASSETS", projectId, { projectId, userId }, { maxAttempts: 5 });
+    return true;
   });
-  return count === 1;
 }

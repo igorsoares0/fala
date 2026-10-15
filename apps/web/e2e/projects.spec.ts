@@ -4,7 +4,10 @@ import { createProject, signUp, uniqueEmail } from "./helpers";
 test("create a project from a file, rename it, then delete it", async ({ page }) => {
   await signUp(page, { name: "Creator", email: uniqueEmail("crud") });
 
-  await createProject(page, "Morning_vlog take 2.mp4");
+  // Dropping a file creates the project on the dashboard; opening it leads to the editor.
+  const newCard = await createProject(page, "Morning_vlog take 2.mp4");
+  await newCard.getByRole("link", { name: "Open Morning vlog take 2" }).click();
+  await expect(page).toHaveURL(/\/projects\/[^/]+$/);
   const nameInput = page.getByLabel("Project name");
   await expect(nameInput).toHaveValue("Morning vlog take 2");
 
@@ -20,7 +23,6 @@ test("create a project from a file, rename it, then delete it", async ({ page })
   await expect(page).toHaveURL(/\/projects$/);
   const card = page.getByRole("article", { name: "Morning vlog — final" });
   await expect(card).toBeVisible();
-  await expect(card.getByText("Waiting for upload")).toBeVisible();
   await expect(page.getByText("1 video", { exact: true })).toBeVisible();
 
   // Deleting asks first; "Keep" cancels.
@@ -34,15 +36,22 @@ test("create a project from a file, rename it, then delete it", async ({ page })
   await expect(page.getByText("0 videos")).toBeVisible();
 });
 
-test("another account cannot open someone else's project", async ({ browser }) => {
+test("another account cannot open someone else's project or its thumbnail", async ({ browser }) => {
   const ownerPage = await (await browser.newContext()).newPage();
   await signUp(ownerPage, { name: "Owner", email: uniqueEmail("owner") });
-  await createProject(ownerPage, "Secret plans.mov");
-  const projectUrl = ownerPage.url();
+  const card = await createProject(ownerPage, "Secret plans.mov");
+  await expect(card.getByText("Ready")).toBeVisible({ timeout: 30_000 });
+  const href = await card.getByRole("link", { name: "Open Secret plans" }).getAttribute("href");
+  const projectUrl = new URL(href!, ownerPage.url()).toString();
 
   const otherPage = await (await browser.newContext()).newPage();
   await signUp(otherPage, { name: "Other", email: uniqueEmail("other") });
   await otherPage.goto(projectUrl);
   await expect(otherPage.getByRole("heading", { name: "Nothing here" })).toBeVisible();
   await expect(otherPage.getByText("Secret plans")).toHaveCount(0);
+
+  // The owner gets redirected to the signed image; anyone else gets a 404.
+  const thumbnailPath = `${href}/thumbnail`.replace(/^\/projects/, "/api/projects");
+  expect((await otherPage.request.get(thumbnailPath, { maxRedirects: 0 })).status()).toBe(404);
+  expect((await ownerPage.request.get(thumbnailPath, { maxRedirects: 0 })).status()).toBe(302);
 });

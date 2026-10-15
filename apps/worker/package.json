@@ -1,0 +1,23 @@
+{
+  "name": "@fala/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "dotenv -e ../../.env -- tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "start:local": "dotenv -e ../../.env -- tsx src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fala/db": "*",
+    "@fala/shared": "*",
+    "@fala/storage": "*",
+    "tsx": "4.23.14",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "dotenv-cli": "^11.0.0"
+  }
+}

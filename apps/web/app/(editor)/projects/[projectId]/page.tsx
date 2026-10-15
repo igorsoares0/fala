@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { StatusChip } from "@/components/status-chip";
 import { requireUser } from "@/lib/dal";
 import { getProject } from "@/lib/projects";
+import { ProjectBody } from "./project-body";
 import { ProjectNameInput } from "./project-name-input";
 
 export default function ProjectPage({ params }: PageProps<"/projects/[projectId]">) {
@@ -27,16 +27,7 @@ async function Editor({ params }: { params: PageProps<"/projects/[projectId]">["
       <EditorHeaderShell>
         <ProjectNameInput projectId={project.id} initialName={project.name} />
       </EditorHeaderShell>
-      <main className="flex flex-1 items-center justify-center bg-[radial-gradient(70%_60%_at_50%_45%,#1d1b18,#12110f)] p-8">
-        <div className="flex max-w-[420px] flex-col items-center gap-4 text-center">
-          <StatusChip status={project.status} />
-          <h1 className="text-[22px] font-bold tracking-[-0.03em]">Upload is on its way</h1>
-          <p className="text-sm text-pretty text-muted">
-            This project was created from your file name. Sending the video, transcription and the caption editor
-            arrive in the next milestones.
-          </p>
-        </div>
-      </main>
+      <ProjectBody project={project} />
     </>
   );
 }

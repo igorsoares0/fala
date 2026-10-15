@@ -1,0 +1,9 @@
+{
+  "identities": [
+    {
+      "name": "fala-local",
+      "credentials": [{ "accessKey": "fala", "secretKey": "fala-local-secret" }],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

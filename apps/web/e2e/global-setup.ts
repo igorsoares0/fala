@@ -1,4 +1,4 @@
-import migrateTestDatabase from "../test/global-setup";
+import migrateTestDatabase from "../../../test/migrate-test-db";
 
 export default function globalSetup() {
   migrateTestDatabase();

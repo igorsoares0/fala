@@ -103,6 +103,11 @@ model Project {
   width              Int?
   height             Int?
   sourceMimeType     String?
+  videoCodec         String?
+  audioCodec         String?
+  /// Set when status is FAILED; one of PROJECT_ERROR_CODES in @fala/shared.
+  errorCode          String?
+  jobs               Job[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   deletedAt          DateTime?
@@ -110,4 +115,46 @@ model Project {
   @@index([userId, deletedAt, createdAt])
   @@index([status])
   @@map("project")
+}
+
+enum JobType {
+  VALIDATE_VIDEO
+  DELETE_PROJECT_ASSETS
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  RETRY_WAIT
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+/// Postgres-backed job queue (spec §7). Workers claim rows with FOR UPDATE SKIP LOCKED
+/// and hold a lease; an expired lease makes a RUNNING job claimable again.
+model Job {
+  id               String    @id @default(cuid())
+  projectId        String
+  project          Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type             JobType
+  status           JobStatus @default(PENDING)
+  payload          Json
+  attempts         Int       @default(0)
+  maxAttempts      Int       @default(3)
+  availableAt      DateTime  @default(now())
+  lockedBy         String?
+  lockedAt         DateTime?
+  leaseExpiresAt   DateTime?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  lastErrorCode    String?
+  /// Sanitized: no URLs, keys or credentials.
+  lastErrorMessage String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  @@index([status, availableAt])
+  @@index([projectId])
+  @@map("job")
 }

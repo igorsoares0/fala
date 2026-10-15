@@ -13,12 +13,14 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fala/shared": "*",
     "@prisma/adapter-pg": "7.10.0",
     "@prisma/client": "7.10.0",
     "pg": "^8.23.1"
   },
   "devDependencies": {
     "@types/pg": "^8.23.1",
+    "dotenv": "^17",
     "prisma": "7.10.0"
   }
 }

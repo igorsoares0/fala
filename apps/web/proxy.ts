@@ -20,6 +20,7 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Everything except auth API, Next internals and static files.
-  matcher: ["/((?!api/auth|_next/static|_next/image|favicon.ico|.*\\.[a-zA-Z0-9]+$).*)"],
+  // Everything except API routes (they answer 401 themselves, see lib/api.ts),
+  // Next internals and static files.
+  matcher: ["/((?!api/|_next/static|_next/image|favicon.ico|.*\\.[a-zA-Z0-9]+$).*)"],
 };

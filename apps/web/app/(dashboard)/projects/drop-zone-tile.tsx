@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useState, type DragEvent } from "react";
-
-const ACCEPTED_TYPES = "video/mp4,video/quicktime,video/webm,.mp4,.mov,.webm";
+import { VIDEO_FILE_ACCEPT } from "@/lib/check-video-file";
 
 export function DropZoneTile({ onFile, busy }: { onFile: (file: File) => void; busy: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -51,7 +50,7 @@ export function DropZoneTile({ onFile, busy }: { onFile: (file: File) => void; b
       <input
         ref={inputRef}
         type="file"
-        accept={ACCEPTED_TYPES}
+        accept={VIDEO_FILE_ACCEPT}
         className="hidden"
         data-testid="new-video-input"
         onChange={(event) => {
