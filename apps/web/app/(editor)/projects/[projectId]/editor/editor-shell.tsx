@@ -6,31 +6,43 @@ import { EditorHeader } from "../editor-header";
 import { ProjectNameInput } from "../project-name-input";
 import { CaptionsPanel } from "./captions-panel";
 import { EditorStoreProvider, useEditor, useEditorStore, type EditorInit } from "./editor-store";
+import { ExportDialog } from "./export-dialog";
 import { EditorHeaderControls, UndoRedo } from "./header-controls";
 import { PreviewPanel } from "./preview-panel";
 import { StylePanel } from "./style-panel";
 import { EditorToast } from "./toast";
 import { readDraft, useAutosave } from "./use-autosave";
 import { useEditorShortcuts } from "./use-editor-shortcuts";
+import { ExportsProvider } from "./use-exports";
+import type { ExportView } from "@/lib/exports";
 
-type Props = EditorInit & { name: string; width: number | null; height: number | null; posterSrc: string };
+type Props = EditorInit & {
+  name: string;
+  width: number | null;
+  height: number | null;
+  posterSrc: string;
+  exports: ExportView[];
+};
 
 /**
  * The editor for a project with captions (handoff §3):
  * ≥1100px three columns (captions · preview · style); 720–1099px captions + preview
  * with style in a drawer; <720px preview on top and Captions | Style tabs.
  */
-export function EditorShell({ name, width, height, posterSrc, ...init }: Props) {
+export function EditorShell({ name, width, height, posterSrc, exports, ...init }: Props) {
   return (
     <EditorStoreProvider init={init}>
-      <EditorHeader>
-        <ProjectNameInput projectId={init.projectId} initialName={name} />
-        <SaveIndicator />
-        <UndoRedo />
-        <EditorHeaderControls />
-      </EditorHeader>
-      <EditorLayout width={width} height={height} posterSrc={posterSrc} />
-      <EditorToast />
+      <ExportsProvider initial={exports}>
+        <EditorHeader>
+          <ProjectNameInput projectId={init.projectId} initialName={name} />
+          <SaveIndicator />
+          <UndoRedo />
+          <EditorHeaderControls />
+        </EditorHeader>
+        <EditorLayout width={width} height={height} posterSrc={posterSrc} />
+        <EditorToast />
+        <ExportDialog width={width} height={height} />
+      </ExportsProvider>
     </EditorStoreProvider>
   );
 }

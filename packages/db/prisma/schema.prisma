@@ -113,6 +113,7 @@ model Project {
   transcript         Transcript?
   captionTrack       CaptionTrack?
   style              ProjectStyle?
+  exports            Export[]
   createdAt          DateTime      @default(now())
   updatedAt          DateTime      @updatedAt
   deletedAt          DateTime?
@@ -125,6 +126,7 @@ model Project {
 enum JobType {
   VALIDATE_VIDEO
   TRANSCRIBE_VIDEO
+  RENDER_EXPORT
   DELETE_PROJECT_ASSETS
 }
 
@@ -143,6 +145,9 @@ model Job {
   id               String    @id @default(cuid())
   projectId        String
   project          Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// Set for RENDER_EXPORT jobs.
+  exportId         String?
+  export           Export?   @relation(fields: [exportId], references: [id], onDelete: Cascade)
   type             JobType
   status           JobStatus @default(PENDING)
   payload          Json
@@ -162,6 +167,7 @@ model Job {
 
   @@index([status, availableAt])
   @@index([projectId])
+  @@index([exportId])
   @@map("job")
 }
 
@@ -213,4 +219,43 @@ model ProjectStyle {
   updatedAt     DateTime @updatedAt
 
   @@map("project_style")
+}
+
+enum ExportStatus {
+  QUEUED
+  RENDERING
+  SUCCEEDED
+  FAILED
+}
+
+/// One rendered MP4 (spec FR-11, FR-12). Never overwritten: a new render is a new version.
+model Export {
+  id            String       @id @default(cuid())
+  projectId     String
+  project       Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// v1, v2… per project.
+  version       Int
+  status        ExportStatus @default(QUEUED)
+  /// 0–100 while rendering.
+  progress      Int          @default(0)
+  /// Requested short side (720 or 1080).
+  resolution    Int
+  /// Frozen captions, style and source (`exportSnapshotSchema`); later edits never change it.
+  snapshot      Json
+  objectKey     String?
+  width         Int?
+  height        Int?
+  durationMs    Int?
+  fileSizeBytes Int?
+  errorCode     String?
+  jobs          Job[]
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@unique([projectId, version])
+  @@index([projectId, createdAt])
+  @@index([status])
+  @@map("export")
 }

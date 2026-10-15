@@ -1,4 +1,7 @@
-import type { ProjectErrorCode } from "@fala/shared";
+import type { ExportErrorCode, ProjectErrorCode } from "@fala/shared";
+
+/** A project failure (upload, transcription) or an export failure (rendering). */
+export type JobErrorCode = ProjectErrorCode | ExportErrorCode;
 
 /**
  * A failure with a known cause. `retryable: false` means repeating the job can't
@@ -6,7 +9,7 @@ import type { ProjectErrorCode } from "@fala/shared";
  */
 export class JobError extends Error {
   constructor(
-    readonly code: ProjectErrorCode,
+    readonly code: JobErrorCode,
     message: string,
     readonly options: { retryable: boolean },
   ) {

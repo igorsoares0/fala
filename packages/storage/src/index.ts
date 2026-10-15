@@ -69,8 +69,14 @@ export function createStorage(config: StorageConfig) {
       });
     },
 
-    presignGet(key: string, expiresInSeconds: number) {
-      return getSignedUrl(client, new GetObjectCommand({ Bucket, Key: key }), { expiresIn: expiresInSeconds });
+    /** URL for reading `key`. With `downloadName`, browsers save the file under that name instead of playing it. */
+    presignGet(key: string, expiresInSeconds: number, options: { downloadName?: string } = {}) {
+      const command = new GetObjectCommand({
+        Bucket,
+        Key: key,
+        ResponseContentDisposition: options.downloadName ? attachmentDisposition(options.downloadName) : undefined,
+      });
+      return getSignedUrl(client, command, { expiresIn: expiresInSeconds });
     },
 
     /** Size and type of a stored object, or null when it doesn't exist. */
@@ -140,6 +146,13 @@ export function createStorage(config: StorageConfig) {
 }
 
 export type Storage = ReturnType<typeof createStorage>;
+
+/** `Content-Disposition` for a download: an ASCII fallback plus the exact UTF-8 name (RFC 6266). */
+export function attachmentDisposition(fileName: string): string {
+  const fallback = fileName.normalize("NFKD").replace(/[^\x20-\x7e]/g, "").replace(/["\\]/g, "") || "download";
+  const encoded = encodeURIComponent(fileName).replace(/['()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+  return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+}
 
 function isNotFound(error: unknown) {
   return (

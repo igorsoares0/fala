@@ -18,6 +18,8 @@ import { useEditorStore, type EditorDocument, type EditorState, type EditorStore
 const STYLE_DEBOUNCE_MS = 600;
 const CAPTIONS_DEBOUNCE_MS = 900;
 const MAX_RETRY_DELAY_MS = 30_000;
+/** How long an export waits for pending edits to reach the server. */
+const FLUSH_TIMEOUT_MS = 20_000;
 
 type Outcome =
   | { kind: "saved" }
@@ -37,6 +39,8 @@ type Channel = {
   flushNow: () => void;
   /** True while this channel holds changes the server doesn't have yet. */
   isDirty: () => boolean;
+  /** Saving stopped on offline, an error or a conflict: waiting won't make it "saved". */
+  isStuck: () => boolean;
   dispose: () => void;
 };
 
@@ -125,6 +129,7 @@ function createChannel({
     },
     flushNow: () => void flush(),
     isDirty: () => timer !== undefined || inFlight || pending || last !== "saved",
+    isStuck: () => !inFlight && (last === "offline" || last === "error" || last === "conflict"),
     dispose: () => {
       disposed = true;
       clearTimeout(timer);
@@ -247,6 +252,21 @@ export function useAutosave() {
       else clearDraft(state().projectId);
     }
 
+    // Before an export freezes the project: send everything now and wait for the server to have it.
+    store.setState({
+      flushSaves: async () => {
+        style.flushNow();
+        captions.flushNow();
+        const deadline = Date.now() + FLUSH_TIMEOUT_MS;
+        while (Date.now() < deadline) {
+          if (style.isStuck() || captions.isStuck()) return false;
+          if (!style.isDirty() && !captions.isDirty()) return true;
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+        return false;
+      },
+    });
+
     const unsubscribe = (store as EditorStore).subscribe((next, previous) => {
       const trackChanged = next.track !== previous.track;
       const styleChanged = next.presetKey !== previous.presetKey || next.styleConfig !== previous.styleConfig;
@@ -264,6 +284,7 @@ export function useAutosave() {
 
     return () => {
       unsubscribe();
+      store.setState({ flushSaves: async () => true });
       window.removeEventListener("beforeunload", onBeforeUnload);
       // Navigating away inside the app with a change still waiting: send it now.
       if (style.isDirty()) style.flushNow();

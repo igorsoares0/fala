@@ -1,6 +1,6 @@
 import path from "node:path";
 import { db, enqueueJob } from "@fala/db";
-import { thumbnailKey, uploadIdFromSourceKey, type JobPayload } from "@fala/shared";
+import { projectErrorCodeSchema, thumbnailKey, uploadIdFromSourceKey, type JobPayload } from "@fala/shared";
 import { JobError } from "../errors";
 import { evaluateProbe } from "../media/evaluate-probe";
 import { probeFile } from "../media/probe";
@@ -63,6 +63,7 @@ export const validateVideo: JobHandler<Payload> = {
   },
 
   async onPermanentFailure(tx, payload, code) {
-    await tx.project.updateMany({ where: stillWaitingFor(payload), data: { status: "FAILED", errorCode: code } });
+    const errorCode = projectErrorCodeSchema.safeParse(code).success ? code : "PROCESSING_FAILED";
+    await tx.project.updateMany({ where: stillWaitingFor(payload), data: { status: "FAILED", errorCode } });
   },
 };

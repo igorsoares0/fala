@@ -35,7 +35,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCardData[] }) {
 
   return (
     <>
-      <StatusPoller active={projects.some((project) => needsPolling(project.status, uploads.get(project.id)))} />
+      <StatusPoller active={projects.some((project) => needsPolling(project.status, uploads.get(project.id), project.latestExport))} />
       {error && (
         <p role="alert" className="mb-4 text-[13px] text-danger-text">
           {error}

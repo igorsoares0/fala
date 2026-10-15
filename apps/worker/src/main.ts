@@ -3,6 +3,7 @@ import { db } from "@fala/db";
 import { createStorage } from "@fala/storage";
 import { loadConfig } from "./config";
 import { log, sanitizeErrorMessage } from "./log";
+import { closeBrowser } from "./media/overlay";
 import { createRunner } from "./runner";
 import { sweepStaleTempDirs } from "./temp";
 
@@ -44,6 +45,7 @@ async function main() {
       runner.interruptAll();
       await loops;
     }
+    await closeBrowser().catch(() => {});
     await db.$disconnect();
     log.info("worker.stopped", { signal });
     process.exit(0);

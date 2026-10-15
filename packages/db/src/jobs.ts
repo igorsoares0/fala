@@ -12,11 +12,11 @@ export async function enqueueJob<T extends JobType>(
   type: T,
   projectId: string,
   payload: JobPayload<T>,
-  options: { maxAttempts?: number } = {},
+  options: { maxAttempts?: number; exportId?: string } = {},
 ) {
   const validPayload = jobPayloadSchemas[type].parse(payload) as Prisma.InputJsonValue;
   return tx.job.create({
-    data: { type, projectId, payload: validPayload, maxAttempts: options.maxAttempts },
+    data: { type, projectId, payload: validPayload, maxAttempts: options.maxAttempts, exportId: options.exportId },
     select: { id: true },
   });
 }

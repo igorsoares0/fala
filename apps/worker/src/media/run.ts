@@ -16,6 +16,8 @@ type RunOptions = {
   /** Bytes of stdout kept before the process is killed. */
   maxOutputBytes?: number;
   signal?: AbortSignal;
+  /** Receives stdout as it arrives (e.g. FFmpeg's `-progress pipe:1`); stdout is then not collected. */
+  onStdout?: (chunk: string) => void;
 };
 
 const STDERR_TAIL_BYTES = 4_000;
@@ -45,6 +47,7 @@ export function runCommand(binary: string, args: string[], options: RunOptions):
     options.signal?.addEventListener("abort", onAbort, { once: true });
 
     child.stdout.on("data", (chunk: Buffer) => {
+      if (options.onStdout) return options.onStdout(chunk.toString("utf8"));
       stdoutBytes += chunk.length;
       if (stdoutBytes > maxOutputBytes) stop(new CommandError(`${binary} output too large`, "output-limit", stderr));
       else stdout.push(chunk);

@@ -24,11 +24,19 @@ FROM manifests AS runtime
 ENV NODE_ENV=production \
     TEMP_DIR=/tmp/fala-worker \
     FFMPEG_PATH=/usr/local/bin/ffmpeg \
-    FFPROBE_PATH=/usr/local/bin/ffprobe
+    FFPROBE_PATH=/usr/local/bin/ffprobe \
+    PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 RUN npm ci --omit=dev -w @fala/worker -w @fala/db -w @fala/shared -w @fala/storage \
     && npm cache clean --force
+# Export renders draw captions with headless Chromium (the version pinned by playwright-core).
+# Noto covers the scripts the bundled caption fonts don't (CJK, Arabic, Cyrillic, Devanagari…).
+RUN npx playwright-core install --with-deps chromium-headless-shell \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends fonts-noto-core fonts-noto-cjk \
+    && rm -rf /var/lib/apt/lists/*
 COPY --from=ffmpeg /ffmpeg /ffprobe /usr/local/bin/
 COPY packages/shared/src packages/shared/src
+COPY packages/shared/fonts packages/shared/fonts
 COPY packages/storage/src packages/storage/src
 COPY packages/db/src packages/db/src
 COPY --from=build /app/packages/db/src/generated packages/db/src/generated

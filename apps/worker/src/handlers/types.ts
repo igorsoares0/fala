@@ -1,7 +1,7 @@
 import type { Prisma } from "@fala/db";
-import type { ProjectErrorCode } from "@fala/shared";
 import type { Storage } from "@fala/storage";
 import type { WorkerConfig } from "../config";
+import type { JobErrorCode } from "../errors";
 import type { ClaimedJob } from "../queue";
 import type { TranscriptionProvider } from "../transcription";
 
@@ -20,8 +20,8 @@ export type ApplyResult = (tx: Prisma.TransactionClient) => Promise<void>;
 export type JobHandler<Payload> = {
   /** Does the slow work outside any transaction and returns how to publish the result. */
   run(context: HandlerContext<Payload>): Promise<ApplyResult>;
-  /** Records a permanent failure on the project, in the same transaction that fails the job. */
-  onPermanentFailure(tx: Prisma.TransactionClient, payload: Payload, code: ProjectErrorCode): Promise<void>;
+  /** Records a permanent failure (on the project or the export), in the same transaction that fails the job. */
+  onPermanentFailure(tx: Prisma.TransactionClient, payload: Payload, code: JobErrorCode): Promise<void>;
 };
 
 export const noChanges: ApplyResult = async () => {};

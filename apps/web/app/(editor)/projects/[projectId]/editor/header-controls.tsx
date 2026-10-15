@@ -1,7 +1,9 @@
 "use client";
 
 import { Redo2, Undo2 } from "lucide-react";
+import { isActiveExport } from "@fala/shared";
 import { useEditor } from "./editor-store";
+import { useExports } from "./use-exports";
 
 /** Undo/redo, titled with the step they'd take (handoff §3 header). */
 export function UndoRedo() {
@@ -23,7 +25,7 @@ export function UndoRedo() {
   );
 }
 
-/** Right side of the editor header: shortcut hints (wide screens) and the Style drawer button (medium screens). */
+/** Right side of the editor header: shortcut hints (wide screens), the Style drawer button (medium screens) and Export. */
 export function EditorHeaderControls() {
   const setDrawerOpen = useEditor((state) => state.setDrawerOpen);
   const kbd = "rounded-[5px] border border-line-strong px-1.5 py-px font-mono text-[11px] text-text";
@@ -44,6 +46,41 @@ export function EditorHeaderControls() {
       >
         Style
       </button>
+      <ExportButton />
     </div>
+  );
+}
+
+/** Opens the export dialog; mirrors the newest render ("Rendering N%", "Render failed"), as in the handoff header. */
+function ExportButton() {
+  const { latest, setDialogOpen } = useExports();
+  const failed = latest?.status === "FAILED";
+  const rendering = latest !== null && isActiveExport(latest.status);
+  return (
+    <button
+      type="button"
+      onClick={() => setDialogOpen(true)}
+      aria-haspopup="dialog"
+      className={`rounded-[9px] px-4 py-1.5 text-[13.5px] font-semibold whitespace-nowrap tabular-nums transition-colors ${
+        failed ? "bg-danger text-ink hover:brightness-110" : "bg-text text-ink hover:bg-white"
+      }`}
+    >
+      {rendering ? `Rendering ${latest.progress}%` : failed ? "Render failed" : "Export"}
+    </button>
+  );
+}
+
+/** The Export button before the project has captions: visible but unavailable (handoff header). */
+export function ExportButtonUnavailable() {
+  return (
+    <span className="ml-auto" title="Available once transcription finishes">
+      <button
+        type="button"
+        disabled
+        className="rounded-[9px] bg-[rgba(236,230,218,.12)] px-4 py-1.5 text-[13.5px] font-semibold text-muted"
+      >
+        Export
+      </button>
+    </span>
   );
 }

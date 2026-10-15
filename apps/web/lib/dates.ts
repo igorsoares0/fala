@@ -11,3 +11,9 @@ export function formatProjectDate(date: Date, now: Date = new Date()): string {
   if (time >= startOfToday - DAY_MS) return "yesterday";
   return dayFormat.format(date);
 }
+
+/** "today, 10:12" · "yesterday, 18:42" · "Oct 12": when an export finished. */
+export function formatExportDate(date: Date, now: Date = new Date()): string {
+  const label = formatProjectDate(date, now);
+  return label === "yesterday" ? `yesterday, ${timeFormat.format(date)}` : label;
+}

@@ -37,3 +37,17 @@ export async function createProject(page: Page, fileName: string, fixture?: stri
   await expect(card).toBeVisible();
   return card;
 }
+
+/**
+ * Signs up, uploads the WEBM fixture (fake transcription, 3 words per block:
+ * "It's the rhythm" · "that keeps you watching." · "Every word lands right")
+ * and opens the editor once it's ready. Returns the editor's URL.
+ */
+export async function openReadyProject(page: Page, label: string) {
+  await signUp(page, { name: "Editor", email: uniqueEmail(label) });
+  const card = await createProject(page, `${label} clip.webm`, "landscape-2s.webm");
+  await expect(card.getByText("Ready")).toBeVisible({ timeout: 30_000 });
+  await card.getByRole("link", { name: `Open ${label} clip` }).click();
+  await expect(page.getByTestId("caption-block").first()).toBeVisible();
+  return page.url();
+}

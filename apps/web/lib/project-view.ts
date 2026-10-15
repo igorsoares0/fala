@@ -1,4 +1,4 @@
-import type { ProjectStatus } from "@fala/shared";
+import { isActiveExport, type ExportStatus, type ProjectStatus } from "@fala/shared";
 import type { LocalUpload } from "./upload-store";
 
 /**
@@ -45,16 +45,22 @@ export function projectView(status: ProjectStatus, local: LocalUpload | undefine
   }
 }
 
+/** The project's newest export that's rendering or done (see lib/projects.ts). */
+export type LatestExport = { status: ExportStatus; progress: number } | null;
+
+const rendering = (latest: LatestExport | undefined) => latest != null && isActiveExport(latest.status);
+
 /** Server work is still running: keep refreshing to pick up the result. */
-export function needsPolling(status: ProjectStatus, local: LocalUpload | undefined) {
+export function needsPolling(status: ProjectStatus, local: LocalUpload | undefined, latestExport?: LatestExport) {
   const view = projectView(status, local);
-  return view.kind === "processing" && view.stage !== "upload";
+  return (view.kind === "processing" && view.stage !== "upload") || (view.kind === "settled" && rendering(latestExport));
 }
 
-/** The status to show in the chip, so it agrees with the overlay. */
-export function chipStatus(status: ProjectStatus, view: ProjectView): ProjectStatus {
+/** The status to show in the chip, so it agrees with the overlay. Exports never change the project's own status. */
+export function chipStatus(status: ProjectStatus, view: ProjectView, latestExport?: LatestExport): ProjectStatus {
   if (view.kind === "processing" && view.stage === "upload") return "UPLOADING";
   if (view.kind === "upload-failed") return "FAILED";
   if (view.kind === "interrupted") return "CREATED";
+  if (view.kind === "settled" && latestExport) return rendering(latestExport) ? "RENDERING" : "COMPLETED";
   return status;
 }

@@ -36,6 +36,8 @@ const overlayButton =
 export function ProjectCard({ project }: { project: ProjectCardData }) {
   const local = useLocalUpload(project.id);
   const view = projectView(project.status, local);
+  const chip = chipStatus(project.status, view, project.latestExport);
+  const renderingExport = chip === "RENDERING";
   const [confirming, setConfirming] = useState(false);
   const [deleting, startDeleting] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -84,6 +86,7 @@ export function ProjectCard({ project }: { project: ProjectCardData }) {
         </Link>
 
         <CardOverlay view={view} project={project} onError={setError} />
+        {renderingExport && <ProgressBar percent={project.latestExport!.progress} className="absolute inset-x-0 bottom-0 rounded-none" />}
 
         <button
           type="button"
@@ -128,7 +131,7 @@ export function ProjectCard({ project }: { project: ProjectCardData }) {
       <div className="flex flex-col gap-1.5 px-0.5">
         <span className="text-[14.5px] leading-[1.3] font-semibold tracking-[-0.01em] text-pretty">{project.name}</span>
         <div className="flex flex-wrap items-center gap-2">
-          <StatusChip status={chipStatus(project.status, view)} />
+          <StatusChip status={chip} progress={renderingExport ? project.latestExport?.progress : undefined} />
           <span className="font-mono text-[11px] text-muted">{project.dateLabel}</span>
         </div>
         {error && (

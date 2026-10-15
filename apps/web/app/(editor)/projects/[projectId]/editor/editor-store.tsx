@@ -84,6 +84,8 @@ export type EditorState = Omit<EditorInit, "style"> &
     redo: () => void;
     restoreDraft: (document: EditorDocument) => void;
     setVersion: (version: number) => void;
+    /** Sends pending edits now and resolves true once the server has all of them (set by autosave). */
+    flushSaves: () => Promise<boolean>;
 
     setFindOpen: (open: boolean) => void;
     setDrawerOpen: (open: boolean) => void;
@@ -276,6 +278,7 @@ export function createEditorStore({ style, ...init }: EditorInit) {
         get().showToast("Restored changes that hadn't synced");
       },
       setVersion: (version) => set({ version }),
+      flushSaves: async () => true,
 
       setFindOpen: (findOpen) => set({ findOpen }),
       setDrawerOpen: (drawerOpen) => set({ drawerOpen }),

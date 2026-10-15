@@ -14,8 +14,10 @@ const STATUS_DISPLAY: Record<ProjectStatus, { glyph: string; label: string; clas
   DELETED: { glyph: "×", label: "Deleted", className: "text-muted" },
 };
 
-export function StatusChip({ status }: { status: ProjectStatus }) {
-  const { glyph, label, className } = STATUS_DISPLAY[status];
+/** `progress` completes the Rendering label ("Rendering 42%"). */
+export function StatusChip({ status, progress }: { status: ProjectStatus; progress?: number }) {
+  const { glyph, className } = STATUS_DISPLAY[status];
+  const label = status === "RENDERING" && progress !== undefined ? `Rendering ${progress}%` : STATUS_DISPLAY[status].label;
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-full border border-line-strong px-2 py-0.5 font-mono text-[11px] ${className}`}

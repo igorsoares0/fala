@@ -1,11 +1,14 @@
 import type { Metadata } from "next";
-import { Anton, Archivo_Black, DM_Serif_Display, IBM_Plex_Mono, Schibsted_Grotesk } from "next/font/google";
+import { IBM_Plex_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const schibsted = Schibsted_Grotesk({
+// Caption faces (preview + burn-in), also the UI's sans. The export renderer loads these
+// same files (packages/shared/fonts), so preview and MP4 use identical fonts. All OFL-licensed.
+const schibsted = localFont({
   variable: "--font-schibsted-face",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
+  src: "../../../packages/shared/fonts/SchibstedGrotesk-Variable.woff2",
+  weight: "400 900",
 });
 
 const plexMono = IBM_Plex_Mono({
@@ -14,10 +17,21 @@ const plexMono = IBM_Plex_Mono({
   weight: ["400", "500"],
 });
 
-// Caption faces (preview + burn-in). All OFL-licensed.
-const anton = Anton({ variable: "--font-anton-face", subsets: ["latin"], weight: "400" });
-const archivoBlack = Archivo_Black({ variable: "--font-archivo-black-face", subsets: ["latin"], weight: "400" });
-const dmSerif = DM_Serif_Display({ variable: "--font-dm-serif-face", subsets: ["latin"], weight: "400" });
+const anton = localFont({
+  variable: "--font-anton-face",
+  src: "../../../packages/shared/fonts/Anton-Regular.woff2",
+  weight: "400",
+});
+const archivoBlack = localFont({
+  variable: "--font-archivo-black-face",
+  src: "../../../packages/shared/fonts/ArchivoBlack-Regular.woff2",
+  weight: "400",
+});
+const dmSerif = localFont({
+  variable: "--font-dm-serif-face",
+  src: "../../../packages/shared/fonts/DMSerifDisplay-Regular.woff2",
+  weight: "400",
+});
 
 export const metadata: Metadata = {
   title: { default: "Fala", template: "%s · Fala" },

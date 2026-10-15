@@ -47,4 +47,14 @@ describe("projectView", () => {
     expect(chipStatus("UPLOADING", projectView("UPLOADING", undefined))).toBe("CREATED");
     expect(chipStatus("UPLOADED", projectView("UPLOADED", undefined))).toBe("UPLOADED");
   });
+
+  it("shows the newest export on a ready project, and polls while it renders", () => {
+    const ready = projectView("READY", undefined);
+    expect(chipStatus("READY", ready, null)).toBe("READY");
+    expect(chipStatus("READY", ready, { status: "RENDERING", progress: 42 })).toBe("RENDERING");
+    expect(chipStatus("READY", ready, { status: "QUEUED", progress: 0 })).toBe("RENDERING");
+    expect(chipStatus("READY", ready, { status: "SUCCEEDED", progress: 100 })).toBe("COMPLETED");
+    expect(needsPolling("READY", undefined, { status: "RENDERING", progress: 42 })).toBe(true);
+    expect(needsPolling("READY", undefined, { status: "SUCCEEDED", progress: 100 })).toBe(false);
+  });
 });

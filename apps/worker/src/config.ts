@@ -12,6 +12,7 @@ const envSchema = z.object({
   TEMP_DIR: z.preprocess(emptyAsUndefined, z.string().default(path.join(os.tmpdir(), "fala-worker"))),
   FFMPEG_PATH: z.preprocess(emptyAsUndefined, z.string().default("ffmpeg")),
   FFPROBE_PATH: z.preprocess(emptyAsUndefined, z.string().default("ffprobe")),
+  CHROMIUM_PATH: z.preprocess(emptyAsUndefined, z.string().optional()),
   TRANSCRIPTION_PROVIDER: z.preprocess(emptyAsUndefined, z.enum(["assemblyai", "fake"]).default("assemblyai")),
   ASSEMBLYAI_API_KEY: z.preprocess(emptyAsUndefined, z.string().optional()),
   ASSEMBLYAI_BASE_URL: z.preprocess(emptyAsUndefined, z.url().optional()),
@@ -24,6 +25,8 @@ export type WorkerConfig = {
   tempDir: string;
   ffmpegPath: string;
   ffprobePath: string;
+  /** Chromium for drawing caption overlays; Playwright's installed headless shell when unset. */
+  chromiumPath?: string;
   storage: StorageConfig;
   transcription:
     | { provider: "assemblyai"; apiKey: string; baseUrl?: string }
@@ -44,6 +47,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): WorkerConfig {
     tempDir: parsed.TEMP_DIR,
     ffmpegPath: parsed.FFMPEG_PATH,
     ffprobePath: parsed.FFPROBE_PATH,
+    chromiumPath: parsed.CHROMIUM_PATH,
     storage: storageConfigFromEnv(env),
     leaseMs: 60_000,
     pollIntervalMs: 1_000,

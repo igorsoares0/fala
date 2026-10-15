@@ -13,6 +13,8 @@ export function useEditorShortcuts() {
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       if (event.defaultPrevented || event.altKey) return;
+      // A modal (export, unsynced changes) owns the keyboard while it's open.
+      if (document.querySelector("[aria-modal='true']")) return;
       const target = event.target as HTMLElement | null;
       const typing = Boolean(target?.closest("input, textarea, select, [contenteditable='true']"));
       const editor = store.getState();

@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { db, enqueueJob } from "@fala/db";
+import { db, enqueueJob, type ExportStatus } from "@fala/db";
 import { parseProjectStyle } from "./style";
 
 /**
@@ -20,6 +20,13 @@ const projectSummarySelect = {
   thumbnailObjectKey: true,
   captionSample: true,
   style: { select: { presetKey: true, configuration: true } },
+  // The newest export that's rendering or done: drives "Rendering N%" / "Exported" on the card.
+  exports: {
+    where: { status: { in: ["QUEUED", "RENDERING", "SUCCEEDED"] as ExportStatus[] } },
+    orderBy: { version: "desc" },
+    take: 1,
+    select: { status: true, progress: true },
+  },
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -39,10 +46,11 @@ function findProjects(userId: string) {
 const captionSampleSchema = z.array(z.string()).max(20);
 
 /** Object keys stay on the server; the UI only needs to know a thumbnail exists. */
-function toSummary({ thumbnailObjectKey, captionSample, style, ...project }: ProjectRow) {
+function toSummary({ thumbnailObjectKey, captionSample, style, exports, ...project }: ProjectRow) {
   const sample = captionSampleSchema.safeParse(captionSample);
   return {
     ...project,
+    latestExport: exports[0] ?? null,
     hasThumbnail: thumbnailObjectKey !== null,
     captionSample: sample.success && sample.data.length > 0 ? sample.data : null,
     style: parseProjectStyle(style),

@@ -8,3 +8,6 @@ export * from "./project-errors";
 export * from "./captions";
 export * from "./segment";
 export * from "./caption-edits";
+export * from "./caption-render";
+export * from "./caption-timeline";
+export * from "./export";

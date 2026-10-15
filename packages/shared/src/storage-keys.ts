@@ -31,3 +31,9 @@ export function uploadIdFromSourceKey(key: string): string | null {
   const match = /\/source\/([A-Za-z0-9_-]{1,64})\.[a-z0-9]{2,5}$/.exec(key);
   return match ? match[1] : null;
 }
+
+/** One file per export: a retry rewrites its own file, never an older version (spec §7.4). */
+export function exportKey(userId: string, projectId: string, exportId: string): string {
+  assertId(exportId, "exportId");
+  return `${projectPrefix(userId, projectId)}exports/${exportId}.mp4`;
+}
