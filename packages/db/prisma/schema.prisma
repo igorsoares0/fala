@@ -1,0 +1,113 @@
+// Fala database schema. Connection settings live in ../prisma.config.ts.
+// Conventions: timestamps/durations in integer milliseconds; JSON columns are
+// validated with zod schemas from @fala/shared on read and write.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Better Auth models ──────────────────────────────────────────────────────
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+  projects      Project[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ─── Product models ──────────────────────────────────────────────────────────
+
+/// Mirrors PROJECT_STATUSES in @fala/shared (spec §6.1).
+enum ProjectStatus {
+  CREATED
+  UPLOADING
+  UPLOADED
+  PROCESSING
+  READY
+  RENDERING
+  COMPLETED
+  FAILED
+  DELETION_PENDING
+  DELETED
+}
+
+model Project {
+  id                 String        @id @default(cuid())
+  userId             String
+  user               User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name               String
+  status             ProjectStatus @default(CREATED)
+  sourceObjectKey    String?
+  thumbnailObjectKey String?
+  durationMs         Int?
+  width              Int?
+  height             Int?
+  sourceMimeType     String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  deletedAt          DateTime?
+
+  @@index([userId, deletedAt, createdAt])
+  @@index([status])
+  @@map("project")
+}

@@ -1,0 +1,1362 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Anton&family=Archivo+Black&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<style>body{margin:0;background:#12110f;color:#ece6da;-webkit-font-smoothing:antialiased}a{color:#ece6da}a:hover{color:#ff5a1f}*{box-sizing:border-box}::selection{background:rgba(255,90,31,.35)}input[type=range]{accent-color:#ece6da}*{scrollbar-width:thin;scrollbar-color:rgba(236,230,218,.16) transparent}::-webkit-scrollbar{width:10px;height:10px}::-webkit-scrollbar-track{background:transparent}::-webkit-scrollbar-thumb{background:rgba(236,230,218,.14);border-radius:10px;border:3px solid transparent;background-clip:padding-box}::-webkit-scrollbar-thumb:hover{background:rgba(236,230,218,.3);border:3px solid transparent;background-clip:padding-box}::-webkit-scrollbar-button{display:none;width:0;height:0}::-webkit-scrollbar-corner{background:transparent}</style>
+</helmet>
+
+<sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="Sign in" style="min-height:100vh;display:flex;flex-wrap:wrap;background:#12110f;color:#ece6da;font-family:'Schibsted Grotesk',sans-serif">
+  <div style="flex:1 1 440px;display:flex;flex-direction:column;padding:28px 40px 32px;min-height:100vh">
+    <span style="font-weight:800;font-size:24px;letter-spacing:-0.05em">fala<span style="color:#ff5a1f">.</span></span>
+    <div style="flex:1;display:flex;align-items:center;justify-content:center;padding:40px 0">
+      <form onSubmit="{{ onAuth }}" style="width:100%;max-width:380px;display:flex;flex-direction:column;gap:22px">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <h1 style="margin:0;font-size:40px;line-height:1.02;font-weight:700;letter-spacing:-0.045em;text-wrap:balance">{{ authTitle }}</h1>
+          <span style="font-size:15px;color:#9a9387;text-wrap:pretty">{{ authSub }}</span>
+        </div>
+        <button type="button" onClick="{{ onGoogle }}" style="display:flex;align-items:center;justify-content:center;gap:10px;font:600 14.5px 'Schibsted Grotesk',sans-serif;padding:13px 16px;border-radius:11px;border:1px solid rgba(236,230,218,.2);background:#1a1916;color:#ece6da;cursor:pointer" style-hover="background:#23211d;border-color:rgba(236,230,218,.35)"><span style="width:18px;height:18px;border-radius:50%;background:#ece6da;color:#12110f;display:grid;place-items:center;font:800 11px 'Schibsted Grotesk',sans-serif">G</span>Continue with Google</button>
+        <div style="display:flex;align-items:center;gap:12px;font:400 11px 'IBM Plex Mono',monospace;color:#9a9387"><span style="flex:1;height:1px;background:rgba(236,230,218,.1)"></span>or with email<span style="flex:1;height:1px;background:rgba(236,230,218,.1)"></span></div>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <sc-if value="{{ isSignup }}">
+            <label style="display:flex;flex-direction:column;gap:7px">
+              <span style="font-size:13px;font-weight:600">Name</span>
+              <input value="{{ fName }}" onChange="{{ onFName }}" autocomplete="name" placeholder="What should we call you" style="font:400 15px 'Schibsted Grotesk',sans-serif;color:#ece6da;background:#1a1916;border:1px solid rgba(236,230,218,.14);border-radius:10px;padding:12px 14px;outline:none" style-focus="border-color:#ece6da">
+            </label>
+          </sc-if>
+          <label style="display:flex;flex-direction:column;gap:7px">
+            <span style="font-size:13px;font-weight:600">Email</span>
+            <input type="email" value="{{ fEmail }}" onChange="{{ onFEmail }}" autocomplete="email" placeholder="you@example.com" style="{{ emailSt }}" style-focus="border-color:#ece6da">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:7px">
+            <span style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:13px;font-weight:600">Password</span><sc-if value="{{ isLoginMode }}"><span onClick="{{ onForgot }}" style="white-space:nowrap;font-size:12.5px;color:#9a9387;cursor:pointer;text-decoration:underline;text-underline-offset:3px" style-hover="color:#ece6da">Forgot password</span></sc-if></span>
+            <input type="password" value="{{ fPass }}" onChange="{{ onFPass }}" autocomplete="{{ passAuto }}" placeholder="{{ passPh }}" style="font:400 15px 'Schibsted Grotesk',sans-serif;color:#ece6da;background:#1a1916;border:1px solid rgba(236,230,218,.14);border-radius:10px;padding:12px 14px;outline:none" style-focus="border-color:#ece6da">
+          </label>
+          <sc-if value="{{ authMsg }}"><span role="alert" style="{{ authMsgSt }}">{{ authMsg }}</span></sc-if>
+        </div>
+        <button type="submit" style="{{ submitSt }}" style-hover="background:#ffffff">{{ submitLabel }}</button>
+        <span style="font-size:14px;color:#9a9387;text-align:center">{{ switchQ }} <span onClick="{{ onSwitchMode }}" style="color:#ece6da;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px">{{ switchCta }}</span></span>
+      </form>
+    </div>
+    <span style="font:400 11px/1.6 'IBM Plex Mono',monospace;color:#9a9387;max-width:380px;align-self:center;text-align:center;text-wrap:pretty">By continuing you accept the Terms and Privacy Policy. Audio sent for transcription is processed by an external provider.</span>
+  </div>
+
+  <div style="flex:1 1 480px;position:relative;display:flex;align-items:center;justify-content:center;padding:40px;background:radial-gradient(70% 60% at 50% 45%,#211e1a,#12110f);border-left:1px solid rgba(236,230,218,.09);overflow:hidden;min-height:100vh">
+    <div style="display:flex;flex-direction:column;gap:16px;align-items:center">
+      <div style="position:relative;width:min(340px,calc((100vh - 200px) * 0.5625));aspect-ratio:9/16;border-radius:16px;overflow:hidden;container-type:inline-size;background:radial-gradient(45% 32% at 52% 58%,#7a5640 0%,rgba(122,86,64,0) 100%),radial-gradient(120% 80% at 25% 15%,#4a3526 0%,#1d1611 55%,#0d0b09 100%);box-shadow:0 40px 100px -30px rgba(0,0,0,.85),0 0 0 1px rgba(236,230,218,.08)">
+        <sc-if value="{{ demoVisible }}">
+          <div style="{{ demoCap.box }}"><sc-for list="{{ demoCap.words }}" as="w"><span style="{{ w.st }}">{{ w.t }}</span></sc-for></div>
+        </sc-if>
+        <div style="position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(236,230,218,.12)"><div style="{{ demoBarSt }}"></div></div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">
+        <sc-for list="{{ demoPresets }}" as="d"><span style="{{ d.st }}">{{ d.name }}</span></sc-for>
+      </div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Projects" style="min-height:100vh;background:#12110f;color:#ece6da;font-family:'Schibsted Grotesk',sans-serif">
+  <header style="display:flex;align-items:center;gap:32px;padding:16px 32px;border-bottom:1px solid rgba(236,230,218,.09);flex-wrap:wrap">
+    <span style="font-weight:800;font-size:24px;letter-spacing:-0.05em">fala<span style="color:#ff5a1f">.</span></span>
+    <nav style="display:flex;gap:4px;font-size:14px">
+      <sc-for list="{{ navItems }}" as="n"><button onClick="{{ n.go }}" style="{{ n.st }}" style-hover="color:#ece6da">{{ n.label }}</button></sc-for>
+    </nav>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="display:flex;flex-direction:column;gap:5px;align-items:flex-end">
+        <span style="font:500 11px 'IBM Plex Mono',monospace;color:#9a9387;letter-spacing:.02em">OCTOBER · <span style="color:#ece6da">{{ usageLabel }}</span></span>
+        <div style="width:140px;height:3px;background:rgba(236,230,218,.12);border-radius:2px;overflow:hidden"><div style="{{ usageBarSt }}"></div></div>
+      </div>
+      <span style="font-size:12px;font-weight:600;padding:4px 9px;border:1px solid rgba(236,230,218,.16);border-radius:999px">{{ planName }}</span>
+      <button onClick="{{ onLogout }}" title="Sign out" aria-label="Sign out" style="width:32px;height:32px;border-radius:50%;border:0;background:#ece6da;color:#12110f;display:grid;place-items:center;font:700 12px 'Schibsted Grotesk',sans-serif;cursor:pointer">{{ initials }}</button>
+    </div>
+  </header>
+
+  <sc-if value="{{ isDash }}" hint-placeholder-val="{{ true }}">
+  <main style="max-width:1360px;margin:0 auto;padding:44px 32px 80px">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin-bottom:28px">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <h1 style="margin:0;font-size:52px;line-height:1;font-weight:700;letter-spacing:-0.045em">Projects</h1>
+        <span style="font:400 12px 'IBM Plex Mono',monospace;color:#9a9387">{{ projCount }}</span>
+      </div>
+      <span style="font-size:14px;color:#9a9387;max-width:340px;text-wrap:pretty">Drop a video, review the text, pick a style. We handle the rest.</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:28px 20px">
+      <div onClick="{{ onNewUpload }}" onDragOver="{{ onDragOver }}" onDragLeave="{{ onDragLeave }}" onDrop="{{ onDrop }}" style="{{ dropSt }}" style-hover="background:#1a1916;border-color:rgba(236,230,218,.4)">
+        <div style="width:52px;height:52px;border-radius:50%;background:#ece6da;color:#12110f;display:grid;place-items:center;font-size:28px;font-weight:400;line-height:1">+</div>
+        <div style="display:flex;flex-direction:column;gap:6px;align-items:center;text-align:center;padding:0 14px">
+          <span style="font-size:17px;font-weight:700;letter-spacing:-0.02em">{{ dropTitle }}</span>
+          <span style="font-size:13px;color:#9a9387;text-wrap:pretty">Drag a file or click to choose</span>
+        </div>
+        <span style="font:400 10.5px/1.6 'IBM Plex Mono',monospace;color:#9a9387;text-align:center">MP4 · MOV · WEBM<br>up to 3 min · 1 GB</span>
+      </div>
+
+      <sc-for list="{{ cards }}" as="p" hint-placeholder-count="6">
+        <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+          <div onClick="{{ p.open }}" style="{{ p.thumbSt }}">
+            <div style="position:absolute;inset:0;background:radial-gradient(90% 60% at 50% 100%,rgba(0,0,0,.55),transparent 70%)"></div>
+            <sc-if value="{{ p.cap }}">
+              <div style="{{ p.cap.box }}">
+                <sc-for list="{{ p.cap.words }}" as="w"><span style="{{ w.st }}">{{ w.t }}</span></sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ p.showDur }}">
+              <span style="position:absolute;left:10px;bottom:10px;font:500 11px 'IBM Plex Mono',monospace;color:#ece6da;background:rgba(18,17,15,.7);padding:3px 7px;border-radius:5px">{{ p.dur }}</span>
+            </sc-if>
+            <sc-if value="{{ p.isProc }}">
+              <div style="position:absolute;inset:0;background:rgba(18,17,15,.72);backdrop-filter:blur(6px);display:flex;flex-direction:column;justify-content:flex-end;gap:14px;padding:18px 16px">
+                <span style="font-size:30px;font-weight:700;letter-spacing:-0.04em;font-variant-numeric:tabular-nums">{{ p.procPct }}</span>
+                <div style="display:flex;flex-direction:column;gap:8px">
+                  <sc-for list="{{ p.steps }}" as="s">
+                    <div style="display:flex;align-items:center;gap:8px;font-size:12.5px">
+                      <span style="{{ s.dotSt }}"></span><span style="{{ s.lblSt }}">{{ s.label }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="height:3px;background:rgba(236,230,218,.14);border-radius:2px;overflow:hidden"><div style="{{ p.procBarSt }}"></div></div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ p.isErr }}">
+              <div style="position:absolute;inset:0;background:rgba(18,17,15,.8);display:flex;flex-direction:column;justify-content:flex-end;gap:10px;padding:18px 16px">
+                <span style="font-size:22px;color:#ff7a5c">▲</span>
+                <span style="font-size:15px;font-weight:700;letter-spacing:-0.01em">We couldn't find speech in this file</span>
+                <span style="font-size:12.5px;color:#9a9387;text-wrap:pretty">The audio seems silent. Upload another version — nothing was deducted from your usage.</span>
+                <button onClick="{{ p.retry }}" style="align-self:flex-start;margin-top:4px;font:600 12.5px 'Schibsted Grotesk',sans-serif;padding:7px 12px;border-radius:8px;border:1px solid rgba(236,230,218,.25);background:transparent;color:#ece6da;cursor:pointer" style-hover="background:#ece6da;color:#12110f">Upload another file</button>
+              </div>
+            </sc-if>
+            <sc-if value="{{ p.isRender }}">
+              <div style="position:absolute;left:0;right:0;bottom:0;height:3px;background:rgba(236,230,218,.15)"><div style="{{ p.renderBarSt }}"></div></div>
+            </sc-if>
+            <button onClick="{{ p.askDel }}" aria-label="Delete project" style="position:absolute;top:8px;right:8px;width:28px;height:28px;border-radius:8px;border:0;background:rgba(18,17,15,.55);color:#ece6da;cursor:pointer;font-size:15px;line-height:1;opacity:.75" style-hover="opacity:1;background:#12110f">×</button>
+            <sc-if value="{{ p.confirm }}">
+              <div onClick="{{ p.stop }}" style="position:absolute;inset:0;background:rgba(18,17,15,.9);display:flex;flex-direction:column;justify-content:center;gap:12px;padding:18px;text-align:center;cursor:default">
+                <span style="font-size:15px;font-weight:700">Delete this project?</span>
+                <span style="font-size:12.5px;color:#9a9387;text-wrap:pretty">The video, captions and exports will be deleted.</span>
+                <div style="display:flex;gap:8px;justify-content:center">
+                  <button onClick="{{ p.cancelDel }}" style="font:600 12.5px 'Schibsted Grotesk',sans-serif;padding:8px 12px;border-radius:8px;border:1px solid rgba(236,230,218,.2);background:transparent;color:#ece6da;cursor:pointer">Keep</button>
+                  <button onClick="{{ p.doDel }}" style="font:600 12.5px 'Schibsted Grotesk',sans-serif;padding:8px 12px;border-radius:8px;border:0;background:#ff5a1f;color:#12110f;cursor:pointer">Delete</button>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;padding:0 2px">
+            <span style="font-size:14.5px;font-weight:600;letter-spacing:-0.01em;line-height:1.3;text-wrap:pretty">{{ p.name }}</span>
+            <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+              <span style="display:inline-flex;align-items:center;gap:6px;font:500 11px 'IBM Plex Mono',monospace;color:#ece6da;padding:3px 8px;border:1px solid rgba(236,230,218,.14);border-radius:999px"><span style="{{ p.glyphSt }}">{{ p.glyph }}</span>{{ p.chip }}</span>
+              <span style="font:400 11px 'IBM Plex Mono',monospace;color:#9a9387">{{ p.when }}</span>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ isBilling }}" hint-placeholder-val="{{ false }}">
+  <main data-screen-label="Plan & usage" style="max-width:1120px;margin:0 auto;padding:44px 32px 80px;display:flex;flex-direction:column;gap:48px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <h1 style="margin:0;font-size:52px;line-height:1;font-weight:700;letter-spacing:-0.045em">Plan &amp; usage</h1>
+      <span style="font:400 12px 'IBM Plex Mono',monospace;color:#9a9387">{{ periodLabel }}</span>
+    </div>
+
+    <sc-if value="{{ nearLimit }}">
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:14px 18px;border-radius:12px;border:1px solid rgba(255,179,92,.35);background:rgba(255,179,92,.07)">
+        <span style="color:#ffb35c;font-size:14px">◆</span>
+        <span style="flex:1;min-width:240px;font-size:14px;text-wrap:pretty">{{ nearLimitMsg }}</span>
+      </div>
+    </sc-if>
+
+    <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,320px),1fr));gap:20px">
+      <div style="display:flex;flex-direction:column;gap:22px;padding:26px;border-radius:16px;background:#1a1916;border:1px solid rgba(236,230,218,.09)">
+        <span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#9a9387">MINUTES THIS MONTH</span>
+        <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+          <span style="font-size:88px;font-weight:700;letter-spacing:-0.06em;line-height:.85;font-variant-numeric:tabular-nums">{{ usedMin }}</span>
+          <span style="font-size:20px;color:#9a9387;letter-spacing:-0.02em">of {{ limitMin }} min</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="position:relative;height:8px;border-radius:4px;background:rgba(236,230,218,.1);overflow:hidden">
+            <div style="{{ usedBarSt }}"></div>
+            <div style="{{ resBarSt }}"></div>
+          </div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;font:400 11.5px 'IBM Plex Mono',monospace;color:#9a9387">
+            <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:#ece6da"></span>used</span>
+            <span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="width:8px;height:8px;border-radius:2px;background:repeating-linear-gradient(45deg,#ff5a1f 0 2px,transparent 2px 4px)"></span>reserved for render</span>
+            <span style="margin-left:auto;white-space:nowrap">renews {{ renewDate }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:18px;padding:26px;border-radius:16px;border:1px solid rgba(236,230,218,.09)">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+          <span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#9a9387">YOUR PLAN</span>
+          <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:#9a9387;white-space:nowrap">{{ planStatus }}</span>
+        </div>
+        <span style="font-size:36px;font-weight:700;letter-spacing:-0.04em;line-height:1">{{ planName }}</span>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <sc-for list="{{ planFacts }}" as="f">
+            <div style="display:flex;justify-content:space-between;gap:12px;font-size:14px;padding-bottom:9px;border-bottom:1px solid rgba(236,230,218,.07)"><span style="color:#9a9387">{{ f.k }}</span><span style="font-weight:600">{{ f.v }}</span></div>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto">
+          <button onClick="{{ openPortal }}" style="white-space:nowrap;font:600 13px 'Schibsted Grotesk',sans-serif;padding:9px 14px;border-radius:9px;border:1px solid rgba(236,230,218,.2);background:transparent;color:#ece6da;cursor:pointer" style-hover="background:#23211d">Payment &amp; invoices</button>
+        </div>
+      </div>
+    </section>
+
+    <section style="display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <span style="font-size:24px;font-weight:700;letter-spacing:-0.03em">Plans</span>
+        <span style="font-size:13.5px;color:#9a9387;white-space:nowrap">Billed monthly · cancel anytime</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:14px">
+        <sc-for list="{{ planCards }}" as="pc" hint-placeholder-count="3">
+          <div style="{{ pc.st }}">
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+              <span style="font-size:18px;font-weight:700;letter-spacing:-0.02em">{{ pc.name }}</span>
+              <sc-if value="{{ pc.current }}"><span style="font:500 10.5px 'IBM Plex Mono',monospace;padding:3px 8px;border-radius:999px;background:#ece6da;color:#12110f">YOUR PLAN</span></sc-if>
+            </div>
+            <div style="display:flex;align-items:baseline;gap:6px"><span style="font-size:40px;font-weight:700;letter-spacing:-0.05em;line-height:1">{{ pc.price }}</span><span style="font-size:13px;color:#9a9387">{{ pc.per }}</span></div>
+            <span style="flex:none;font-size:13.5px;color:#9a9387;text-wrap:pretty;min-height:38px">{{ pc.pitch }}</span>
+            <div style="flex:none;display:flex;flex-direction:column;gap:8px;padding-top:14px;border-top:1px solid rgba(236,230,218,.09)">
+              <sc-for list="{{ pc.feats }}" as="ft"><span style="flex:none;display:flex;gap:9px;font-size:13.5px;line-height:1.4"><span style="flex:none;color:#9a9387;font:500 12px/1.6 'IBM Plex Mono',monospace">—</span><span style="flex:1;min-width:0">{{ ft }}</span></span></sc-for>
+            </div>
+            <button onClick="{{ pc.act }}" disabled="{{ pc.current }}" style="{{ pc.btnSt }}">{{ pc.cta }}</button>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section style="display:flex;flex-direction:column;gap:6px">
+      <span style="font-size:24px;font-weight:700;letter-spacing:-0.03em;margin-bottom:12px">Recent activity</span>
+      <sc-for list="{{ ledger }}" as="l" hint-placeholder-count="5">
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:20px;padding:13px 0;border-bottom:1px solid rgba(236,230,218,.07)">
+          <div style="display:flex;flex-direction:column;gap:3px;min-width:0">
+            <span style="font-size:14.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ l.proj }}</span>
+            <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:#9a9387">{{ l.kind }} · {{ l.when }}</span>
+          </div>
+          <span style="{{ l.stSt }}"><span>{{ l.glyph }}</span>{{ l.status }}</span>
+          <span style="{{ l.qtySt }}">{{ l.qty }}</span>
+        </div>
+      </sc-for>
+    </section>
+  </main>
+  </sc-if>
+
+<sc-if value="{{ isAccount }}" hint-placeholder-val="{{ false }}">
+  <main data-screen-label="Account" style="max-width:680px;margin:0 auto;padding:44px 32px 96px;display:flex;flex-direction:column;gap:36px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <h1 style="margin:0;font-size:52px;line-height:1;font-weight:700;letter-spacing:-0.045em">Account</h1>
+    </div>
+    <div style="display:flex;align-items:flex-start">
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+
+        <section id="perfil" style="display:flex;flex-direction:column;gap:20px;padding-bottom:36px;border-bottom:1px solid rgba(236,230,218,.09);scroll-margin-top:24px">
+          <span style="font-size:22px;font-weight:700;letter-spacing:-0.03em">Profile</span>
+          <div style="display:flex;align-items:center;gap:16px">
+            <span style="width:64px;height:64px;border-radius:50%;background:#ece6da;color:#12110f;display:grid;place-items:center;font-weight:700;font-size:22px;letter-spacing:-0.02em;flex:none">{{ initials }}</span>
+            <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+              <span style="font-size:17px;font-weight:700;letter-spacing:-0.01em">{{ userName }}</span>
+              <span style="display:inline-flex;align-items:center;gap:7px;font:400 11.5px 'IBM Plex Mono',monospace;color:#9a9387"><span style="width:14px;height:14px;border-radius:50%;background:#ece6da;color:#12110f;display:grid;place-items:center;font:800 9px 'Schibsted Grotesk',sans-serif">G</span>connected with Google</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px">
+            <label style="display:flex;flex-direction:column;gap:7px">
+              <span style="font-size:13px;font-weight:600">Name</span>
+              <input value="{{ accName }}" onChange="{{ onAccName }}" autocomplete="name" style="font:400 15px 'Schibsted Grotesk',sans-serif;color:#ece6da;background:#1a1916;border:1px solid rgba(236,230,218,.14);border-radius:10px;padding:12px 14px;outline:none" style-focus="border-color:#ece6da">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:7px">
+              <span style="font-size:13px;font-weight:600">Email</span>
+              <input value="{{ accEmail }}" onChange="{{ onAccEmail }}" type="email" autocomplete="email" style="font:400 15px 'Schibsted Grotesk',sans-serif;color:#ece6da;background:#1a1916;border:1px solid rgba(236,230,218,.14);border-radius:10px;padding:12px 14px;outline:none" style-focus="border-color:#ece6da">
+            </label>
+          </div>
+          <sc-if value="{{ emailChanged }}"><span style="font-size:13px;color:#9a9387;text-wrap:pretty">{{ emailNote }}</span></sc-if>
+          <div style="display:flex;align-items:center;gap:12px">
+            <button onClick="{{ saveProfile }}" disabled="{{ profileClean }}" style="{{ saveProfileSt }}">{{ saveProfileLabel }}</button>
+            <sc-if value="{{ profileSaved }}"><span style="display:inline-flex;align-items:center;gap:7px;font:400 11.5px 'IBM Plex Mono',monospace;color:#9a9387"><span style="width:6px;height:6px;border-radius:50%;background:#3ee07a"></span>Changes saved</span></sc-if>
+          </div>
+        </section>
+
+        <section id="seguranca" style="display:flex;flex-direction:column;gap:18px;padding:36px 0;border-bottom:1px solid rgba(236,230,218,.09);scroll-margin-top:24px">
+          <span style="font-size:22px;font-weight:700;letter-spacing:-0.03em">Preferences</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;gap:3px">
+              <span style="font-size:15px;font-weight:600">Password</span>
+              <span style="font-size:13px;color:#9a9387">{{ pwHint }}</span>
+            </div>
+            <button onClick="{{ onPwReset }}" style="font:600 13px 'Schibsted Grotesk',sans-serif;padding:9px 14px;border-radius:9px;border:1px solid rgba(236,230,218,.2);background:transparent;color:#ece6da;cursor:pointer;white-space:nowrap" style-hover="background:#1a1916">{{ pwBtn }}</button>
+          </div>
+          <sc-for list="{{ notifs }}" as="nf">
+            <button onClick="{{ nf.pick }}" role="switch" aria-checked="{{ nf.on }}" style="display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:16px;padding:16px 0 0;border:0;border-top:1px solid rgba(236,230,218,.07);background:transparent;color:#ece6da;text-align:left;cursor:pointer;font-family:'Schibsted Grotesk',sans-serif">
+              <span style="display:flex;flex-direction:column;gap:3px;min-width:0"><span style="font-size:15px;font-weight:600">{{ nf.label }}</span><span style="font-size:13px;color:#9a9387;text-wrap:pretty">{{ nf.sub }}</span></span>
+              <span style="{{ nf.trackSt }}"><span style="{{ nf.knobSt }}"></span></span>
+            </button>
+          </sc-for>
+        </section>
+
+
+
+        <section id="excluir" style="display:flex;flex-direction:column;gap:14px;padding-top:36px;scroll-margin-top:24px">
+          <span style="font-size:22px;font-weight:700;letter-spacing:-0.03em">Delete account</span>
+          <span style="font-size:14px;color:#9a9387;max-width:560px;text-wrap:pretty">Deletes your projects, videos, captions and exports, and cancels your subscription. This can't be undone.</span>
+          <button onClick="{{ askDelAcc }}" style="align-self:flex-start;font:600 13.5px 'Schibsted Grotesk',sans-serif;padding:10px 16px;border-radius:9px;border:1px solid rgba(255,122,92,.5);background:transparent;color:#ff9a80;cursor:pointer" style-hover="background:rgba(255,122,92,.1)">Delete my account</button>
+        </section>
+      </div>
+    </div>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ delAccOpen }}">
+    <div onClick="{{ closeDelAcc }}" style="position:fixed;inset:0;background:rgba(8,7,6,.62);backdrop-filter:blur(6px);display:grid;place-items:center;padding:24px;z-index:20">
+      <div onClick="{{ stop }}" role="alertdialog" aria-label="Delete account" style="width:min(440px,100%);background:#1a1916;border:1px solid rgba(236,230,218,.12);border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:18px;box-shadow:0 40px 100px -30px rgba(0,0,0,.9)">
+        <span style="font-size:24px;font-weight:700;letter-spacing:-0.03em">Delete your account?</span>
+        <div style="display:flex;flex-direction:column;gap:8px;font:400 12.5px/1.5 'IBM Plex Mono',monospace;color:#9a9387;padding:14px;background:#12110f;border-radius:10px">
+          <sc-for list="{{ delLines }}" as="dl"><span style="display:flex;justify-content:space-between;gap:12px"><span>{{ dl.k }}</span><span style="color:#ece6da">{{ dl.v }}</span></span></sc-for>
+        </div>
+        <label style="display:flex;flex-direction:column;gap:7px">
+          <span style="font-size:13px;color:#9a9387">Type <span style="color:#ece6da;font-weight:600">{{ accEmailSaved }}</span> to confirm</span>
+          <input value="{{ delConfirm }}" onChange="{{ onDelConfirm }}" autocomplete="off" style="font:400 15px 'Schibsted Grotesk',sans-serif;color:#ece6da;background:#12110f;border:1px solid rgba(236,230,218,.16);border-radius:10px;padding:11px 13px;outline:none" style-focus="border-color:#ff9a80">
+        </label>
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button onClick="{{ closeDelAcc }}" style="font:600 13.5px 'Schibsted Grotesk',sans-serif;padding:10px 16px;border-radius:9px;border:1px solid rgba(236,230,218,.18);background:transparent;color:#ece6da;cursor:pointer">Keep account</button>
+          <button onClick="{{ doDelAcc }}" disabled="{{ delLocked }}" style="{{ delBtnSt }}">Delete forever</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ coOpen }}">
+    <div onClick="{{ closeCo }}" style="position:fixed;inset:0;background:rgba(8,7,6,.62);backdrop-filter:blur(6px);display:grid;place-items:center;padding:24px;z-index:20">
+      <div onClick="{{ stop }}" role="dialog" aria-label="Change plan" style="width:min(440px,100%);background:#1a1916;border:1px solid rgba(236,230,218,.12);border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:20px;box-shadow:0 40px 100px -30px rgba(0,0,0,.9)">
+        <sc-if value="{{ coReview }}">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:24px;font-weight:700;letter-spacing:-0.03em">{{ coTitle }}</span>
+            <span style="font-size:14px;color:#9a9387;text-wrap:pretty">{{ coSub }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;font:400 12.5px/1.5 'IBM Plex Mono',monospace;color:#9a9387;padding:14px;background:#12110f;border-radius:10px">
+            <sc-for list="{{ coLines }}" as="cl"><span style="display:flex;justify-content:space-between;gap:12px"><span>{{ cl.k }}</span><span style="color:#ece6da">{{ cl.v }}</span></span></sc-for>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button onClick="{{ closeCo }}" style="font:600 13.5px 'Schibsted Grotesk',sans-serif;padding:10px 16px;border-radius:9px;border:1px solid rgba(236,230,218,.18);background:transparent;color:#ece6da;cursor:pointer">Back</button>
+            <button onClick="{{ coConfirm }}" style="{{ coBtnSt }}">{{ coCta }}</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ coWaiting }}">
+          <div style="display:flex;flex-direction:column;gap:14px;padding:6px 0">
+            <span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#9a9387">{{ coWaitLabel }}</span>
+            <span style="font-size:22px;font-weight:700;letter-spacing:-0.025em;text-wrap:pretty">{{ coWaitTitle }}</span>
+            <div style="height:3px;background:rgba(236,230,218,.12);border-radius:2px;overflow:hidden"><div style="{{ coBarSt }}"></div></div>
+            <span style="font-size:13px;color:#9a9387;text-wrap:pretty">Your plan changes as soon as the payment processor confirms. Don't close this window.</span>
+          </div>
+        </sc-if>
+        <sc-if value="{{ coDone }}">
+          <span style="font-size:40px;font-weight:700;letter-spacing:-0.045em;line-height:1">{{ coDoneTitle }}<span style="color:#ff5a1f">.</span></span>
+          <span style="font-size:14px;color:#9a9387;text-wrap:pretty">{{ coDoneSub }}</span>
+          <button onClick="{{ closeCo }}" style="font:700 14px 'Schibsted Grotesk',sans-serif;padding:12px 18px;border-radius:10px;border:0;background:#ece6da;color:#12110f;cursor:pointer">Close</button>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+
+<sc-if value="{{ isEditor }}" hint-placeholder-val="{{ false }}">
+<div data-screen-label="Editor" style="height:100vh;display:flex;flex-direction:column;background:#12110f;color:#ece6da;font-family:'Schibsted Grotesk',sans-serif;overflow:hidden">
+  <header style="height:56px;flex:none;display:flex;align-items:center;gap:10px;padding:0 12px 0 8px;border-bottom:1px solid rgba(236,230,218,.09)">
+    <button onClick="{{ goDash }}" style="display:flex;align-items:center;gap:8px;font:500 13.5px 'Schibsted Grotesk',sans-serif;color:#9a9387;background:transparent;border:0;padding:8px 10px;border-radius:8px;cursor:pointer" style-hover="color:#ece6da;background:#1a1916"><span style="font-size:16px">←</span>{{ backLabel }}</button>
+    <span style="width:1px;height:20px;background:rgba(236,230,218,.12)"></span>
+    <input value="{{ projName }}" onChange="{{ onName }}" aria-label="Project name" style="font:600 15px 'Schibsted Grotesk',sans-serif;letter-spacing:-0.01em;color:#ece6da;background:transparent;border:1px solid transparent;border-radius:8px;padding:6px 8px;min-width:0;width:320px;flex:0 1 320px;outline:none" style-hover="border-color:rgba(236,230,218,.14)" style-focus="border-color:rgba(236,230,218,.3);background:#1a1916">
+    <span style="display:flex;align-items:center;gap:7px;font:400 11.5px 'IBM Plex Mono',monospace;color:#9a9387;white-space:nowrap"><span style="{{ saveDotSt }}"></span>{{ saveLabelShown }}<sc-if value="{{ isOffline }}"><button onClick="{{ retrySave }}" style="font:600 12px 'Schibsted Grotesk',sans-serif;color:#ece6da;background:transparent;border:1px solid rgba(236,230,218,.2);border-radius:7px;padding:4px 9px;cursor:pointer;margin-left:4px" style-hover="background:#23211d">Retry now</button></sc-if></span>
+    <div style="display:flex;gap:2px">
+      <button onClick="{{ doUndo }}" disabled="{{ noUndo }}" title="Undo (Ctrl+Z)" aria-label="Undo" style="{{ undoSt }}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5.5 4 2.5 7l3 3"></path><path d="M2.5 7h7a4 4 0 0 1 0 8H8"></path></svg></button>
+      <button onClick="{{ doRedo }}" disabled="{{ noRedo }}" title="Redo (Ctrl+Shift+Z)" aria-label="Redo" style="{{ redoSt }}"><svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 4l3 3-3 3"></path><path d="M13.5 7h-7a4 4 0 0 0 0 8H8"></path></svg></button>
+    </div>
+    <div style="flex:1"></div>
+    <span style="{{ hintsSt }}"><span><span style="padding:1px 5px;border:1px solid rgba(236,230,218,.18);border-radius:4px;color:#ece6da">space</span> play</span><span><span style="padding:1px 5px;border:1px solid rgba(236,230,218,.18);border-radius:4px;color:#ece6da">← →</span> blocks</span></span>
+    <sc-if value="{{ isMid }}"><button onClick="{{ toggleDrawer }}" aria-expanded="{{ drawerOpen }}" style="{{ drawerBtnSt }}">Style</button></sc-if>
+    <button onClick="{{ openExport }}" disabled="{{ isProcEd }}" title="{{ exportBtnTitle }}" style="{{ exportBtnSt }}">{{ exportBtnLabel }}</button>
+  </header>
+
+  <div style="{{ edBodySt }}">
+    <sc-if value="{{ isSmall }}">
+      <div role="tablist" style="order:1;flex:none;display:flex;gap:4px;padding:4px 12px 10px;border-bottom:1px solid rgba(236,230,218,.09)">
+        <sc-for list="{{ mobTabs }}" as="mt"><button role="tab" aria-selected="{{ mt.on }}" onClick="{{ mt.pick }}" style="{{ mt.st }}">{{ mt.label }}</button></sc-for>
+      </div>
+    </sc-if>
+    <section style="{{ edLeftSt }}">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:18px 16px 12px 20px;gap:8px 12px">
+        <div style="display:flex;align-items:baseline;gap:10px">
+          <span style="font-size:18px;font-weight:700;letter-spacing:-0.02em">Captions</span>
+          <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:#9a9387;white-space:nowrap">{{ blockCount }}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <sc-if value="{{ wideEd }}"><span style="font:400 11.5px 'IBM Plex Mono',monospace;color:#9a9387;white-space:nowrap">EN</span></sc-if>
+          <button onClick="{{ toggleFind }}" disabled="{{ isProcEd }}" title="Replace word (Ctrl+F)" style="{{ findBtnSt }}" style-hover="border-color:rgba(236,230,218,.35)">Replace</button>
+        </div>
+      </div>
+      <sc-if value="{{ findOpen }}">
+        <div style="margin:0 12px 10px;padding:14px;border-radius:12px;background:#1a1916;border:1px solid rgba(236,230,218,.12);display:flex;flex-direction:column;gap:10px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px">
+            <input value="{{ fq }}" onChange="{{ onFq }}" onKeyDown="{{ onFindKey }}" autoFocus="{{ true }}" placeholder="Wrong word" aria-label="Find" style="font:400 14px 'Schibsted Grotesk',sans-serif;color:#ece6da;background:#12110f;border:1px solid rgba(236,230,218,.16);border-radius:8px;padding:9px 11px;outline:none;min-width:0" style-focus="border-color:#ece6da">
+            <input value="{{ fr }}" onChange="{{ onFr }}" onKeyDown="{{ onFindKey }}" placeholder="Replace with" aria-label="Replace with" style="font:400 14px 'Schibsted Grotesk',sans-serif;color:#ece6da;background:#12110f;border:1px solid rgba(236,230,218,.16);border-radius:8px;padding:9px 11px;outline:none;min-width:0" style-focus="border-color:#ece6da">
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="{{ fCountSt }}">{{ fCount }}</span>
+            <div style="flex:1"></div>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:#9a9387;cursor:pointer;white-space:nowrap"><input type="checkbox" checked="{{ fRemember }}" onChange="{{ onFRemember }}" style="accent-color:#ece6da;margin:0">Save to dictionary</label>
+            <button onClick="{{ doReplace }}" disabled="{{ noReplace }}" style="{{ replBtnSt }}">{{ replLabel }}</button>
+          </div>
+          <sc-if value="{{ hasDict }}">
+            <div style="display:flex;flex-direction:column;gap:7px;padding-top:10px;border-top:1px solid rgba(236,230,218,.08)">
+              <span style="font:500 10.5px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#9a9387">DICTIONARY · APPLIED TO FUTURE VIDEOS</span>
+              <div style="display:flex;flex-wrap:wrap;gap:6px">
+                <sc-for list="{{ dictList }}" as="d"><span style="display:inline-flex;align-items:center;gap:6px;font:500 12px 'Schibsted Grotesk',sans-serif;padding:4px 4px 4px 9px;border-radius:999px;border:1px solid rgba(236,230,218,.14)"><span style="color:#9a9387;text-decoration:line-through">{{ d.from }}</span><span style="color:#9a9387">→</span>{{ d.to }}<button onClick="{{ d.remove }}" aria-label="Remove from dictionary" style="width:18px;height:18px;border-radius:50%;border:0;background:rgba(236,230,218,.08);color:#ece6da;cursor:pointer;font-size:11px;line-height:1">×</button></span></sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+      <div ref="{{ listRef }}" style="flex:1;min-height:0;overflow:auto;padding:4px 12px 40px;position:relative;display:flex;flex-direction:column;gap:4px">
+        <sc-if value="{{ isProcEd }}">
+          <div style="display:flex;flex-direction:column;gap:22px;padding:14px 8px">
+            <div style="display:flex;flex-direction:column;gap:14px;padding:18px;border-radius:12px;background:#1a1916;border:1px solid rgba(236,230,218,.09)">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+                <span style="font-size:16px;font-weight:700;letter-spacing:-0.01em">{{ procTitle }}</span>
+                <span style="font:500 12px 'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums">{{ procEdPct }}</span>
+              </div>
+              <div style="height:3px;background:rgba(236,230,218,.12);border-radius:2px;overflow:hidden"><div style="{{ procEdBarSt }}"></div></div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <sc-for list="{{ procEdSteps }}" as="s"><div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="{{ s.dotSt }}"></span><span style="{{ s.lblSt }}">{{ s.label }}</span></div></sc-for>
+              </div>
+              <span style="font-size:13px;color:#9a9387;text-wrap:pretty">You can pick a style meanwhile — it's applied as soon as the captions arrive. If you leave, processing continues.</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:18px;padding:0 6px" aria-hidden="true">
+              <sc-for list="{{ skel }}" as="k"><div style="display:flex;flex-direction:column;gap:8px"><span style="width:110px;height:9px;border-radius:3px;background:rgba(236,230,218,.07)"></span><span style="{{ k.st }}"></span></div></sc-for>
+            </div>
+          </div>
+        </sc-if>
+        <sc-for list="{{ blockList }}" as="b" hint-placeholder-count="8">
+          <div data-bid="{{ b.id }}" onClick="{{ b.onSelect }}" style="{{ b.rowSt }}" style-hover="background:#1a1916">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+              <span style="{{ b.tcSt }}">{{ b.tc }}</span>
+              <sc-if value="{{ b.flag }}"><span style="font:500 10.5px 'IBM Plex Mono',monospace;color:#ffb35c;display:inline-flex;gap:5px;align-items:center"><span>◆</span>{{ b.flag }}</span></sc-if>
+            </div>
+            <sc-if value="{{ b.notEditing }}">
+              <div style="display:flex;flex-wrap:wrap;align-items:center;row-gap:2px;font-size:17px;line-height:1.45;letter-spacing:-0.005em">
+                <sc-for list="{{ b.words }}" as="w">
+                  <span onClick="{{ w.onClick }}" style="{{ w.st }}" style-hover="background:rgba(236,230,218,.09)">{{ w.t }}</span>
+                  <sc-if value="{{ w.canSplit }}"><button onClick="{{ w.onSplit }}" title="Split here" aria-label="Split block here" style="width:12px;height:22px;padding:0;border:0;background:transparent;cursor:col-resize;display:grid;place-items:center;color:rgba(236,230,218,.25)" style-hover="color:#ff5a1f"><span style="width:2px;height:16px;background:currentColor;border-radius:1px"></span></button></sc-if>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ b.editing }}">
+              <div onClick="{{ b.stop }}" style="display:flex;flex-direction:column;gap:10px">
+                <textarea value="{{ b.draft }}" onChange="{{ b.onDraft }}" onKeyDown="{{ b.onDraftKey }}" rows="2" aria-label="Caption text" style="font:400 17px/1.45 'Schibsted Grotesk',sans-serif;color:#ece6da;background:#12110f;border:1px solid rgba(236,230,218,.25);border-radius:8px;padding:10px 12px;resize:vertical;outline:none;width:100%"></textarea>
+                <div style="display:flex;gap:8px;align-items:center">
+                  <button onClick="{{ b.commit }}" style="font:600 12.5px 'Schibsted Grotesk',sans-serif;padding:7px 12px;border-radius:8px;border:0;background:#ece6da;color:#12110f;cursor:pointer">Apply</button>
+                  <button onClick="{{ b.cancel }}" style="font:600 12.5px 'Schibsted Grotesk',sans-serif;padding:7px 12px;border-radius:8px;border:1px solid rgba(236,230,218,.2);background:transparent;color:#ece6da;cursor:pointer">Cancel</button>
+                  <span style="font:400 11px 'IBM Plex Mono',monospace;color:#9a9387">enter applies · esc cancels</span>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ b.showActions }}">
+              <div onClick="{{ b.stop }}" style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px;padding-top:12px;border-top:1px solid rgba(236,230,218,.09)">
+                <button onClick="{{ b.startEdit }}" style="font:600 12px 'Schibsted Grotesk',sans-serif;padding:6px 10px;border-radius:7px;border:1px solid rgba(236,230,218,.18);background:transparent;color:#ece6da;cursor:pointer" style-hover="background:#2b2924">Edit text</button>
+                <sc-if value="{{ b.canMerge }}"><button onClick="{{ b.merge }}" style="font:600 12px 'Schibsted Grotesk',sans-serif;padding:6px 10px;border-radius:7px;border:1px solid rgba(236,230,218,.18);background:transparent;color:#ece6da;cursor:pointer" style-hover="background:#2b2924">Merge with next</button></sc-if>
+                <div style="flex:1"></div>
+                <div style="display:flex;align-items:center;gap:4px;font:400 11px 'IBM Plex Mono',monospace;color:#9a9387">
+                  <span>start</span>
+                  <button onClick="{{ b.sMinus }}" aria-label="Move start earlier" style="width:24px;height:24px;border-radius:6px;border:1px solid rgba(236,230,218,.16);background:transparent;color:#ece6da;cursor:pointer;font:500 13px 'IBM Plex Mono',monospace">−</button>
+                  <button onClick="{{ b.sPlus }}" aria-label="Move start later" style="width:24px;height:24px;border-radius:6px;border:1px solid rgba(236,230,218,.16);background:transparent;color:#ece6da;cursor:pointer;font:500 13px 'IBM Plex Mono',monospace">+</button>
+                  <span style="margin-left:8px">end</span>
+                  <button onClick="{{ b.eMinus }}" aria-label="Move end earlier" style="width:24px;height:24px;border-radius:6px;border:1px solid rgba(236,230,218,.16);background:transparent;color:#ece6da;cursor:pointer;font:500 13px 'IBM Plex Mono',monospace">−</button>
+                  <button onClick="{{ b.ePlus }}" aria-label="Move end later" style="width:24px;height:24px;border-radius:6px;border:1px solid rgba(236,230,218,.16);background:transparent;color:#ece6da;cursor:pointer;font:500 13px 'IBM Plex Mono',monospace">+</button>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+        <sc-if value="{{ showSplitHint }}"><span style="font:400 11px 'IBM Plex Mono',monospace;color:#9a9387;padding:14px 8px">Tip: select a block and click between two words to split it.</span></sc-if>
+      </div>
+    </section>
+
+    <section style="{{ edCenterSt }}">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:14px;width:100%;max-width:440px">
+        <div onClick="{{ togglePlay }}" onDragOver="{{ onVidDragOver }}" onDragLeave="{{ onVidDragLeave }}" onDrop="{{ onVidDrop }}" style="{{ frameSt }}">
+          <sc-if value="{{ hasVideo }}"><video ref="{{ videoRef }}" src="{{ videoUrl }}" playsInline="{{ true }}" preload="auto" onLoadedMetadata="{{ onVidMeta }}" onEnded="{{ onVidEnded }}" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;background:#000"></video></sc-if>
+          <div style="position:absolute;top:8px;left:10px;right:8px;display:flex;align-items:center;justify-content:space-between;gap:8px;z-index:2">
+          <span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:500 10px 'IBM Plex Mono',monospace;letter-spacing:.04em;color:rgba(236,230,218,.75);text-shadow:0 1px 3px rgba(0,0,0,.6)">{{ vidLabel }}</span>
+          <label onClick="{{ stop }}" style="flex:none;display:flex;align-items:center;gap:6px;font:600 11.5px 'Schibsted Grotesk',sans-serif;color:#ece6da;background:rgba(18,17,15,.6);backdrop-filter:blur(8px);border:1px solid rgba(236,230,218,.16);border-radius:8px;padding:6px 9px;cursor:pointer;white-space:nowrap" style-hover="background:rgba(18,17,15,.85)">{{ pickLabel }}<input type="file" accept="video/*" onChange="{{ onPickVideo }}" style="display:none"></label>
+          </div>
+          <sc-if value="{{ vidDrag }}"><div style="position:absolute;inset:0;z-index:3;display:grid;place-items:center;background:rgba(255,90,31,.14);border:2px dashed #ff5a1f;border-radius:14px;pointer-events:none"><span style="font:700 15px 'Schibsted Grotesk',sans-serif;color:#ece6da;background:rgba(18,17,15,.7);padding:8px 12px;border-radius:9px">Drop to use this video</span></div></sc-if>
+          <sc-if value="{{ noVideoHint }}"><span style="position:absolute;left:12%;right:12%;top:62%;text-align:center;font:500 11px/1.5 'IBM Plex Mono',monospace;color:rgba(236,230,218,.55);text-wrap:balance;pointer-events:none">Drag your own video here to see the captions on it</span></sc-if>
+          <sc-if value="{{ isProcEd }}"><span style="position:absolute;left:12%;right:12%;bottom:14%;text-align:center;font:500 12px/1.5 'IBM Plex Mono',monospace;color:rgba(236,230,218,.7);text-wrap:balance">Captions appear here when transcription finishes</span></sc-if>
+          <sc-if value="{{ capVisible }}">
+            <div style="{{ cap.box }}">
+              <sc-for list="{{ cap.words }}" as="w"><span style="{{ w.st }}">{{ w.t }}</span></sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ pausedOverlay }}">
+            <div style="position:absolute;inset:0;display:grid;place-items:center;pointer-events:none">
+              <span style="width:64px;height:64px;border-radius:50%;background:rgba(18,17,15,.55);backdrop-filter:blur(8px);display:grid;place-items:center;color:#ece6da"><svg width="22" height="22" viewBox="0 0 16 16"><path d="M5 2.8v10.4l8.2-5.2z" fill="currentColor"></path></svg></span>
+            </div>
+          </sc-if>
+        </div>
+
+        <div onClick="{{ onSeekBar }}" style="position:relative;height:22px;cursor:pointer;width:100%" aria-label="Video position">
+          <div style="position:absolute;left:0;right:0;top:50%;height:4px;margin-top:-2px;background:rgba(236,230,218,.12);border-radius:2px"></div>
+          <div style="{{ progFillSt }}"></div>
+          <sc-for list="{{ ticks }}" as="k"><span style="{{ k.st }}"></span></sc-for>
+          <span style="{{ knobSt }}"></span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px;width:100%">
+          <span style="justify-self:start;font:500 12px 'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums;white-space:nowrap"><span style="color:#ece6da">{{ tNow }}</span><span style="color:#9a9387"> / {{ tDur }}</span></span>
+          <div style="display:flex;align-items:center;gap:6px">
+            <button onClick="{{ prevBlock }}" aria-label="Previous caption" style="width:34px;height:34px;border-radius:50%;border:0;background:transparent;color:#ece6da;cursor:pointer;display:grid;place-items:center" style-hover="background:#23211d"><svg width="14" height="14" viewBox="0 0 16 16"><path d="M3 3h2v10H3zM13.5 3v10L6 8z" fill="currentColor"></path></svg></button>
+            <button onClick="{{ togglePlay }}" aria-label="Play or pause" style="width:46px;height:46px;border-radius:50%;border:0;background:#ece6da;color:#12110f;cursor:pointer;display:grid;place-items:center" style-hover="background:#ffffff">
+              <sc-if value="{{ playing }}"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M4 2.5h3v11H4zM9 2.5h3v11H9z" fill="currentColor"></path></svg></sc-if>
+              <sc-if value="{{ notPlaying }}"><svg width="16" height="16" viewBox="0 0 16 16"><path d="M4.5 2.5v11l9-5.5z" fill="currentColor"></path></svg></sc-if>
+            </button>
+            <button onClick="{{ nextBlock }}" aria-label="Next caption" style="width:34px;height:34px;border-radius:50%;border:0;background:transparent;color:#ece6da;cursor:pointer;display:grid;place-items:center" style-hover="background:#23211d"><svg width="14" height="14" viewBox="0 0 16 16"><path d="M11 3h2v10h-2zM2.5 3v10L10 8z" fill="currentColor"></path></svg></button>
+          </div>
+          <button onClick="{{ cycleRate }}" aria-label="Speed" style="justify-self:end;font:500 12px 'IBM Plex Mono',monospace;padding:5px 8px;border-radius:6px;border:1px solid rgba(236,230,218,.16);background:transparent;color:#ece6da;cursor:pointer;min-width:52px">{{ rateLabel }}</button>
+        </div>
+      </div>
+    </section>
+
+    <aside style="{{ edAsideSt }}">
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:18px;font-weight:700;letter-spacing:-0.02em">Style</span>
+          <div style="flex:1"></div>
+          <sc-if value="{{ modified }}"><button onClick="{{ resetPreset }}" style="font:500 12px 'Schibsted Grotesk',sans-serif;color:#9a9387;background:transparent;border:0;cursor:pointer;padding:0;text-decoration:underline;text-underline-offset:3px" style-hover="color:#ece6da">Restore default</button></sc-if>
+          <sc-if value="{{ isMid }}"><button onClick="{{ closeDrawer }}" aria-label="Close style panel" style="width:30px;height:30px;border-radius:8px;border:1px solid rgba(236,230,218,.16);background:transparent;color:#ece6da;cursor:pointer;font-size:15px;line-height:1">×</button></sc-if>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <sc-for list="{{ presetTiles }}" as="pt" hint-placeholder-count="5">
+            <button onClick="{{ pt.pick }}" style="{{ pt.btnSt }}" style-hover="border-color:rgba(236,230,218,.35)">
+              <div style="position:relative;aspect-ratio:16/10;border-radius:7px;overflow:hidden;container-type:inline-size;background:radial-gradient(80% 90% at 30% 20%,#3d2c20,#120e0b)">
+                <div style="{{ pt.cap.box }}"><sc-for list="{{ pt.cap.words }}" as="w"><span style="{{ w.st }}">{{ w.t }}</span></sc-for></div>
+              </div>
+              <span style="display:flex;justify-content:space-between;align-items:center;font:600 12px 'Schibsted Grotesk',sans-serif;color:#ece6da;padding:0 2px">{{ pt.name }}<span style="{{ pt.markSt }}">{{ pt.mark }}</span></span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:18px">
+        <span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#9a9387">ADJUSTMENTS · {{ presetName }}</span>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:13px;font-weight:600">Font</span>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <sc-for list="{{ fontChips }}" as="f"><button onClick="{{ f.pick }}" style="{{ f.st }}">{{ f.lbl }}</button></sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:600">Size</span><span style="font:400 11.5px 'IBM Plex Mono',monospace;color:#9a9387">{{ sizeVal }}</span></div>
+          <input type="range" min="14" max="54" step="1" value="{{ sizeVal }}" onChange="{{ onSize }}" aria-label="Text size" style="width:100%">
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:13px;font-weight:600">Spoken word highlight</span>
+          <div style="display:flex;padding:3px;background:#1a1916;border-radius:9px;gap:2px">
+            <sc-for list="{{ modeSeg }}" as="o"><button onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.label }}</button></sc-for>
+          </div>
+          <sc-if value="{{ showHl }}">
+            <div style="display:flex;gap:8px;margin-top:2px">
+              <sc-for list="{{ hlSw }}" as="c"><button onClick="{{ c.pick }}" aria-label="{{ c.label }}" style="{{ c.st }}"></button></sc-for>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:13px;font-weight:600">Text color</span>
+          <div style="display:flex;gap:8px">
+            <sc-for list="{{ txSw }}" as="c"><button onClick="{{ c.pick }}" aria-label="{{ c.label }}" style="{{ c.st }}"></button></sc-for>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <sc-for list="{{ toggles }}" as="g">
+            <button onClick="{{ g.pick }}" aria-pressed="{{ g.on }}" style="{{ g.st }}"><span>{{ g.label }}</span><span style="{{ g.trackSt }}"><span style="{{ g.knobSt }}"></span></span></button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ style.outline }}">
+          <div style="display:flex;flex-direction:column;gap:8px;margin-top:-8px">
+            <div style="display:flex;justify-content:space-between"><span style="font-size:12.5px;color:#9a9387">Outline thickness</span><span style="font:400 11.5px 'IBM Plex Mono',monospace;color:#9a9387">{{ style.ow }}</span></div>
+            <input type="range" min="1" max="6" step="0.5" value="{{ style.ow }}" onChange="{{ onOw }}" aria-label="Outline thickness" style="width:100%">
+          </div>
+        </sc-if>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:13px;font-weight:600">Position</span>
+          <div style="display:flex;padding:3px;background:#1a1916;border-radius:9px;gap:2px">
+            <sc-for list="{{ posSeg }}" as="o"><button onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.label }}</button></sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:13px;font-weight:600">Word entrance</span>
+          <div style="display:flex;padding:3px;background:#1a1916;border-radius:9px;gap:2px">
+            <sc-for list="{{ animSeg }}" as="o"><button onClick="{{ o.pick }}" style="{{ o.st }}">{{ o.label }}</button></sc-for>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding-top:14px;border-top:1px solid rgba(236,230,218,.09)">
+          <div style="display:flex;flex-direction:column;gap:3px">
+            <span style="font-size:13px;font-weight:600">Words per block</span>
+            <span style="font-size:12px;color:#9a9387">Regroups the captions</span>
+          </div>
+          <div style="display:flex;align-items:center;border:1px solid rgba(236,230,218,.16);border-radius:9px">
+            <button onClick="{{ maxMinus }}" aria-label="Fewer words" style="width:32px;height:32px;border:0;background:transparent;color:#ece6da;cursor:pointer;font-size:16px">−</button>
+            <span style="font:500 13px 'IBM Plex Mono',monospace;width:22px;text-align:center">{{ style.maxW }}</span>
+            <button onClick="{{ maxPlus }}" aria-label="More words" style="width:32px;height:32px;border:0;background:transparent;color:#ece6da;cursor:pointer;font-size:16px">+</button>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <sc-if value="{{ drawerBackdrop }}"><div onClick="{{ closeDrawer }}" style="position:fixed;inset:56px 0 0 0;background:rgba(8,7,6,.5);z-index:11"></div></sc-if>
+  <sc-if value="{{ toast }}">
+    <div role="status" style="position:fixed;left:50%;top:68px;transform:translateX(-50%);z-index:15;display:flex;align-items:center;gap:12px;padding:10px 10px 10px 16px;border-radius:12px;background:#ece6da;color:#12110f;font:600 13.5px 'Schibsted Grotesk',sans-serif;box-shadow:0 20px 50px -20px rgba(0,0,0,.8);white-space:nowrap">
+      {{ toast }}
+      <sc-if value="{{ toastUndo }}"><button onClick="{{ toastAct }}" style="font:700 12.5px 'Schibsted Grotesk',sans-serif;padding:6px 10px;border-radius:8px;border:0;background:#12110f;color:#ece6da;cursor:pointer">{{ toastActLabel }}</button></sc-if>
+    </div>
+  </sc-if>
+  <sc-if value="{{ leaveAsk }}">
+    <div onClick="{{ stayHere }}" style="position:fixed;inset:0;background:rgba(8,7,6,.62);backdrop-filter:blur(6px);display:grid;place-items:center;padding:24px;z-index:21">
+      <div onClick="{{ stop }}" role="alertdialog" aria-label="Unsaved changes" style="width:min(400px,100%);background:#1a1916;border:1px solid rgba(236,230,218,.12);border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:16px">
+        <span style="font-size:22px;font-weight:700;letter-spacing:-0.03em">Some changes haven't synced yet</span>
+        <span style="font-size:14px;color:#9a9387;text-wrap:pretty">They're kept in this browser and will sync when you're back online. If you leave now and clear your browser data, they'll be lost.</span>
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button onClick="{{ leaveAnyway }}" style="font:600 13.5px 'Schibsted Grotesk',sans-serif;padding:10px 16px;border-radius:9px;border:1px solid rgba(236,230,218,.18);background:transparent;color:#ece6da;cursor:pointer">Leave anyway</button>
+          <button onClick="{{ stayHere }}" style="font:700 13.5px 'Schibsted Grotesk',sans-serif;padding:10px 18px;border-radius:9px;border:0;background:#ece6da;color:#12110f;cursor:pointer">Stay in editor</button>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+  <sc-if value="{{ exportOpen }}">
+    <div onClick="{{ closeExport }}" style="position:fixed;inset:0;background:rgba(8,7,6,.62);backdrop-filter:blur(6px);display:grid;place-items:center;padding:24px;z-index:20">
+      <div onClick="{{ stop }}" role="dialog" aria-label="Export video" style="width:min(460px,100%);background:#1a1916;border:1px solid rgba(236,230,218,.12);border-radius:18px;padding:26px;display:flex;flex-direction:column;gap:20px;box-shadow:0 40px 100px -30px rgba(0,0,0,.9)">
+        <sc-if value="{{ exCfg }}">
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:24px;font-weight:700;letter-spacing:-0.03em">Export video</span>
+            <span style="font-size:14px;color:#9a9387;text-wrap:pretty">MP4 with captions burned into the image.</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <sc-for list="{{ resOpts }}" as="r">
+              <button onClick="{{ r.pick }}" style="{{ r.st }}"><span style="font-size:20px;font-weight:700;letter-spacing:-0.02em">{{ r.label }}</span><span style="font-size:12px;color:#9a9387">{{ r.sub }}</span></button>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;font:400 12px/1.5 'IBM Plex Mono',monospace;color:#9a9387;padding:12px 14px;background:#12110f;border-radius:10px">
+            <span><span style="color:#ece6da">{{ presetName }}</span> · {{ blockCount }} · {{ tDur }}</span>
+            <span>We freeze this version. You can keep editing while it renders.</span>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button onClick="{{ closeExport }}" style="font:600 13.5px 'Schibsted Grotesk',sans-serif;padding:10px 16px;border-radius:9px;border:1px solid rgba(236,230,218,.18);background:transparent;color:#ece6da;cursor:pointer">Cancel</button>
+            <button onClick="{{ startRender }}" style="font:700 13.5px 'Schibsted Grotesk',sans-serif;padding:10px 18px;border-radius:9px;border:0;background:#ff5a1f;color:#12110f;cursor:pointer" style-hover="background:#ff7340">Render</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ exRendering }}">
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#9a9387">RENDERING · {{ exRes }}</span>
+            <span style="font-size:72px;font-weight:700;letter-spacing:-0.05em;line-height:.9;font-variant-numeric:tabular-nums">{{ exPctLabel }}</span>
+            <div style="height:4px;background:rgba(236,230,218,.12);border-radius:2px;overflow:hidden"><div style="{{ exBarSt }}"></div></div>
+            <span style="font-size:13.5px;color:#9a9387;text-wrap:pretty">You can close this window or the tab. We'll email you when it's done.</span>
+          </div>
+          <div style="display:flex;justify-content:flex-end"><button onClick="{{ closeExport }}" style="font:600 13.5px 'Schibsted Grotesk',sans-serif;padding:10px 16px;border-radius:9px;border:1px solid rgba(236,230,218,.18);background:transparent;color:#ece6da;cursor:pointer">Keep editing</button></div>
+        </sc-if>
+        <sc-if value="{{ exFailed }}">
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span style="font-size:22px;color:#ff7a5c">▲</span>
+            <span style="font-size:24px;font-weight:700;letter-spacing:-0.03em;text-wrap:balance">The render stopped at 64%</span>
+            <span style="font-size:14px;color:#9a9387;text-wrap:pretty">It was a failure on our server, not in your project. The reserved minutes were returned to your balance and your captions are intact.</span>
+            <span style="font:400 11px 'IBM Plex Mono',monospace;color:#9a9387">RENDER_TIMEOUT · ref 8F2K-41</span>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:8px">
+            <button onClick="{{ closeExport }}" style="font:600 13.5px 'Schibsted Grotesk',sans-serif;padding:10px 16px;border-radius:9px;border:1px solid rgba(236,230,218,.18);background:transparent;color:#ece6da;cursor:pointer">Close</button>
+            <button onClick="{{ startRender }}" style="font:700 13.5px 'Schibsted Grotesk',sans-serif;padding:10px 18px;border-radius:9px;border:0;background:#ece6da;color:#12110f;cursor:pointer" style-hover="background:#ffffff">Try again</button>
+          </div>
+        </sc-if>
+        <sc-if value="{{ exDone }}">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <span style="font-size:40px;font-weight:700;letter-spacing:-0.045em;line-height:1">Done<span style="color:#ff5a1f">.</span></span>
+            <span style="font:400 12px 'IBM Plex Mono',monospace;color:#9a9387">{{ exFile }}</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button style="flex:1;font:700 14px 'Schibsted Grotesk',sans-serif;padding:12px 18px;border-radius:10px;border:0;background:#ece6da;color:#12110f;cursor:pointer" style-hover="background:#ffffff">Download MP4</button>
+            <button onClick="{{ backToCfg }}" style="font:600 13.5px 'Schibsted Grotesk',sans-serif;padding:12px 16px;border-radius:10px;border:1px solid rgba(236,230,218,.18);background:transparent;color:#ece6da;cursor:pointer">New version</button>
+          </div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:2px;padding-top:16px;border-top:1px solid rgba(236,230,218,.09)">
+          <span style="font:500 11px 'IBM Plex Mono',monospace;letter-spacing:.06em;color:#9a9387;margin-bottom:6px">PREVIOUS VERSIONS</span>
+          <sc-for list="{{ exportsList }}" as="x">
+            <div style="display:flex;align-items:center;gap:12px;padding:8px 0;font-size:13px">
+              <span style="font:500 12px 'IBM Plex Mono',monospace;color:#ece6da;width:26px">v{{ x.v }}</span>
+              <span style="flex:1;color:#9a9387">{{ x.res }} · {{ x.size }} · {{ x.when }}</span>
+              <button style="font:600 12px 'Schibsted Grotesk',sans-serif;color:#ece6da;background:transparent;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:3px">Download</button>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;startScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;dashboard&quot;,&quot;billing&quot;,&quot;account&quot;,&quot;editor&quot;],&quot;default&quot;:&quot;login&quot;,&quot;tsType&quot;:&quot;'login'|'dashboard'|'billing'|'account'|'editor'&quot;},&quot;karaoke&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Editor&quot;},&quot;errorDemo&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;none&quot;,&quot;render&quot;,&quot;offline&quot;],&quot;default&quot;:&quot;none&quot;,&quot;tsType&quot;:&quot;'none'|'render'|'offline'&quot;,&quot;section&quot;:&quot;Editor&quot;}}">
+const C = { ink:'#12110f', p1:'#1a1916', p2:'#23211d', line:'rgba(236,230,218,.09)', tx:'#ece6da', mu:'#9a9387', acc:'#ff5a1f' };
+const SCRIPT = "Nobody tells you this, but the secret to a video that hooks people isn't the camera. It's the rhythm. The first three seconds decide everything. If people can't read it, they scroll past. That's why captions aren't a detail: they're half the video. Try it today and tell me later.";
+function buildWords() {
+  let t = 400;
+  return SCRIPT.split(/\s+/).map(tok => {
+    const len = tok.replace(/[^\p{L}]/gu, '').length;
+    const d = 170 + len * 46;
+    const w = { t: tok, s: t, e: t + d };
+    t += d + 40;
+    if (/[.!?:]$/.test(tok)) t += 420; else if (/,$/.test(tok)) t += 200;
+    return w;
+  });
+}
+const WORDS0 = buildWords();
+const DUR = WORDS0[WORDS0.length - 1].e + 900;
+let _id = 0; const uid = () => 'b' + (++_id);
+function segment(words, maxW) {
+  const out = []; let a = 0;
+  for (let i = 0; i < words.length; i++) {
+    const n = i - a + 1, last = i === words.length - 1;
+    const strong = /[.!?:]$/.test(words[i].t), comma = /,$/.test(words[i].t) && n >= 2;
+    const pause = !last && words[i + 1].s - words[i].e > 300;
+    if (strong || comma || pause || n >= maxW || last) { out.push({ id: uid(), a, b: i }); a = i + 1; }
+  }
+  out.forEach((b, k) => { b.s = words[b.a].s; const nx = out[k + 1]; b.e = Math.min(words[b.b].e + 220, nx ? words[nx.a].s : DUR); });
+  return out;
+}
+const FONTS = [{ k:'Anton', w:400, lbl:'Anton' }, { k:'Archivo Black', w:400, lbl:'Archivo' }, { k:'Schibsted Grotesk', w:700, lbl:'Schibsted' }, { k:'DM Serif Display', w:400, lbl:'DM Serif' }];
+const PRESETS = {
+  bold:    { name:'Bold Highlight', font:'Anton', size:38, upper:true, color:'#ffffff', hl:'#ffd400', mode:'box', outline:true, ow:3, shadow:true, pos:'mid', anim:'pop', maxW:3, plate:false },
+  word:    { name:'Word Highlight', font:'Archivo Black', size:27, upper:false, color:'#ffffff', hl:'#3ee07a', mode:'text', outline:true, ow:2.5, shadow:true, pos:'bottom', anim:'pop', maxW:4, plate:false },
+  podcast: { name:'Clean Podcast', font:'Schibsted Grotesk', size:23, upper:false, color:'#ffffff', hl:'#ffffff', mode:'dim', outline:false, ow:2, shadow:true, pos:'bottom', anim:'none', maxW:6, plate:false },
+  classic: { name:'Classic', font:'Schibsted Grotesk', size:19, upper:false, color:'#ffffff', hl:'#ffd400', mode:'none', outline:false, ow:2, shadow:false, pos:'bottom', anim:'none', maxW:7, plate:true },
+  minimal: { name:'Minimal', font:'DM Serif Display', size:26, upper:false, color:'#f4efe6', hl:'#ffd400', mode:'none', outline:false, ow:2, shadow:true, pos:'bottom', anim:'none', maxW:5, plate:false },
+};
+const HL = [['#ffd400','Yellow'],['#3ee07a','Green'],['#ff5a1f','Orange'],['#7ab8ff','Blue'],['#ffffff','White']];
+const TXC = [['#ffffff','White'],['#f4efe6','Cream'],['#ffd400','Yellow'],['#111111','Black']];
+const u = v => (v / 360 * 100).toFixed(3) + 'cqw';
+const lum = h => { const n = parseInt(h.slice(1), 16); return (0.299 * (n >> 16) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255; };
+function capRender(st, toks, active) {
+  const fw = (FONTS.find(f => f.k === st.font) || {}).w || 700;
+  const box = { position:'absolute', left:'7%', right:'7%', display:'flex', flexWrap:'wrap', justifyContent:'center', alignItems:'center', columnGap: st.plate ? 0 : u(st.size * 0.22), rowGap: st.plate ? 0 : u(st.size * 0.04), lineHeight:1.08, textAlign:'center', pointerEvents:'none' };
+  if (st.pos === 'top') box.top = '13%'; else if (st.pos === 'mid') { box.top = '50%'; box.transform = 'translateY(-50%)'; } else box.bottom = '14%';
+  const words = toks.map((t, i) => {
+    const a = i === active;
+    const s = { fontFamily:`'${st.font}', sans-serif`, fontWeight:fw, fontSize:u(st.size), color:st.color, textTransform: st.upper ? 'uppercase' : 'none', letterSpacing: st.upper ? '0.01em' : '0', display:'inline-block', padding:`${u(st.size * .03)} ${u(st.size * .1)}`, borderRadius:u(st.size * .14), transition:'transform 120ms cubic-bezier(.3,1.7,.5,1), background-color 80ms, color 80ms, opacity 140ms', WebkitTextStroke: st.outline ? `${u(st.ow)} #000` : '0', paintOrder:'stroke fill', textShadow: st.shadow ? `0 ${u(2)} ${u(10)} rgba(0,0,0,.6)` : 'none', transform:'none' };
+    if (a) {
+      if (st.mode === 'box') { s.background = st.hl; s.color = lum(st.hl) > .55 ? '#111' : '#fff'; s.WebkitTextStroke = '0'; s.textShadow = 'none'; if (st.anim === 'pop') s.transform = 'scale(1.1) rotate(-2deg)'; }
+      else if (st.mode === 'text') { s.color = st.hl; if (st.anim === 'pop') s.transform = 'scale(1.12)'; }
+      else if (st.anim === 'pop') s.transform = 'scale(1.06)';
+    }
+    if (st.mode === 'dim' && active >= 0 && i > active) s.opacity = .5;
+    if (st.plate) { s.background = 'rgba(10,10,10,.82)'; s.borderRadius = 0; s.padding = `${u(st.size * .12)} ${u(st.size * .16)}`; }
+    return { t, st: s };
+  });
+  return { box, words };
+}
+const pad = n => String(n).padStart(2, '0');
+const fmt = ms => { ms = Math.max(0, ms); const m = Math.floor(ms / 60000); const s = (ms % 60000) / 1000; return `${pad(m)}:${s.toFixed(1).padStart(4, '0')}`; };
+const BGS = [
+  'radial-gradient(45% 30% at 50% 55%,#7a5640,transparent),radial-gradient(120% 80% at 25% 15%,#4a3526,#1d1611 55%,#0d0b09)',
+  'radial-gradient(50% 35% at 45% 50%,#3f5550,transparent),radial-gradient(120% 90% at 70% 10%,#24302d,#121615 60%,#0a0c0b)',
+  'radial-gradient(40% 30% at 55% 45%,#6a6458,transparent),radial-gradient(120% 90% at 20% 20%,#3a3832,#171614 60%,#0b0b0a)',
+  'radial-gradient(45% 32% at 50% 60%,#4b3b55,transparent),radial-gradient(120% 90% at 80% 15%,#2a2230,#141117 60%,#0b0a0c)',
+  'radial-gradient(50% 30% at 50% 55%,#8a6a3a,transparent),radial-gradient(120% 90% at 30% 10%,#4d3a20,#1c150c 60%,#0d0a06)',
+  'radial-gradient(45% 30% at 50% 50%,#55524c,transparent),radial-gradient(120% 90% at 50% 0%,#2e2c29,#151413 60%,#0b0b0a)',
+];
+const PROJECTS0 = [
+  { id:'p1', name:'Rhythm in the first 3 seconds', dur:'0:18', when:'today, 10:12', status:'ready', preset:'bold', bg:0, sample:['It\'s','the','rhythm'], sa:2 },
+  { id:'p2', name:'Podcast ep. 41 — cut 2', dur:'0:52', when:'yesterday', status:'exported', preset:'podcast', bg:1, sample:['we','started','from','zero'], sa:2 },
+  { id:'p3', name:'New headphones review', dur:'1:24', when:'yesterday', status:'render', pct:62, preset:'word', bg:2, sample:['the','bass','is','unreal'], sa:1 },
+  { id:'p4', name:'Behind the scenes at the studio', dur:'0:37', when:'Oct 12', status:'error', preset:'bold', bg:3, sample:[], sa:-1 },
+  { id:'p5', name:'Recipe: sourdough bread', dur:'2:10', when:'Oct 10', status:'exported', preset:'classic', bg:4, sample:['knead','the','dough','for','ten','minutes'], sa:-1 },
+  { id:'p6', name:'Lesson 03 — typography in video', dur:'0:46', when:'Oct 8', status:'ready', preset:'minimal', bg:5, sample:['space','is','text','too'], sa:-1 },
+];
+const RATES = [1, 1.25, 1.5, 0.75];
+const PLANS = {
+  free:    { name:'Free', price:'$0', per:'/mo', min:30, perVideo:'1 min', res:'720p', conc:1, pitch:'For trying it out with short videos.', feats:['30 min of video per month','Videos up to 1 min','Exports in 720p','All 5 presets'] },
+  creator: { name:'Creator', price:'$9', per:'/mo', min:120, perVideo:'3 min', res:'1080p', conc:1, pitch:'For people who post every week.', feats:['120 min of video per month','Videos up to 3 min','Exports in 1080p','Saved styles per project'] },
+  pro:     { name:'Pro', price:'$24', per:'/mo', min:400, perVideo:'10 min', res:'1080p', conc:3, pitch:'For podcast clips and high volume.', feats:['400 min of video per month','Videos up to 10 min','3 exports at the same time','Priority render queue'] },
+};
+const PORDER = ['free','creator','pro'];
+const LEDGER = [
+  { proj:'New headphones review', kind:'Render 1080p', when:'yesterday, 21:04', qty:1.4, status:'reserved' },
+  { proj:'Rhythm in the first 3 seconds', kind:'Transcription', when:'today, 10:12', qty:0.3, status:'confirmed' },
+  { proj:'Behind the scenes at the studio', kind:'Transcription · failed', when:'Oct 12', qty:0.6, status:'released' },
+  { proj:'Podcast ep. 41 — cut 2', kind:'Render 1080p', when:'Oct 11', qty:0.9, status:'confirmed' },
+  { proj:'Recipe: sourdough bread', kind:'Transcription + render', when:'Oct 10', qty:4.3, status:'confirmed' },
+  { proj:'Lesson 03 — typography in video', kind:'Transcription', when:'Oct 8', qty:0.8, status:'confirmed' },
+];
+
+class Component extends DCLogic {
+  state = {
+    screen:'login', authMode:'login', fName:'', fEmail:'', fPass:'', authErr:'', authInfo:'', authBusy:false, lt:0, userName:'Marina Rocha',
+    projects:PROJECTS0, plan:'creator', usedMin:38, pendingPlan:null, coStage:null, coPct:0, downgradeTo:null, confirmDel:null, drag:false,
+    openId:null, projName:'', words:WORDS0, blocks:segment(WORDS0, 3), style:{ ...PRESETS.bold }, presetKey:'bold',
+    t:0, playing:false, rate:0, selId:null, editingId:null, draft:'', save:'saved',
+    exportOpen:false, exStage:'cfg', exRes:'1080p', exPct:0,
+    exports:[{ v:2, res:'1080p', size:'22.1 MB', when:'yesterday, 18:42' }, { v:1, res:'720p', size:'9.4 MB', when:'Oct 12' }],
+  };
+  listRef = React.createRef();
+  videoRef = React.createRef();
+  setVideo(file) {
+    if (!file || !/^video\//.test(file.type)) { this.setState({ vidDrag:false, vidErr:true }); setTimeout(() => this.setState({ vidErr:false }), 2600); return; }
+    const url = URL.createObjectURL(file);
+    this.setState(x => ({ videoUrl:url, vidName:file.name, vidDrag:false, vidAspect:null, vidDims:null, t:0, playing:false, projects:x.projects.map(p => p.id === x.openId ? { ...p, videoUrl:url, vidName:file.name } : p) }));
+  }
+  componentDidMount() {
+    const ss = this.props.startScreen ?? 'login';
+    if (ss === 'editor') this.open('p1'); else this.setState({ screen: ss });
+    this._iv = setInterval(() => this.tick(), 100);
+    let last = performance.now();
+    this._clk = setInterval(() => {
+      const now = performance.now(), dt = now - last; last = now;
+      if (this.state.screen === 'login') this.setState(x => ({ lt: (x.lt + dt) % DUR }));
+      const v = this.videoRef.current;
+      if (this.state.playing && v && this.state.videoUrl) {
+        const t = v.currentTime * 1000;
+        if (t >= DUR) { v.pause(); this.setState({ t: DUR, playing:false }); } else { this._vt = t; this.setState({ t }); }
+      } else if (this.state.playing) {
+        const t = this.state.t + dt * RATES[this.state.rate];
+        this.setState(t >= DUR ? { t: DUR, playing: false } : { t });
+      }
+    }, 33);
+    this._rs = () => this.setState({ vw: window.innerWidth });
+    window.addEventListener('resize', this._rs);
+    this._key = e => {
+      if (this.state.screen !== 'editor') return;
+      const tg = e.target; const inField = tg && (tg.tagName === 'INPUT' || tg.tagName === 'TEXTAREA' || tg.isContentEditable);
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === 'f') { e.preventDefault(); this.setState({ findOpen:true }); return; }
+      if (inField) return;
+      if (mod && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? this.redo() : this.undo(); return; }
+      if (mod && e.key.toLowerCase() === 'y') { e.preventDefault(); this.redo(); return; }
+      if (e.code === 'Space') { e.preventDefault(); this.togglePlay(); }
+      else if (e.key === 'ArrowRight') { e.preventDefault(); this.jump(1); }
+      else if (e.key === 'ArrowLeft') { e.preventDefault(); this.jump(-1); }
+      else if (e.key === 'Escape') this.setState({ exportOpen:false, selId:null, editingId:null });
+    };
+    window.addEventListener('keydown', this._key);
+  }
+  componentWillUnmount() { clearInterval(this._iv); clearInterval(this._clk); window.removeEventListener('resize', this._rs); window.removeEventListener('keydown', this._key); clearTimeout(this._sv); }
+  componentDidUpdate() {
+    const v = this.videoRef.current;
+    if (v && this.state.videoUrl) {
+      if (Math.abs(v.currentTime * 1000 - this.state.t) > 250) { try { v.currentTime = this.state.t / 1000; } catch (e) {} }
+      v.playbackRate = RATES[this.state.rate];
+      if (this.state.playing && v.paused) v.play().catch(() => this.setState({ playing:false }));
+      if (!this.state.playing && !v.paused) v.pause();
+    }
+    const ab = this.activeBlock();
+    const id = ab && ab.id;
+    if (id && id !== this._lastAb && this.state.playing && this.listRef.current) {
+      const el = this.listRef.current.querySelector(`[data-bid="${id}"]`);
+      const c = this.listRef.current;
+      if (el && (el.offsetTop < c.scrollTop + 40 || el.offsetTop > c.scrollTop + c.clientHeight * .6)) c.scrollTo({ top: el.offsetTop - c.clientHeight * .25, behavior:'smooth' });
+    }
+    this._lastAb = id;
+  }
+  tick() {
+    const s = this.state; let ch = false;
+    const projects = s.projects.map(p => {
+      if (p.status === 'upload') { ch = true; const pct = p.pct + 4; return pct >= 100 ? { ...p, status:'validate', pct:0 } : { ...p, pct }; }
+      if (p.status === 'validate') { ch = true; const pct = p.pct + 9; return pct >= 100 ? { ...p, status:'transcribe', pct:0 } : { ...p, pct }; }
+      if (p.status === 'transcribe') { ch = true; const pct = p.pct + 3; return pct >= 100 ? { ...p, status:'ready', pct:0, dur:'0:18', when:'now' } : { ...p, pct }; }
+      if (p.status === 'render' && p.id !== s.openId) { ch = true; const pct = p.pct + .25; return pct >= 100 ? { ...p, status:'exported', pct:0 } : { ...p, pct }; }
+      return p;
+    });
+    const up = {};
+    if (ch) up.projects = projects;
+    if (s.exStage === 'rendering') {
+      const pct = s.exPct + 2.4;
+      if ((this.props.errorDemo ?? 'none') === 'render' && !this._failedOnce && pct >= 64) { this._failedOnce = true; up.exStage = 'failed'; up.exPct = 64; }
+      else if (pct >= 100) {
+        up.exStage = 'done'; up.exPct = 100;
+        up.exports = [{ v: s.exports[0].v + 1, res: s.exRes, size: s.exRes === '1080p' ? '23.8 MB' : '10.2 MB', when:'now', fresh:true }, ...s.exports.map(x => ({ ...x, fresh:false }))];
+        up.projects = (up.projects || s.projects).map(p => p.id === s.openId ? { ...p, status:'exported', when:'now' } : p);
+      } else up.exPct = pct;
+    }
+    if (s.coStage === 'waiting') {
+      const pct = s.coPct + 5;
+      if (pct >= 100) Object.assign(up, s.pendingPlan === 'down' ? { coStage:'done', downgradeTo:'free' } : { coStage:'done', plan:s.pendingPlan, downgradeTo:null });
+      else up.coPct = pct;
+    }
+    if (Object.keys(up).length) this.setState(up);
+  }
+  open(id) {
+    const p = this.state.projects.find(x => x.id === id); if (!p) return;
+    const st = { ...PRESETS[p.preset] };
+    this.setState({ undo:[], redo:[], findOpen:false, toast:null, screen:'editor', openId:id, videoUrl:p.videoUrl || null, vidName:p.vidName || null, vidAspect:p.vidAspect || null, vidDims:p.vidDims || null, projName:p.name, style:st, presetKey:p.preset, words:WORDS0, blocks:segment(WORDS0, st.maxW), t:0, playing:false, selId:null, editingId:null, exportOpen:false, exStage:'cfg', exPct:0 });
+  }
+  newUpload(name, file) {
+    const id = 'n' + Date.now();
+    const url = file && /^video\//.test(file.type) ? URL.createObjectURL(file) : null;
+    const p = { id, videoUrl:url, vidName: file ? file.name : null, name: name || 'New video', dur:'—', when:'now', status:'upload', pct:0, preset:'bold', bg: Math.floor(Math.random() * BGS.length), sample:['It\'s','the','rhythm'], sa:2 };
+    this.setState(s => ({ projects:[p, ...s.projects], drag:false }));
+  }
+  dirty() { this.setState({ save:'saving' }); clearTimeout(this._sv); const off = (this.props.errorDemo ?? 'none') === 'offline' && !this._online; this._sv = setTimeout(() => this.setState({ save: off ? 'offline' : 'saved' }), off ? 1400 : 900); }
+  seek(t) { this.setState({ t: Math.max(0, Math.min(DUR, t)) }); }
+  togglePlay() { this.setState(s => ({ playing: !s.playing, t: !s.playing && s.t >= DUR ? 0 : s.t })); }
+  activeBlock() { const { blocks, t } = this.state; return blocks.find(b => t >= b.s && t < b.e); }
+  jump(d) {
+    const { blocks, t } = this.state;
+    let i = blocks.findIndex(b => t < b.e);
+    if (i < 0) i = blocks.length;
+    const cur = blocks[i] && t >= blocks[i].s ? i : i - (d > 0 ? 1 : 0);
+    let ni = d > 0 ? cur + 1 : (blocks[i] && t - blocks[i].s > 400 && t >= blocks[i].s ? i : (blocks[i] && t >= blocks[i].s ? i - 1 : i - 1));
+    ni = Math.max(0, Math.min(blocks.length - 1, ni));
+    this.setState({ t: blocks[ni].s + 1, selId: blocks[ni].id, editingId:null });
+  }
+  snap(label, key) {
+    const now = Date.now();
+    if (key && this._lastSnapKey === key && now - this._lastSnapAt < 700) { this._lastSnapAt = now; return; }
+    this._lastSnapKey = key; this._lastSnapAt = now;
+    const s = this.state;
+    const undo = [...(s.undo || []), { label, words:s.words, blocks:s.blocks, style:s.style, presetKey:s.presetKey }].slice(-60);
+    this.setState({ undo, redo:[] });
+  }
+  restore(from, to, verb) {
+    const s = this.state; const stack = s[from] || []; if (!stack.length) return;
+    const e = stack[stack.length - 1];
+    const cur = { label:e.label, words:s.words, blocks:s.blocks, style:s.style, presetKey:s.presetKey };
+    this._lastSnapKey = null;
+    this.setState({ [from]:stack.slice(0, -1), [to]:[...(s[to] || []), cur], words:e.words, blocks:e.blocks, style:e.style, presetKey:e.presetKey, editingId:null });
+    this.showToast(`${verb}: ${e.label}`, from === 'undo' ? 'redo' : 'undo');
+    this.dirty();
+  }
+  undo() { this.restore('undo', 'redo', 'Undone'); }
+  redo() { this.restore('redo', 'undo', 'Redone'); }
+  showToast(msg, act) { clearTimeout(this._tt); this.setState({ toast:msg, toastAct:act || null }); this._tt = setTimeout(() => this.setState({ toast:null }), 3200); }
+  setStyle(patch, reseg) {
+    this.snap(reseg ? 'words per block' : 'style change', 'st:' + Object.keys(patch).join(','));
+    this.setState(s => {
+      const style = { ...s.style, ...patch };
+      return reseg ? { style, blocks: segment(s.words, style.maxW) } : { style };
+    });
+    this.dirty();
+  }
+  split(bi, wi) {
+    this.snap('split block');
+    const { blocks, words } = this.state; const b = blocks[bi];
+    const b1 = { id:uid(), a:b.a, b:wi, s:b.s, e:Math.min(words[wi].e + 120, words[wi + 1].s) };
+    const b2 = { id:uid(), a:wi + 1, b:b.b, s:words[wi + 1].s, e:b.e, realign:b.realign };
+    const nb = [...blocks.slice(0, bi), b1, b2, ...blocks.slice(bi + 1)];
+    this.setState({ blocks:nb, selId:b1.id }); this.dirty();
+  }
+  merge(bi) {
+    this.snap('merge blocks');
+    const { blocks } = this.state; const b = blocks[bi], n = blocks[bi + 1]; if (!n) return;
+    const m = { id:uid(), a:b.a, b:n.b, s:b.s, e:n.e, realign: b.realign || n.realign };
+    this.setState({ blocks:[...blocks.slice(0, bi), m, ...blocks.slice(bi + 2)], selId:m.id }); this.dirty();
+  }
+  nudge(bi, key, d) {
+    this.snap('timing change', 'nd:' + bi + key);
+    const { blocks } = this.state; const b = blocks[bi];
+    const prev = blocks[bi - 1], next = blocks[bi + 1];
+    let v = b[key] + d;
+    if (key === 's') v = Math.max(prev ? prev.e : 0, Math.min(b.e - 300, v));
+    else v = Math.min(next ? next.s : DUR, Math.max(b.s + 300, v));
+    const nb = blocks.slice(); nb[bi] = { ...b, [key]: v };
+    this.setState({ blocks:nb, t: key === 's' ? v + 1 : this.state.t }); this.dirty();
+  }
+  commit(bi) {
+    this.snap('text edit');
+    const { blocks, words, draft } = this.state; const b = blocks[bi];
+    const toks = draft.trim().split(/\s+/).filter(Boolean);
+    if (!toks.length) { this.setState({ editingId:null }); return; }
+    const count = b.b - b.a + 1;
+    let nw, nb;
+    if (toks.length === count) {
+      nw = words.slice(); toks.forEach((t, k) => { nw[b.a + k] = { ...nw[b.a + k], t }; });
+      nb = blocks;
+    } else {
+      const s0 = words[b.a].s, e0 = words[b.b].e, total = toks.reduce((a, t) => a + t.length + 2, 0);
+      let c = s0; const fresh = toks.map(t => { const d = (e0 - s0) * (t.length + 2) / total; const w = { t, s:c, e:c + d - 30 }; c += d; return w; });
+      nw = [...words.slice(0, b.a), ...fresh, ...words.slice(b.b + 1)];
+      const delta = toks.length - count;
+      nb = blocks.map((x, k) => k < bi ? x : k === bi ? { ...x, b: x.b + delta, realign:true } : { ...x, a: x.a + delta, b: x.b + delta });
+    }
+    this.setState({ words:nw, blocks:nb, editingId:null }); this.dirty();
+  }
+
+  renderVals() {
+    const s = this.state;
+    const karaoke = this.props.karaoke ?? true;
+    const stop = e => e.stopPropagation();
+    // dashboard
+    const used = s.usedMin;
+    const PL = PLANS[s.plan];
+    const reserved = 1.4;
+    const navItems = [['dashboard','Projects'],['billing','Plan & usage'],['account','Account']].map(([k, label]) => ({ label, go: () => this.setState({ screen:k }), st:{ font:"500 14px 'Schibsted Grotesk',sans-serif", padding:'6px 12px', borderRadius:8, border:0, cursor:'pointer', background: s.screen === k ? C.p2 : 'transparent', color: s.screen === k ? C.tx : C.mu } }));
+    const cur = PORDER.indexOf(s.plan);
+    const planCards = PORDER.map((k, i) => {
+      const p = PLANS[k], current = k === s.plan, up = i > cur, scheduled = s.downgradeTo === k;
+      return { name:p.name, price:p.price, per:p.per, pitch:p.pitch, feats:p.feats, current,
+        cta: current ? 'Current plan' : scheduled ? 'Scheduled' : up ? `Switch to ${p.name}` : `Move to ${p.name}`,
+        act: () => { if (current || scheduled) return; this.setState({ coStage:'review', pendingPlan: up ? k : 'down', coPct:0, coTarget:k }); },
+        st:{ display:'flex', flexDirection:'column', gap:14, padding:22, borderRadius:16, border:`1.5px solid ${current ? C.tx : 'rgba(236,230,218,.1)'}`, background: current ? C.p1 : 'transparent' },
+        btnSt:{ marginTop:'auto', font:"700 13.5px 'Schibsted Grotesk',sans-serif", padding:'11px 14px', borderRadius:10, cursor: current || scheduled ? 'default' : 'pointer', border: up ? 0 : '1px solid rgba(236,230,218,.2)', background: current || scheduled ? 'transparent' : up ? C.tx : 'transparent', color: current || scheduled ? C.mu : up ? C.ink : C.tx, borderStyle: current || scheduled ? 'dashed' : undefined, borderWidth: current || scheduled ? 1 : undefined, borderColor: current || scheduled ? 'rgba(236,230,218,.15)' : undefined },
+      };
+    });
+    const coT = s.coTarget ? PLANS[s.coTarget] : PL;
+    const isDown = s.pendingPlan === 'down';
+    const ledgerSt = { reserved:['◐',C.acc], confirmed:['✓',C.tx], released:['↺',C.mu] };
+    const ledger = LEDGER.map(l => ({ ...l, qty: (l.status === 'released' ? '' : '−') + l.qty.toFixed(1) + ' min', glyph:ledgerSt[l.status][0],
+      stSt:{ display:'inline-flex', gap:6, alignItems:'center', font:"500 11px 'IBM Plex Mono',monospace", color:ledgerSt[l.status][1], padding:'3px 8px', border:'1px solid rgba(236,230,218,.12)', borderRadius:999, whiteSpace:'nowrap' },
+      qtySt:{ font:"500 13px 'IBM Plex Mono',monospace", color: l.status === 'released' ? C.mu : C.tx, textDecoration: l.status === 'released' ? 'line-through' : 'none', minWidth:72, textAlign:'right', whiteSpace:'nowrap' } }));
+    const ratio = used / PL.min;
+    const savedEmail = s.savedEmail || 'marina@estudiorocha.com.br';
+    const accName = s.accName ?? s.userName, accEmail = s.accEmail ?? savedEmail;
+    const profileDirty = accName.trim() !== s.userName || (accEmail.trim() !== savedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(accEmail));
+    const nf = s.notif || { exp:true, lim:true, news:false };
+    const cards = s.projects.map(p => {
+      const st = PRESETS[p.preset];
+      const proc = ['upload','validate','transcribe'].includes(p.status);
+      const clickable = ['ready','exported','render','upload','validate','transcribe'].includes(p.status);
+      const chipMap = { ready:['●','Ready','#3ee07a'], exported:['✓','Exported',C.tx], render:['◐',`Rendering ${Math.floor(p.pct || 0)}%`,C.acc], error:['▲','Error','#ff7a5c'], upload:['↑','Uploading',C.mu], validate:['◌','Validating',C.mu], transcribe:['◌','Transcribing',C.mu] };
+      const [glyph, chip, gc] = chipMap[p.status];
+      const order = ['upload','validate','transcribe']; const ci = order.indexOf(p.status);
+      const steps = [['File upload'],['Validation'],['Transcription']].map((l, k) => {
+        const done = k < ci, act = k === ci;
+        return { label:l[0], dotSt:{ width:8, height:8, borderRadius:'50%', flex:'none', background: done ? C.tx : act ? C.acc : 'transparent', border: done || act ? 'none' : '1px solid rgba(236,230,218,.35)' }, lblSt:{ color: done || act ? C.tx : C.mu, fontWeight: act ? 600 : 400 } };
+      });
+      const overall = ci < 0 ? 0 : (ci === 0 ? p.pct * .4 : ci === 1 ? 40 + p.pct * .1 : 50 + p.pct * .5);
+      return {
+        id:p.id, name:p.name, dur:p.dur, when:p.when, chip, glyph, glyphSt:{ color:gc },
+        thumbSt:{ position:'relative', aspectRatio:'9/16', borderRadius:12, overflow:'hidden', background:BGS[p.bg], containerType:'inline-size', cursor: clickable ? 'pointer' : 'default', boxShadow:'0 0 0 1px rgba(236,230,218,.07)', transition:'transform .2s ease, box-shadow .2s', transform: s.confirmDel === p.id ? 'none' : undefined },
+        cap: clickable && p.sample.length ? capRender(st, p.sample, p.sa) : null,
+        showDur: !proc && p.status !== 'error', isProc:proc, isErr:p.status === 'error', isRender:p.status === 'render',
+        steps, procPct: Math.floor(overall) + '%', procBarSt:{ height:'100%', width: overall + '%', background:C.acc, transition:'width .1s linear' },
+        renderBarSt:{ height:'100%', width:(p.pct || 0) + '%', background:C.acc },
+        confirm: s.confirmDel === p.id,
+        open: () => { if (clickable && s.confirmDel !== p.id) this.open(p.id); },
+        retry: e => { e.stopPropagation(); this.setState(x => ({ projects: x.projects.map(q => q.id === p.id ? { ...q, status:'upload', pct:0, when:'now' } : q) })); },
+        askDel: e => { e.stopPropagation(); this.setState({ confirmDel:p.id }); },
+        cancelDel: e => { e.stopPropagation(); this.setState({ confirmDel:null }); },
+        doDel: e => { e.stopPropagation(); this.setState(x => ({ projects:x.projects.filter(q => q.id !== p.id), confirmDel:null })); },
+        stop,
+      };
+    });
+    const dropSt = { aspectRatio:'9/16', borderRadius:12, border:`1.5px dashed ${s.drag ? C.acc : 'rgba(236,230,218,.22)'}`, background: s.drag ? 'rgba(255,90,31,.08)' : 'transparent', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:18, cursor:'pointer', transition:'background .15s, border-color .15s' };
+
+    // editor
+    const { words, blocks, t, style } = s;
+    const ab = blocks.find(b => t >= b.s && t < b.e);
+    let aw = -1;
+    if (ab) for (let i = ab.a; i <= ab.b; i++) if (words[i].s <= t) aw = i;
+    const cap = ab ? capRender(style, words.slice(ab.a, ab.b + 1).map(w => w.t), aw - ab.a) : { box:{}, words:[] };
+    const NORM = x => x.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\p{L}\p{N}]/gu, '');
+    const fqn = NORM(s.fq || '');
+    const fMulti = /\S\s+\S/.test((s.fq || '').trim());
+    const matchSet = new Set();
+    if (s.findOpen && fqn && !fMulti) words.forEach((w, i) => { if (NORM(w.t) === fqn) matchSet.add(i); });
+    const matchBlocks = new Set(blocks.filter(b => { for (let i = b.a; i <= b.b; i++) if (matchSet.has(i)) return true; return false; }).map(b => b.id));
+    const doReplace = () => {
+      const rep = (s.fr || '').trim(); if (!matchSet.size || !rep) return;
+      this.snap('replace');
+      const nw = words.map((w, i) => {
+        if (!matchSet.has(i)) return w;
+        const m = w.t.match(/^([^\p{L}\p{N}]*)(.*?)([^\p{L}\p{N}]*)$/u);
+        const core = m[2]; const up = core && core[0] === core[0].toUpperCase() && core[0] !== core[0].toLowerCase();
+        const r = up && rep[0] === rep[0].toLowerCase() ? rep[0].toUpperCase() + rep.slice(1) : rep;
+        return { ...w, t: m[1] + r + m[3] };
+      });
+      const n = matchSet.size;
+      const dict = s.fRemember ? [...(s.dict || []).filter(d => NORM(d.from) !== fqn), { from:(s.fq || '').trim(), to:rep }] : (s.dict || []);
+      this.setState({ words:nw, dict, fq:'', fr:'' });
+      this.showToast(`${n} ${n === 1 ? 'word replaced' : 'words replaced'} · timing kept`, 'undo');
+      this.dirty();
+    };
+    const blockList = blocks.map((b, bi) => {
+      const sel = s.selId === b.id, act = ab && ab.id === b.id, editing = s.editingId === b.id;
+      const chars = words.slice(b.a, b.b + 1).reduce((a, w) => a + w.t.length + 1, 0);
+      const cps = chars / ((b.e - b.s) / 1000);
+      const flag = b.realign ? 'estimated timing — check it' : cps > 21 ? 'fast read' : '';
+      const wl = [];
+      for (let i = b.a; i <= b.b; i++) {
+        const w = words[i];
+        const isA = act && i === aw;
+        const future = act && i > aw;
+        wl.push({
+          t: w.t,
+          st:{ padding:'0 3px', borderRadius:4, cursor:'pointer', transition:'color .12s, background .12s, box-shadow .12s', color: isA || matchSet.has(i) ? '#fff' : (karaoke && future) ? C.mu : act || sel ? C.tx : '#cfc8bb', background: isA ? 'rgba(255,90,31,.2)' : matchSet.has(i) ? 'rgba(255,212,0,.2)' : 'transparent', boxShadow: isA ? `inset 0 -2px 0 ${C.acc}` : matchSet.has(i) ? 'inset 0 0 0 1px rgba(255,212,0,.55)' : 'none' },
+          onClick: e => { e.stopPropagation(); this.setState({ t: w.s + 1, selId: b.id }); },
+          canSplit: sel && !editing && i < b.b,
+          onSplit: e => { e.stopPropagation(); this.split(bi, i); },
+        });
+      }
+      return {
+        id:b.id, tc:`${fmt(b.s)} → ${fmt(b.e)}`, flag, words:wl,
+        rowSt:{ padding:'12px 14px 14px', borderRadius:10, cursor:'pointer', border:`1px solid ${sel ? 'rgba(236,230,218,.16)' : 'transparent'}`, background: sel ? C.p2 : 'transparent', transition:'background .12s' },
+        tcSt:{ font:"500 11px 'IBM Plex Mono',monospace", color: act ? C.acc : C.mu, fontVariantNumeric:'tabular-nums' },
+        notEditing: !editing, editing, showActions: sel && !editing, canMerge: bi < blocks.length - 1,
+        draft: s.draft,
+        onSelect: () => { if (!editing) this.setState({ selId:b.id, t:b.s + 1, editingId: s.editingId && s.editingId !== b.id ? null : s.editingId }); },
+        startEdit: e => { e.stopPropagation(); this.setState({ editingId:b.id, draft: words.slice(b.a, b.b + 1).map(w => w.t).join(' '), playing:false }); },
+        onDraft: e => this.setState({ draft: e.target.value }),
+        onDraftKey: e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); this.commit(bi); } else if (e.key === 'Escape') { e.stopPropagation(); this.setState({ editingId:null }); } },
+        commit: e => { e.stopPropagation(); this.commit(bi); },
+        cancel: e => { e.stopPropagation(); this.setState({ editingId:null }); },
+        merge: e => { e.stopPropagation(); this.merge(bi); },
+        sMinus: e => { e.stopPropagation(); this.nudge(bi, 's', -100); },
+        sPlus: e => { e.stopPropagation(); this.nudge(bi, 's', 100); },
+        eMinus: e => { e.stopPropagation(); this.nudge(bi, 'e', -100); },
+        ePlus: e => { e.stopPropagation(); this.nudge(bi, 'e', 100); },
+        stop,
+      };
+    });
+    const pct = t / DUR * 100;
+    const ticks = blocks.map(b => ({ st:{ position:'absolute', left:(b.s / DUR * 100) + '%', top:'50%', width:2, height:8, marginTop:-4, background: ab && ab.id === b.id ? C.acc : 'rgba(236,230,218,.3)', borderRadius:1, pointerEvents:'none' } }));
+    const P = PRESETS[s.presetKey];
+    const modified = Object.keys(P).some(k => k !== 'name' && P[k] !== style[k]);
+    const presetTiles = Object.entries(PRESETS).map(([k, ps]) => ({
+      name: ps.name, pick: () => { this.snap('preset change'); this.setState({ presetKey:k, style:{ ...ps }, blocks: segment(s.words, ps.maxW) }); this.dirty(); },
+      cap: capRender({ ...ps, size: ps.size * 1.5, pos:'mid' }, k === 'classic' || k === 'minimal' ? ['it\'s','the','rhythm'] : ['it\'s','the','rhythm'], 2),
+      btnSt:{ display:'flex', flexDirection:'column', gap:8, padding:6, borderRadius:11, background: s.presetKey === k ? C.p2 : 'transparent', border:`1.5px solid ${s.presetKey === k ? C.tx : 'rgba(236,230,218,.1)'}`, cursor:'pointer', textAlign:'left' },
+      mark: s.presetKey === k ? (modified ? 'edited' : '') : '', markSt:{ font:"400 10px 'IBM Plex Mono',monospace", color:C.mu },
+    }));
+    const segBtn = on => ({ flex:1, font:"600 12.5px 'Schibsted Grotesk',sans-serif", padding:'7px 6px', borderRadius:7, border:0, cursor:'pointer', background: on ? C.tx : 'transparent', color: on ? C.ink : C.mu, transition:'background .12s,color .12s' });
+    const seg = (key, opts, reseg) => opts.map(([v, label]) => ({ label, st:segBtn(style[key] === v), pick: () => this.setStyle({ [key]: v }, reseg) }));
+    const sw = (key, list) => list.map(([c, label]) => ({ label, pick: () => this.setStyle({ [key]: c }), st:{ width:28, height:28, borderRadius:'50%', background:c, cursor:'pointer', border:'none', boxShadow: style[key] === c ? `0 0 0 2px ${C.p1}, 0 0 0 4px ${C.tx}` : 'inset 0 0 0 1px rgba(236,230,218,.2)' } }));
+    const toggles = [['upper','All caps'],['outline','Outline'],['shadow','Shadow'],['plate','Bar']].map(([k, label]) => {
+      const on = !!style[k];
+      return { label, on, pick: () => this.setStyle({ [k]: !on }),
+        st:{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:8, padding:'9px 10px', borderRadius:9, border:`1px solid ${on ? 'rgba(236,230,218,.25)' : 'rgba(236,230,218,.1)'}`, background: on ? C.p2 : 'transparent', color:C.tx, font:"600 12.5px 'Schibsted Grotesk',sans-serif", cursor:'pointer' },
+        trackSt:{ width:26, height:15, borderRadius:8, background: on ? C.tx : 'rgba(236,230,218,.18)', position:'relative', transition:'background .15s', flex:'none' },
+        knobSt:{ position:'absolute', top:2, left: on ? 13 : 2, width:11, height:11, borderRadius:'50%', background: on ? C.ink : C.tx, transition:'left .15s' } };
+    });
+    const fontChips = FONTS.map(f => ({ lbl:f.lbl, pick: () => this.setStyle({ font:f.k }), st:{ fontFamily:`'${f.k}',sans-serif`, fontWeight:f.w, fontSize:15, padding:'9px 8px', borderRadius:9, cursor:'pointer', color:C.tx, background: style.font === f.k ? C.p2 : 'transparent', border:`1px solid ${style.font === f.k ? C.tx : 'rgba(236,230,218,.12)'}` } }));
+    const resOpts = [['720p','Faster · smaller'],['1080p','Original quality']].map(([r, sub]) => ({ label:r, sub, pick: () => this.setState({ exRes:r }), st:{ display:'flex', flexDirection:'column', alignItems:'flex-start', gap:4, padding:'14px', borderRadius:11, cursor:'pointer', color:C.tx, background: s.exRes === r ? C.p2 : 'transparent', border:`1.5px solid ${s.exRes === r ? C.tx : 'rgba(236,230,218,.12)'}`, textAlign:'left' } }));
+    const openP = s.projects.find(p => p.id === s.openId);
+    const VW = s.vw || window.innerWidth, SM = VW < 720, MD = VW >= 720 && VW < 1100, mobTab = s.mobTab || 'captions';
+    const hBtn = off => ({ width:32, height:32, borderRadius:8, border:0, background:'transparent', color: off ? 'rgba(236,230,218,.25)' : C.tx, cursor: off ? 'default' : 'pointer', display:'grid', placeItems:'center' });
+    const procEd = !!openP && ['upload','validate','transcribe'].includes(openP.status);
+    const pci = openP ? ['upload','validate','transcribe'].indexOf(openP.status) : -1;
+    const procOverall = pci < 0 ? 100 : (pci === 0 ? openP.pct * .4 : pci === 1 ? 40 + openP.pct * .1 : 50 + openP.pct * .5);
+    const procEdSteps = ['File upload','Validation','Transcription and word timestamps'].map((label, k) => ({ label, dotSt:{ width:8, height:8, borderRadius:'50%', flex:'none', background: k < pci ? C.tx : k === pci ? C.acc : 'transparent', border: k <= pci ? 'none' : '1px solid rgba(236,230,218,.35)' }, lblSt:{ color: k <= pci ? C.tx : C.mu, fontWeight: k === pci ? 600 : 400 } }));
+    const rendering = s.exStage === 'rendering';
+    const slug = (s.projName || 'video').toLowerCase().normalize('NFD').replace(/[^\w\s-]/g, '').trim().split(/\s+/).slice(0, 3).join('_');
+
+    // login
+    const signup = s.authMode === 'signup';
+    const pkeys = Object.keys(PRESETS);
+    const di = Math.min(pkeys.length - 1, Math.floor(s.lt / (DUR / pkeys.length)));
+    const dps = PRESETS[pkeys[di]];
+    const dBlocks = this._dBlocks || (this._dBlocks = {});
+    const db = dBlocks[pkeys[di]] || (dBlocks[pkeys[di]] = segment(WORDS0, dps.maxW));
+    const dab = db.find(b => s.lt >= b.s && s.lt < b.e);
+    let daw = -1; if (dab) for (let i = dab.a; i <= dab.b; i++) if (WORDS0[i].s <= s.lt) daw = i;
+    const demoCap = dab ? capRender(dps, WORDS0.slice(dab.a, dab.b + 1).map(w => w.t), daw - dab.a) : { box:{}, words:[] };
+    const emailBad = s.authErr === 'email';
+    const fieldSt = bad => ({ font:"400 15px 'Schibsted Grotesk',sans-serif", color:C.tx, background:C.p1, border:`1px solid ${bad ? '#ff7a5c' : 'rgba(236,230,218,.14)'}`, borderRadius:10, padding:'12px 14px', outline:'none' });
+    const errMsgs = { email:'That email doesn\'t look complete. Check it and try again.', pass: signup ? 'Use at least 8 characters.' : 'Enter your password.' };
+    const authMsg = s.authErr ? errMsgs[s.authErr] : s.authInfo;
+    const doAuth = () => {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.fEmail)) return this.setState({ authErr:'email', authInfo:'' });
+      if (signup ? s.fPass.length < 8 : !s.fPass) return this.setState({ authErr:'pass', authInfo:'' });
+      this.setState({ authErr:'', authInfo:'', authBusy:true });
+      setTimeout(() => this.setState(x => ({ authBusy:false, screen:'dashboard', userName: signup && x.fName.trim() ? x.fName.trim() : x.userName })), 800);
+    };
+    const initials = (s.userName || 'MR').split(/\s+/).map(p => p[0]).slice(0, 2).join('').toUpperCase();
+    return {
+      isLogin: s.screen === 'login', isSignup: signup, isLoginMode: !signup,
+      authTitle: signup ? 'Create your account' : 'Welcome back',
+      authSub: signup ? 'Your first 30 minutes of video each month are on us.' : 'Your projects are right where you left them.',
+      fName:s.fName, fEmail:s.fEmail, fPass:s.fPass,
+      onFName: e => this.setState({ fName:e.target.value }),
+      onFEmail: e => this.setState({ fEmail:e.target.value, authErr: s.authErr === 'email' ? '' : s.authErr }),
+      onFPass: e => this.setState({ fPass:e.target.value, authErr: s.authErr === 'pass' ? '' : s.authErr }),
+      emailSt: fieldSt(emailBad),
+      passAuto: signup ? 'new-password' : 'current-password', passPh: signup ? 'At least 8 characters' : '••••••••',
+      authMsg, authMsgSt:{ fontSize:13, lineHeight:1.45, color: s.authErr ? '#ff9a80' : C.tx, display:'flex', gap:8 },
+      submitLabel: s.authBusy ? 'Signing in…' : signup ? 'Create account' : 'Sign in',
+      submitSt:{ font:"700 15px 'Schibsted Grotesk',sans-serif", padding:'14px 16px', borderRadius:11, border:0, background:C.tx, color:C.ink, cursor: s.authBusy ? 'progress' : 'pointer', opacity: s.authBusy ? .7 : 1 },
+      onAuth: e => { e.preventDefault(); if (!s.authBusy) doAuth(); },
+      onGoogle: () => { this.setState({ authBusy:true }); setTimeout(() => this.setState({ authBusy:false, screen:'dashboard' }), 700); },
+      onForgot: () => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.fEmail) ? this.setState({ authErr:'', authInfo:`If there's an account for ${s.fEmail}, we sent a sign-in link. It expires in 30 minutes.` }) : this.setState({ authErr:'email', authInfo:'' }),
+      switchQ: signup ? 'Already have an account?' : 'New here?', switchCta: signup ? 'Sign in' : 'Create account',
+      onSwitchMode: () => this.setState({ authMode: signup ? 'login' : 'signup', authErr:'', authInfo:'' }),
+      demoCap, demoVisible: !!dab,
+      demoBarSt:{ height:'100%', width:(s.lt / DUR * 100) + '%', background:C.acc },
+      demoPresets: pkeys.map((k, i) => ({ name:PRESETS[k].name, st:{ font:"500 11px 'IBM Plex Mono',monospace", padding:'5px 9px', borderRadius:999, border:`1px solid ${i === di ? C.tx : 'rgba(236,230,218,.12)'}`, color: i === di ? C.tx : C.mu, transition:'all .2s' } })),
+      initials, onLogout: () => this.setState({ screen:'login', fPass:'', authErr:'', authInfo:'' }),
+      hintsSt:{ font:"400 11px 'IBM Plex Mono',monospace", color:C.mu, display: (s.vw || window.innerWidth) < 1100 ? 'none' : 'flex', gap:12, whiteSpace:'nowrap' },
+      isApp: ['dashboard','billing','account'].includes(s.screen), isAccount: s.screen === 'account',
+      wideApp: (s.vw || window.innerWidth) >= 860,
+      accNav: [['perfil','Profile'],['seguranca','Security'],['notificacoes','Emails'],['privacidade','Privacy & data'],['excluir','Delete account']].map(([id, label]) => ({ href:'#' + id, label })),
+      userName: s.userName, accName: accName, accEmail: accEmail, accEmailSaved: savedEmail,
+      onAccName: e => this.setState({ accName:e.target.value, profileSaved:false }),
+      onAccEmail: e => this.setState({ accEmail:e.target.value, profileSaved:false }),
+      emailChanged: (accEmail.trim() !== savedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(accEmail)) || !!s.pendingEmail,
+      emailNote: accEmail.trim() !== savedEmail ? 'We\'ll send a confirmation link to the new address. Until you click it, your current email stays active.' : `Confirmation link sent to ${s.pendingEmail}. Until you click it, ${savedEmail} stays active.`,
+      profileClean: !profileDirty, profileSaved: !!s.profileSaved && !profileDirty,
+      saveProfileLabel: 'Save changes',
+      saveProfileSt:{ font:"700 13.5px 'Schibsted Grotesk',sans-serif", padding:'10px 16px', borderRadius:9, border:0, background: profileDirty ? C.tx : 'rgba(236,230,218,.1)', color: profileDirty ? C.ink : C.mu, cursor: profileDirty ? 'pointer' : 'default' },
+      saveProfile: () => { if (!profileDirty) return; this.setState({ userName: accName.trim() || s.userName, accName: accName.trim() || s.userName, profileSaved:true, accEmail: savedEmail, pendingEmail: accEmail.trim() !== savedEmail ? accEmail.trim() : s.pendingEmail }); },
+      pwHint: s.pwSent ? `Link sent to ${savedEmail}. It expires in 30 minutes.` : 'You sign in with Google. You can also create a password to sign in with email.',
+      pwBtn: s.pwSent ? 'Resend link' : 'Create password',
+      onPwReset: () => this.setState({ pwSent:true }),
+      sessions: (s.sessions || [{ id:'a', dev:'Chrome · macOS', meta:'São Paulo, BR · now', current:true }, { id:'b', dev:'Safari · iPhone', meta:'São Paulo, BR · yesterday, 22:10' }, { id:'c', dev:'Firefox · Windows', meta:'Curitiba, BR · Oct 3' }]).map(x => ({ ...x, current: !!x.current, other: !x.current, end: () => this.setState(st => ({ sessions:(st.sessions || [{ id:'a', dev:'Chrome · macOS', meta:'São Paulo, BR · now', current:true }, { id:'b', dev:'Safari · iPhone', meta:'São Paulo, BR · yesterday, 22:10' }, { id:'c', dev:'Firefox · Windows', meta:'Curitiba, BR · Oct 3' }]).filter(y => y.id !== x.id) })) })),
+      notifs: [['exp','Email me when an export finishes','Receipts and security notices are always sent.']].map(([k, label, sub]) => { const on = !!nf[k]; return { label, sub, on, pick: () => this.setState({ notif:{ ...nf, [k]: !on } }),
+        trackSt:{ width:34, height:20, borderRadius:10, background: on ? C.tx : 'rgba(236,230,218,.18)', position:'relative', transition:'background .15s', flex:'none' },
+        knobSt:{ position:'absolute', top:3, left: on ? 17 : 3, width:14, height:14, borderRadius:'50%', background: on ? C.ink : C.tx, transition:'left .15s' } }; }),
+      dataRequested: !!s.dataReq,
+      exportDataMsg: s.dataReq ? `Preparing your file. We'll send the link to ${savedEmail} in a few minutes.` : 'Download a copy of all captions, styles and metadata from your projects.',
+      exportDataBtn: s.dataReq ? 'Requested' : 'Download my data',
+      exportDataSt:{ font:"600 13px 'Schibsted Grotesk',sans-serif", padding:'9px 14px', borderRadius:9, border:'1px solid rgba(236,230,218,.2)', background:'transparent', color: s.dataReq ? C.mu : C.tx, cursor: s.dataReq ? 'default' : 'pointer', whiteSpace:'nowrap' },
+      onExportData: () => this.setState({ dataReq:true }),
+      delAccOpen: !!s.delAcc, askDelAcc: () => this.setState({ delAcc:true, delConfirm:'' }), closeDelAcc: () => this.setState({ delAcc:false }),
+      delConfirm: s.delConfirm || '', onDelConfirm: e => this.setState({ delConfirm:e.target.value }),
+      delLines: [{ k:'Projects', v: s.projects.length + ' with videos and captions' }, { k:'Exports', v: s.exports.length + ' MP4 files' }, { k:'Subscription', v: PL.name + ' · canceled today' }, { k:'Stored files', v:'removed within 7 days' }],
+      delLocked: (s.delConfirm || '').trim().toLowerCase() !== savedEmail.toLowerCase(),
+      delBtnSt:{ font:"700 13.5px 'Schibsted Grotesk',sans-serif", padding:'10px 16px', borderRadius:9, border:0, background: (s.delConfirm || '').trim().toLowerCase() === savedEmail.toLowerCase() ? '#ff7a5c' : 'rgba(255,122,92,.18)', color: (s.delConfirm || '').trim().toLowerCase() === savedEmail.toLowerCase() ? C.ink : 'rgba(255,154,128,.6)', cursor: (s.delConfirm || '').trim().toLowerCase() === savedEmail.toLowerCase() ? 'pointer' : 'not-allowed' },
+      doDelAcc: () => { if ((s.delConfirm || '').trim().toLowerCase() !== savedEmail.toLowerCase()) return; this.setState({ delAcc:false, screen:'login', authMode:'login', fEmail:'', fPass:'', authErr:'', authInfo:'Account deleted. Your files will be removed within 7 days. Thanks for using Fala.' }); }, isBilling: s.screen === 'billing',
+      isDash: s.screen === 'dashboard', isEditor: s.screen === 'editor',
+      usageLabel:`${used} of ${PL.min} min`, usageBarSt:{ width:Math.min(100, ratio * 100) + '%', height:'100%', background: ratio > .8 ? '#ffb35c' : C.tx },
+      navItems, planName:PL.name, planCards, ledger,
+      periodLabel:'PERIOD OCT 1 — OCT 31, 2026',
+      usedMin:String(used), limitMin:String(PL.min), renewDate:'Nov 1',
+      usedBarSt:{ position:'absolute', left:0, top:0, bottom:0, width:Math.min(100, ratio * 100) + '%', background: ratio > .8 ? '#ffb35c' : C.tx, transition:'width .4s' },
+      resBarSt:{ position:'absolute', top:0, bottom:0, left:Math.min(100, ratio * 100) + '%', width:Math.min(100 - ratio * 100, reserved / PL.min * 100) + '%', background:`repeating-linear-gradient(45deg,${C.acc} 0 2px,transparent 2px 4px)` },
+      nearLimit: ratio > .8 || !!s.downgradeTo,
+      nearLimitMsg: s.downgradeTo ? `Your ${PL.name} plan stays active until Oct 31. After that, your account moves to Free (30 min/mo). Projects and exports are not deleted.` : `You've used ${Math.round(ratio * 100)}% of this month's minutes. New videos over the limit are blocked until Nov 1 or until you upgrade.`,
+      planStatus: s.downgradeTo ? 'ends Oct 31' : s.plan === 'free' ? 'no charge' : 'active · renews Nov 1',
+      planFacts:[{ k:'Minutes per month', v:PL.min + ' min' }, { k:'Length per video', v:'up to ' + PL.perVideo }, { k:'Resolution', v:PL.res }, { k:'Simultaneous exports', v:String(PL.conc) }],
+      openPortal: () => {},
+      coOpen: !!s.coStage, coReview: s.coStage === 'review', coWaiting: s.coStage === 'waiting', coDone: s.coStage === 'done',
+      coTitle: isDown ? `Move to ${coT.name}` : `Switch to ${coT.name}`,
+      coSub: isDown ? 'Nothing changes now. You keep your current plan until the end of the period you already paid for.' : 'Secure checkout processed by Paddle. The difference is prorated.',
+      coLines: isDown ? [{ k:'Current plan until', v:'Oct 31, 2026' }, { k:'After that', v:`${coT.name} · ${coT.min} min/mo` }, { k:'You used', v:`${used} min this month` }] : [{ k:'Plan', v:`${coT.name} · ${coT.min} min/mo` }, { k:'Today (prorated)', v: s.coTarget === 'pro' ? '$11.90' : '$4.80' }, { k:'From Nov 1', v:`${coT.price}/mo` }],
+      coCta: isDown ? 'Confirm change' : `Pay and switch`,
+      coBtnSt:{ font:"700 13.5px 'Schibsted Grotesk',sans-serif", padding:'10px 18px', borderRadius:9, border:0, background: isDown ? C.tx : C.acc, color:C.ink, cursor:'pointer' },
+      coConfirm: () => this.setState({ coStage:'waiting', coPct:0 }),
+      coWaitLabel: isDown ? 'SCHEDULING' : 'CONFIRMING PAYMENT',
+      coWaitTitle: isDown ? 'Recording the change to your plan…' : 'Payment sent. Waiting for confirmation from Paddle…',
+      coBarSt:{ height:'100%', width:s.coPct + '%', background:C.acc, transition:'width .1s linear' },
+      coDoneTitle: isDown ? 'Scheduled' : `You're on ${coT.name}`,
+      coDoneSub: isDown ? 'On Nov 1 your account moves to Free. You can undo this until then.' : `${coT.min} minutes available per month, starting now. The receipt is on its way to your inbox.`,
+      closeCo: () => this.setState({ coStage: s.coStage === 'waiting' ? 'waiting' : null }),
+      projCount:`${s.projects.length} videos · ${used} min captioned this month`,
+      cards, dropSt, dropTitle: s.drag ? 'Drop it' : 'New video',
+      onNewUpload: () => this.newUpload(),
+      onDragOver: e => { e.preventDefault(); if (!s.drag) this.setState({ drag:true }); },
+      onDragLeave: () => this.setState({ drag:false }),
+      onDrop: e => { e.preventDefault(); const f = e.dataTransfer.files && e.dataTransfer.files[0]; this.newUpload(f ? f.name.replace(/\.[^.]+$/, '') : null, f); },
+      goDash: () => s.save === 'offline' ? this.setState({ leaveAsk:true, playing:false }) : this.setState({ screen:'dashboard', playing:false, exportOpen:false }),
+      projName:s.projName, onName: e => { const v = e.target.value; this.setState(x => ({ projName:v, projects:x.projects.map(p => p.id === x.openId ? { ...p, name:v } : p) })); this.dirty(); },
+      saveLabel: s.save === 'saving' ? 'Saving…' : s.save === 'offline' ? 'Offline · kept in this browser' : 'Saved', saveDotSt:{ width:6, height:6, borderRadius:'50%', flex:'none', background: s.save === 'saving' ? '#ffb35c' : s.save === 'offline' ? '#ff7a5c' : '#3ee07a', transition:'background .2s' },
+      isOffline: s.save === 'offline',
+      retrySave: () => { this._online = true; this.setState({ save:'saving' }); clearTimeout(this._sv); this._sv = setTimeout(() => { this.setState({ save:'saved' }); setTimeout(() => { this._online = false; }, 4000); }, 1100); },
+      leaveAsk: !!s.leaveAsk, stayHere: () => this.setState({ leaveAsk:false }),
+      leaveAnyway: () => this.setState({ leaveAsk:false, screen:'dashboard', playing:false, exportOpen:false }),
+      exFailed: s.exStage === 'failed',
+      isProcEd: procEd, procTitle: openP && openP.status === 'upload' ? 'Uploading the video' : openP && openP.status === 'validate' ? 'Validating the file' : 'Transcribing the audio',
+      procEdPct: Math.floor(procOverall) + '%', procEdBarSt:{ height:'100%', width:procOverall + '%', background:C.acc, transition:'width .1s linear' },
+      procEdSteps, skel:[78, 92, 64, 85, 70, 88].map(w => ({ st:{ width:w + '%', height:14, borderRadius:4, background:'rgba(236,230,218,.07)' } })),
+      exportBtnTitle: procEd ? 'Available once transcription finishes' : '',
+      exportBtnSt:{ font:"700 13.5px 'Schibsted Grotesk',sans-serif", padding:'9px 16px', borderRadius:9, border:0, background: procEd ? 'rgba(236,230,218,.12)' : s.exStage === 'failed' ? '#ff7a5c' : C.tx, color: procEd ? C.mu : C.ink, cursor: procEd ? 'not-allowed' : 'pointer', display:'flex', alignItems:'center', gap:8, whiteSpace:'nowrap' },
+      exportBtnLabel: rendering ? `Rendering ${Math.floor(s.exPct)}%` : s.exStage === 'failed' ? 'Render failed' : 'Export',
+      openExport: () => !procEd && this.setState({ exportOpen:true, playing:false }),
+      closeExport: () => this.setState({ exportOpen:false }),
+      startRender: () => this.setState({ exStage:'rendering', exPct:0 }),
+      backToCfg: () => this.setState({ exStage:'cfg', exPct:0 }),
+      exportOpen:s.exportOpen, exCfg:s.exStage === 'cfg', exRendering:rendering, exDone:s.exStage === 'done',
+      exRes:s.exRes, exPctLabel: Math.floor(s.exPct) + '%', exBarSt:{ height:'100%', width:s.exPct + '%', background:C.acc, transition:'width .1s linear' },
+      exFile:`${slug}_v${s.exports[0].v}.mp4 · ${s.exRes === '1080p' ? '1080×1920' : '720×1280'} · ${s.exports[0].size}`,
+      exportsList: (s.exStage === 'done' ? s.exports.slice(1) : s.exports),
+      stop,
+      blockCount: procEd ? 'waiting' : `${blocks.length} blocks`, blockList: procEd ? [] : blockList, listRef:this.listRef,
+      showSplitHint: !s.selId && !procEd,
+      cap, capVisible: !!ab && !procEd, pausedOverlay: !s.playing && t === 0 && !procEd,
+      wideEd: VW >= 1100, isSmall: SM, isMid: MD, drawerOpen: !!s.drawer,
+      drawerBackdrop: MD && !!s.drawer,
+      toggleDrawer: () => this.setState({ drawer: !s.drawer }), closeDrawer: () => this.setState({ drawer:false }),
+      drawerBtnSt:{ font:"600 13px 'Schibsted Grotesk',sans-serif", padding:'8px 12px', borderRadius:9, cursor:'pointer', whiteSpace:'nowrap', border:`1px solid ${s.drawer ? C.tx : 'rgba(236,230,218,.2)'}`, background: s.drawer ? C.p2 : 'transparent', color:C.tx },
+      backLabel: SM ? '' : 'Projects',
+      saveLabelShown: SM ? '' : (s.save === 'saving' ? 'Saving…' : s.save === 'offline' ? (VW < 900 ? 'Offline' : 'Offline · kept in this browser') : 'Saved'),
+      mobTabs: [['captions','Captions'],['style','Style']].map(([k, label]) => ({ label, on: mobTab === k, pick: () => this.setState({ mobTab:k }), st:{ flex:1, font:"600 13.5px 'Schibsted Grotesk',sans-serif", padding:'10px 8px', minHeight:44, borderRadius:9, border:0, cursor:'pointer', background: mobTab === k ? C.p2 : 'transparent', color: mobTab === k ? C.tx : C.mu } })),
+      edBodySt:{ flex:1, minHeight:0, display:'flex', flexDirection: SM ? 'column' : 'row', overflow:'hidden' },
+      edLeftSt: SM ? { order:2, flex:'1 1 0', minHeight:0, display: mobTab === 'captions' ? 'flex' : 'none', flexDirection:'column' } : { flex:'1 1 0', minWidth:270, maxHeight:'calc(100vh - 56px)', display:'flex', flexDirection:'column', borderRight:`1px solid ${C.line}` },
+      edCenterSt:{ order:0, flex: SM ? 'none' : MD ? '1.1 1 0' : '1.15 1 0', minWidth: SM ? 0 : 320, display:'flex', justifyContent:'center', alignItems:'center', padding: SM ? '14px 16px 8px' : '24px 28px', maxHeight: SM ? 'none' : 'calc(100vh - 56px)', overflow:'hidden', background:'radial-gradient(70% 60% at 50% 40%,#1d1b18,#12110f)' },
+      edAsideSt: SM ? { order:2, flex:'1 1 0', minHeight:0, overflow:'auto', padding:'16px 16px 40px', display: mobTab === 'style' ? 'flex' : 'none', flexDirection:'column', gap:24 }
+        : MD ? { position:'fixed', top:56, right:0, bottom:0, width:'min(340px, 92vw)', zIndex:12, background:C.p1, borderLeft:`1px solid ${C.line}`, boxShadow: s.drawer ? '-30px 0 80px -20px rgba(0,0,0,.8)' : 'none', transform: s.drawer ? 'translateX(0)' : 'translateX(105%)', transition:'transform .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s', overflow:'auto', padding:'20px 20px 40px', display:'flex', flexDirection:'column', gap:24 }
+        : { flex:'0 0 310px', minWidth:0, maxHeight:'calc(100vh - 56px)', overflow:'auto', borderLeft:`1px solid ${C.line}`, padding:'20px 20px 40px', display:'flex', flexDirection:'column', gap:24 },
+      noUndo: !(s.undo || []).length, noRedo: !(s.redo || []).length,
+      undoSt: hBtn(!(s.undo || []).length), redoSt: hBtn(!(s.redo || []).length),
+      doUndo: () => this.undo(), doRedo: () => this.redo(),
+      toast: s.toast || '', toastUndo: !!s.toastAct, toastActLabel: s.toastAct === 'redo' ? 'Redo' : 'Undo',
+      toastAct: () => { const a = s.toastAct; a === 'redo' ? this.redo() : this.undo(); },
+      findOpen: !!s.findOpen && !procEd, fq: s.fq || '', fr: s.fr || '', fRemember: s.fRemember !== false,
+      toggleFind: () => this.setState({ findOpen: !s.findOpen, fq:'', fr:'' }),
+      onFq: e => this.setState({ fq: e.target.value }), onFr: e => this.setState({ fr: e.target.value }),
+      onFRemember: e => this.setState({ fRemember: e.target.checked }),
+      onFindKey: e => { if (e.key === 'Enter') { e.preventDefault(); doReplace(); } else if (e.key === 'Escape') this.setState({ findOpen:false, fq:'', fr:'' }); },
+      fCount: !fqn ? 'Type the word the transcript got wrong' : fMulti ? 'Search one word at a time' : matchSet.size ? `${matchSet.size} ${matchSet.size === 1 ? 'match' : 'matches'} in ${matchBlocks.size} ${matchBlocks.size === 1 ? 'block' : 'blocks'}` : 'No matches',
+      fCountSt:{ font:"400 11.5px 'IBM Plex Mono',monospace", color: matchSet.size ? '#ffd400' : C.mu },
+      noReplace: !matchSet.size || !(s.fr || '').trim(), doReplace,
+      replLabel: matchSet.size > 1 ? 'Replace all' : 'Replace',
+      replBtnSt:{ font:"700 12.5px 'Schibsted Grotesk',sans-serif", padding:'8px 12px', borderRadius:8, border:0, whiteSpace:'nowrap', background: matchSet.size && (s.fr || '').trim() ? C.tx : 'rgba(236,230,218,.1)', color: matchSet.size && (s.fr || '').trim() ? C.ink : C.mu, cursor: matchSet.size && (s.fr || '').trim() ? 'pointer' : 'not-allowed' },
+      findBtnSt:{ font:"600 12px 'Schibsted Grotesk',sans-serif", padding:'5px 10px', borderRadius:7, cursor:'pointer', whiteSpace:'nowrap', border:`1px solid ${s.findOpen ? C.tx : 'rgba(236,230,218,.18)'}`, background: s.findOpen ? C.p2 : 'transparent', color:C.tx },
+      hasDict: !!(s.dict || []).length,
+      dictList: (s.dict || []).map((d, k) => ({ ...d, remove: () => this.setState(x => ({ dict: x.dict.filter((_, j) => j !== k) })) })),
+      hasVideo: !!s.videoUrl, videoUrl: s.videoUrl || '', videoRef: this.videoRef,
+      vidLabel: s.vidErr ? 'THAT FILE ISN\'T A VIDEO' : s.videoUrl ? (s.vidDims ? `YOUR VIDEO · ${s.vidDims}` : 'YOUR VIDEO') : 'SAMPLE · 1080×1920',
+      pickLabel: s.videoUrl ? 'Replace video' : 'Use my video',
+      vidDrag: !!s.vidDrag, noVideoHint: !s.videoUrl && !procEd && !s.playing && t === 0,
+      onPickVideo: e => { const f = e.target.files && e.target.files[0]; e.target.value = ''; this.setVideo(f); },
+      onVidDragOver: e => { e.preventDefault(); if (!s.vidDrag) this.setState({ vidDrag:true }); },
+      onVidDragLeave: () => this.setState({ vidDrag:false }),
+      onVidDrop: e => { e.preventDefault(); e.stopPropagation(); this.setVideo(e.dataTransfer.files && e.dataTransfer.files[0]); },
+      onVidMeta: e => { const v = e.currentTarget; if (!v.videoWidth) return; const a = v.videoWidth / v.videoHeight, d = `${v.videoWidth}×${v.videoHeight}`; this.setState(x => ({ vidAspect:a, vidDims:d, projects:x.projects.map(p => p.id === x.openId ? { ...p, vidAspect:a, vidDims:d } : p) })); },
+      onVidEnded: () => this.setState({ playing:false }),
+      frameSt:{ position:'relative', width: `min(100%, calc(${SM ? '40vh' : '(100vh - 210px)'} * ${(s.vidAspect || 0.5625).toFixed(4)}))`, aspectRatio: String(s.vidAspect || 0.5625), borderRadius:14, overflow:'hidden', containerType:'inline-size', cursor:'pointer', background:'radial-gradient(45% 32% at 52% 58%,#7a5640 0%,rgba(122,86,64,0) 100%),radial-gradient(120% 80% at 25% 15%,#4a3526 0%,#1d1611 55%,#0d0b09 100%)', boxShadow:'0 30px 80px -30px rgba(0,0,0,.8),0 0 0 1px rgba(236,230,218,.08)', transition:'width .25s ease' },
+      togglePlay: () => this.togglePlay(), playing:s.playing, notPlaying:!s.playing,
+      prevBlock: () => this.jump(-1), nextBlock: () => this.jump(1),
+      rateLabel: RATES[s.rate] + '×', cycleRate: () => this.setState(x => ({ rate:(x.rate + 1) % RATES.length })),
+      tNow:fmt(t), tDur:fmt(DUR),
+      onSeekBar: e => { const r = e.currentTarget.getBoundingClientRect(); this.seek((e.clientX - r.left) / r.width * DUR); },
+      progFillSt:{ position:'absolute', left:0, top:'50%', height:4, marginTop:-2, width:pct + '%', background:C.tx, borderRadius:2, pointerEvents:'none' },
+      knobSt:{ position:'absolute', left:pct + '%', top:'50%', width:12, height:12, marginLeft:-6, marginTop:-6, borderRadius:'50%', background:C.acc, boxShadow:`0 0 0 3px ${C.ink}`, pointerEvents:'none' },
+      ticks,
+      style, presetName: P.name + (modified ? ' (edited)' : ''), modified,
+      resetPreset: () => { this.snap('restore preset'); this.setState({ style:{ ...P }, blocks:segment(s.words, P.maxW) }); this.dirty(); },
+      presetTiles, fontChips,
+      sizeVal: style.size, onSize: e => this.setStyle({ size: +e.target.value }),
+      onOw: e => this.setStyle({ ow: +e.target.value }),
+      modeSeg: seg('mode', [['box','Box'],['text','Color'],['dim','Reading'],['none','None']]),
+      showHl: style.mode === 'box' || style.mode === 'text',
+      hlSw: sw('hl', HL), txSw: sw('color', TXC), toggles,
+      posSeg: seg('pos', [['top','Top'],['mid','Middle'],['bottom','Bottom']]),
+      animSeg: seg('anim', [['none','Instant'],['pop','Soft pop']]),
+      maxMinus: () => this.setStyle({ maxW: Math.max(1, style.maxW - 1) }, true),
+      maxPlus: () => this.setStyle({ maxW: Math.min(10, style.maxW + 1) }, true),
+      resOpts,
+    };
+  }
+}
+</script>
+</body>
+</html>

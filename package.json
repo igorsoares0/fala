@@ -2,25 +2,25 @@
   "name": "fala",
   "version": "0.1.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
-  },
-  "dependencies": {
-    "next": "16.4.1",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "dev": "npm run dev -w @fala/web",
+    "build": "npm run build -w @fala/web",
+    "start": "npm run start -w @fala/web",
+    "lint": "npm run lint -w @fala/web",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:e2e": "npm run test:e2e -w @fala/web",
+    "db:generate": "npm run generate -w @fala/db",
+    "db:migrate": "npm run migrate -w @fala/db"
   },
   "devDependencies": {
-    "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "16.4.1",
-    "tailwindcss": "^4",
-    "typescript": "^5"
+    "@types/node": "^24",
+    "dotenv": "^17",
+    "typescript": "^5",
+    "vitest": "^4"
   }
 }

@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+/* Fala design tokens (docs/design_handoff_fala_captions/README.md). Dark-only UI. */
+@theme {
+  --color-ink: #12110f;
+  --color-panel-1: #1a1916;
+  --color-panel-2: #23211d;
+  --color-hover-2: #2b2924;
+  --color-line: rgba(236, 230, 218, 0.09);
+  --color-line-strong: rgba(236, 230, 218, 0.16);
+  --color-line-input: rgba(236, 230, 218, 0.14);
+  --color-line-button: rgba(236, 230, 218, 0.2);
+  --color-text: #ece6da;
+  --color-muted: #9a9387;
+  --color-caption-dim: #cfc8bb;
+  --color-accent: #ff5a1f;
+  --color-accent-hover: #ff7340;
+  --color-success: #3ee07a;
+  --color-warning: #ffb35c;
+  --color-danger: #ff7a5c;
+  --color-danger-text: #ff9a80;
+
+  --font-sans: var(--font-schibsted-face), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono-face), ui-monospace, monospace;
+  --font-anton: var(--font-anton-face), sans-serif;
+  --font-archivo-black: var(--font-archivo-black-face), sans-serif;
+  --font-schibsted: var(--font-schibsted-face), sans-serif;
+  --font-dm-serif: var(--font-dm-serif-face), serif;
+
+  --shadow-frame: 0 30px 80px -30px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(236, 230, 218, 0.08);
+  --shadow-modal: 0 40px 100px -30px rgba(0, 0, 0, 0.9);
+  --shadow-toast: 0 20px 50px -20px rgba(0, 0, 0, 0.8);
+  --shadow-thumb: 0 0 0 1px rgba(236, 230, 218, 0.07);
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-ink);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Thin pill scrollbars, no arrows. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(236, 230, 218, 0.14) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(236, 230, 218, 0.14);
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(236, 230, 218, 0.3);
+}
+*::-webkit-scrollbar-button {
+  display: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-text);
+  outline-offset: 2px;
+}
