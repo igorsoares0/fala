@@ -1,6 +1,6 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { chromium, type Browser, type Page } from "playwright-core";
+import { chromium, type Browser, type BrowserContext, type Page } from "playwright-core";
 import {
   activeWordTransform,
   blockWords,
@@ -63,6 +63,11 @@ export type OverlayResult = {
   frameCount: number;
 };
 
+/** Chromium pages drawing one export's pictures at once, each over its own slice of the timeline. */
+const OVERLAY_PAGES = 4;
+/** Below this many pictures, extra pages cost more to open than they save. */
+const PICTURES_PER_PAGE_MIN = 60;
+
 export async function renderOverlay({
   track,
   style,
@@ -73,6 +78,7 @@ export async function renderOverlay({
   chromiumPath,
   signal,
   onProgress,
+  pages: pageCount = OVERLAY_PAGES,
 }: {
   track: Pick<CaptionTrack, "words" | "blocks">;
   style: CaptionStyle;
@@ -85,42 +91,80 @@ export async function renderOverlay({
   signal?: AbortSignal;
   /** Fraction of pictures drawn, 0–1. */
   onProgress?: (fraction: number) => void;
+  /** Pages drawing in parallel (tests compare 1 with several). */
+  pages?: number;
 }): Promise<OverlayResult> {
   const frames = captionFrames(track, style, { durationMs });
+
+  // Each distinct picture is drawn once, named in order of first appearance.
+  const files = new Map<string, string>();
+  const pictures: { file: string; state: OverlayState | null }[] = [];
+  for (const frame of frames) {
+    const key = overlayStateKey(frame.state);
+    if (files.has(key)) continue;
+    const file = `overlay-${String(files.size).padStart(6, "0")}.png`;
+    files.set(key, file);
+    pictures.push({ file, state: frame.state });
+  }
+
   const context = await (await getBrowser(chromiumPath)).newContext({ viewport: { width, height }, deviceScaleFactor: 1 });
   try {
-    const page = await context.newPage();
-    await page.setContent(await pageHtml(style, width, height));
-    // Never screenshot with a fallback font: wait until the caption face is ready.
-    const loaded = await page.evaluate(`document.fonts.load('${CAPTION_FONT_WEIGHTS[style.font]} 40px "Fala Caption"').then((faces) => faces.length)`);
-    if (loaded === 0) throw new Error(`Caption font ${style.font} failed to load`);
-
     const boxCss = captionBoxStyle(style);
-    const band = await measureBand(page, boxCss, track, style, width, height);
-    const files = new Map<string, string>();
-    const entries: { file: string; durationMs: number }[] = [];
+    const html = await pageHtml(style, width, height);
+    const workers = Math.max(1, Math.min(pageCount, Math.ceil(pictures.length / PICTURES_PER_PAGE_MIN)));
+    const pages = await Promise.all(Array.from({ length: workers }, () => openRenderPage(context, html, style)));
+    const band = await measureBand(pages[0].page, boxCss, track, style, width, height);
 
-    for (const [index, frame] of frames.entries()) {
-      signal?.throwIfAborted();
-      const key = overlayStateKey(frame.state);
-      let file = files.get(key);
-      if (!file) {
-        file = `overlay-${String(files.size).padStart(5, "0")}.png`;
-        await showState(page, boxCss, wordsFor(track, style, frame.state));
-        await page.screenshot({ path: path.join(dir, file), clip: band, omitBackground: true, type: "png" });
-        files.set(key, file);
-      }
-      const endMs = frames[index + 1]?.startMs ?? durationMs;
-      entries.push({ file, durationMs: endMs - frame.startMs });
-      onProgress?.((index + 1) / frames.length);
-    }
+    let drawn = 0;
+    const slice = Math.ceil(pictures.length / workers);
+    await Promise.all(
+      pages.map(async (renderPage, index) => {
+        for (const picture of pictures.slice(index * slice, (index + 1) * slice)) {
+          signal?.throwIfAborted();
+          await showState(renderPage.page, boxCss, wordsFor(track, style, picture.state));
+          await renderPage.capture(path.join(dir, picture.file), band);
+          onProgress?.(++drawn / pictures.length);
+        }
+      }),
+    );
 
+    const entries = frames.map((frame, index) => ({
+      file: files.get(overlayStateKey(frame.state))!,
+      durationMs: (frames[index + 1]?.startMs ?? durationMs) - frame.startMs,
+    }));
     const listPath = path.join(dir, "overlay.ffconcat");
     await writeFile(listPath, concatList(entries));
-    return { listPath, band, frameCount: files.size };
+    return { listPath, band, frameCount: pictures.length };
   } finally {
     await context.close();
   }
+}
+
+/**
+ * A page ready to draw: the caption font loaded and a transparent background.
+ * Screenshots go straight through the DevTools protocol with `optimizeForSpeed`
+ * (faster PNG encoding), the bulk of the time spent on an export's overlay.
+ */
+async function openRenderPage(context: BrowserContext, html: string, style: CaptionStyle) {
+  const page = await context.newPage();
+  await page.setContent(html);
+  // Never screenshot with a fallback font: wait until the caption face is ready.
+  const loaded = await page.evaluate(`document.fonts.load('${CAPTION_FONT_WEIGHTS[style.font]} 40px "Fala Caption"').then((faces) => faces.length)`);
+  if (loaded === 0) throw new Error(`Caption font ${style.font} failed to load`);
+
+  const cdp = await context.newCDPSession(page);
+  await cdp.send("Emulation.setDefaultBackgroundColorOverride", { color: { r: 0, g: 0, b: 0, a: 0 } });
+  return {
+    page,
+    async capture(file: string, band: Band) {
+      const { data } = await cdp.send("Page.captureScreenshot", {
+        format: "png",
+        clip: { ...band, scale: 1 },
+        optimizeForSpeed: true,
+      });
+      await writeFile(file, Buffer.from(data, "base64"));
+    },
+  };
 }
 
 /** FFmpeg concat list. The last picture is listed twice: the demuxer ignores the final entry's duration otherwise. */

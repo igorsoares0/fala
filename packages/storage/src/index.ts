@@ -3,14 +3,19 @@ import { stat } from "node:fs/promises";
 import { Readable } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
   DeleteObjectCommand,
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
+  ListPartsCommand,
   PutObjectCommand,
   S3Client,
   S3ServiceException,
+  UploadPartCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
@@ -61,15 +66,54 @@ export function createStorage(config: StorageConfig) {
   return {
     bucket: Bucket,
 
-    /** URL for a single PUT of `key` with exactly this Content-Type (it's part of the signature). */
-    presignPut(key: string, contentType: string, expiresInSeconds: number) {
-      return getSignedUrl(client, new PutObjectCommand({ Bucket, Key: key, ContentType: contentType }), {
+    /** Starts a multipart upload (large browser uploads go in parts). Returns its id. */
+    async createMultipartUpload(key: string, contentType: string): Promise<string> {
+      const { UploadId } = await client.send(new CreateMultipartUploadCommand({ Bucket, Key: key, ContentType: contentType }));
+      if (!UploadId) throw new Error("Storage returned no upload id.");
+      return UploadId;
+    },
+
+    /** URL for a single PUT of one part of a multipart upload. */
+    presignUploadPart(key: string, uploadId: string, partNumber: number, expiresInSeconds: number) {
+      return getSignedUrl(client, new UploadPartCommand({ Bucket, Key: key, UploadId: uploadId, PartNumber: partNumber }), {
         expiresIn: expiresInSeconds,
-        signableHeaders: new Set(["content-type"]),
       });
     },
 
-    /** URL for reading `key`. With `downloadName`, browsers save the file under that name instead of playing it. */
+    /** Parts stored so far, in order (the server reads ETags here, so browsers never need to). */
+    async listParts(key: string, uploadId: string): Promise<{ partNumber: number; etag: string; sizeBytes: number }[]> {
+      const parts: { partNumber: number; etag: string; sizeBytes: number }[] = [];
+      let marker: string | undefined;
+      do {
+        const page = await client.send(new ListPartsCommand({ Bucket, Key: key, UploadId: uploadId, PartNumberMarker: marker }));
+        for (const part of page.Parts ?? []) {
+          if (part.PartNumber && part.ETag) parts.push({ partNumber: part.PartNumber, etag: part.ETag, sizeBytes: part.Size ?? 0 });
+        }
+        marker = page.IsTruncated ? page.NextPartNumberMarker : undefined;
+      } while (marker);
+      return parts.sort((a, b) => a.partNumber - b.partNumber);
+    },
+
+    async completeMultipartUpload(key: string, uploadId: string, parts: { partNumber: number; etag: string }[]) {
+      await client.send(
+        new CompleteMultipartUploadCommand({
+          Bucket,
+          Key: key,
+          UploadId: uploadId,
+          MultipartUpload: { Parts: parts.map((part) => ({ PartNumber: part.partNumber, ETag: part.etag })) },
+        }),
+      );
+    },
+
+    /** Drops an unfinished multipart upload and its parts. Safe to repeat. */
+    async abortMultipartUpload(key: string, uploadId: string) {
+      try {
+        await client.send(new AbortMultipartUploadCommand({ Bucket, Key: key, UploadId: uploadId }));
+      } catch (error) {
+        if (!isNotFound(error) && !(error instanceof S3ServiceException && error.name === "NoSuchUpload")) throw error;
+      }
+    },
+
     presignGet(key: string, expiresInSeconds: number, options: { downloadName?: string } = {}) {
       const command = new GetObjectCommand({
         Bucket,

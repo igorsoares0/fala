@@ -1,3 +1,7 @@
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { expect, test } from "@playwright/test";
 import { createProject, signUp, uniqueEmail, videoFile } from "./helpers";
 
@@ -77,4 +81,47 @@ test("files that aren't supported videos are refused before anything is created"
   });
   await expect(page.getByRole("alert").filter({ hasText: "That file type isn't supported" })).toBeVisible();
   await expect(page.getByText("0 videos")).toBeVisible();
+});
+
+test("a large file goes up in parts and survives a dropped connection", async ({ page, context }) => {
+  test.setTimeout(120_000);
+  // Over 10 MB: several 5 MB parts (see UPLOAD_PART_SIZE_BYTES in playwright.config.ts).
+  const dir = mkdtempSync(path.join(os.tmpdir(), "fala-e2e-large-"));
+  const file = path.join(dir, "large.mp4");
+  execFileSync("ffmpeg", [
+    "-v", "error",
+    "-f", "lavfi", "-i", "testsrc2=size=1280x720:rate=30:duration=4",
+    "-f", "lavfi", "-i", "sine=frequency=330:duration=4",
+    "-c:v", "libx264", "-preset", "ultrafast", "-qp", "0", "-pix_fmt", "yuv444p",
+    "-c:a", "aac", "-shortest", "-y", file,
+  ]);
+  const buffer = readFileSync(file);
+  rmSync(dir, { recursive: true, force: true });
+  expect(buffer.length).toBeGreaterThan(10 * 1024 * 1024);
+
+  // The connection drops while part 2 is on its way; it comes back a moment later.
+  const putsPerPart = new Map<string, number>();
+  let dropped = false;
+  await context.route(/[?&]partNumber=\d+/, async (route) => {
+    const part = new URL(route.request().url()).searchParams.get("partNumber")!;
+    putsPerPart.set(part, (putsPerPart.get(part) ?? 0) + 1);
+    if (part === "2" && !dropped) {
+      dropped = true;
+      await context.setOffline(true);
+      setTimeout(() => void context.setOffline(false), 1_500);
+      return route.abort("internetdisconnected");
+    }
+    return route.continue();
+  });
+
+  await signUp(page, { name: "Long form", email: uniqueEmail("large") });
+  await page.getByTestId("new-video-input").setInputFiles({ name: "Long talk.mp4", mimeType: "video/mp4", buffer });
+  const card = page.getByRole("article", { name: "Long talk" });
+  await expect(card.getByText("Ready")).toBeVisible({ timeout: 90_000 });
+
+  // Parts cut off by the drop (up to the 4 sent at once) were sent again, each once — never the whole file over and over.
+  const parts = Math.ceil(buffer.length / (5 * 1024 * 1024));
+  expect([...putsPerPart.keys()].sort()).toEqual(Array.from({ length: parts }, (_, index) => String(index + 1)));
+  expect(putsPerPart.get("2")).toBe(2);
+  expect(Math.max(...putsPerPart.values())).toBe(2);
 });

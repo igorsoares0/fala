@@ -23,7 +23,8 @@ export type TranscriptionResult = {
 
 export interface TranscriptionProvider {
   readonly name: string;
-  transcribe(input: { audioPath: string; language?: string; signal?: AbortSignal }): Promise<TranscriptionResult>;
+  /** `durationMs` is the video's length, when known. */
+  transcribe(input: { audioPath: string; durationMs?: number; language?: string; signal?: AbortSignal }): Promise<TranscriptionResult>;
 }
 
 /**

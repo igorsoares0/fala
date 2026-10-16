@@ -2,8 +2,8 @@ import "server-only";
 import { db, type Prisma } from "@fala/db";
 import { blockWords, captionTrackSchema, type CaptionTrack } from "@fala/shared";
 
-/** Caps that keep a malicious or buggy client from storing huge documents (3-minute videos have ~600 words). */
-const MAX_WORDS = 5_000;
+/** Caps that keep a malicious or buggy client from storing huge documents (30 minutes of fast speech is ~7,500 words). */
+export const MAX_WORDS = 12_000;
 const MAX_WORD_LENGTH = 100;
 
 export type SaveCaptionsInput = { baseVersion: number; words: CaptionTrack["words"]; blocks: CaptionTrack["blocks"] };

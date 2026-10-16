@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBytes, mimeTypeForFile, presignRequestSchema, UPLOAD_LIMITS } from "./upload";
+import { formatBytes, mimeTypeForFile, presignRequestSchema, UPLOAD_LIMITS, uploadLimitsLabel, uploadPartPlan } from "./upload";
 
 describe("mimeTypeForFile", () => {
   it("trusts a known extension over an empty or vague browser type", () => {
@@ -32,9 +32,32 @@ describe("presignRequestSchema", () => {
 
 describe("formatBytes", () => {
   it("uses the largest whole unit", () => {
-    expect(formatBytes(UPLOAD_LIMITS.maxBytes)).toBe("1 GB");
+    expect(formatBytes(UPLOAD_LIMITS.maxBytes)).toBe("4 GB");
     expect(formatBytes(240 * 1024 * 1024)).toBe("240 MB");
     expect(formatBytes(1536)).toBe("1.5 KB");
     expect(formatBytes(12)).toBe("12 B");
+  });
+});
+
+describe("uploadPartPlan", () => {
+  const MB = 1024 * 1024;
+
+  it("sends small files as a single part", () => {
+    expect(uploadPartPlan(66_000)).toEqual({ partSize: 16 * MB, partCount: 1 });
+  });
+
+  it("splits large files into 16 MB parts, and grows parts to stay within 1,000", () => {
+    expect(uploadPartPlan(100 * MB)).toEqual({ partSize: 16 * MB, partCount: 7 });
+    const huge = uploadPartPlan(UPLOAD_LIMITS.maxBytes);
+    expect(huge.partCount).toBeLessThanOrEqual(1_000);
+    expect(huge.partSize * huge.partCount).toBeGreaterThanOrEqual(UPLOAD_LIMITS.maxBytes);
+  });
+
+  it("never goes below the 5 MB S3 minimum, even when a test asks for smaller parts", () => {
+    expect(uploadPartPlan(12 * MB, 1 * MB)).toEqual({ partSize: 5 * MB, partCount: 3 });
+  });
+
+  it("describes the limits for the drop zone", () => {
+    expect(uploadLimitsLabel()).toBe("up to 30 min · 4 GB");
   });
 });

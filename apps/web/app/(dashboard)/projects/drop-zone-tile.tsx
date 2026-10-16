@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type DragEvent } from "react";
+import { uploadLimitsLabel } from "@fala/shared";
 import { VIDEO_FILE_ACCEPT } from "@/lib/check-video-file";
 
 export function DropZoneTile({ onFile, busy }: { onFile: (file: File) => void; busy: boolean }) {
@@ -44,7 +45,7 @@ export function DropZoneTile({ onFile, busy }: { onFile: (file: File) => void; b
         <span className="text-center font-mono text-[10.5px] leading-[1.6] text-muted">
           MP4 · MOV · WEBM
           <br />
-          up to 3 min · 1 GB
+          {uploadLimitsLabel()}
         </span>
       </button>
       <input

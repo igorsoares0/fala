@@ -7,6 +7,8 @@ const repoRoot = path.resolve(__dirname, "../..");
 const nextConfig: NextConfig = {
   experimental: {
     agentFeedback: true,
+    // A full caption save of a 30-minute video (~12,000 words at most) is about 1–2 MB.
+    serverActions: { bodySizeLimit: "4mb" },
   },
   cacheComponents: true,
   partialPrefetching: true,

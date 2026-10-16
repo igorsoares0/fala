@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
+import { memo, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import { activeBlockIndex, activeWordIndex, blockWords, formatTimecode } from "@fala/shared";
 import { CaptionSample } from "@/components/caption-sample";
@@ -101,11 +101,9 @@ function CaptionOverlay() {
 function PlaybackBar() {
   const durationMs = useEditor((state) => state.durationMs);
   const timeMs = useEditor((state) => state.timeMs);
-  const blocks = useEditor((state) => state.track.blocks);
   const seek = useEditor((state) => state.seek);
   const trackRef = useRef<HTMLDivElement>(null);
-  const active = activeBlockIndex(blocks, timeMs);
-  const percent = (ms: number) => `${(Math.min(ms, durationMs) / durationMs) * 100}%`;
+  const progress = Math.min(timeMs, durationMs) / durationMs;
 
   function seekToPointer(event: PointerEvent<HTMLDivElement>) {
     const rect = trackRef.current?.getBoundingClientRect();
@@ -144,24 +142,45 @@ function PlaybackBar() {
       className="group relative flex h-4 cursor-pointer touch-none items-center rounded"
     >
       <div className="relative h-1 w-full rounded-full bg-[rgba(236,230,218,.15)]">
-        <div className="absolute inset-y-0 left-0 rounded-full bg-text" style={{ width: percent(timeMs) }} />
-        {blocks.map((block, index) => (
-          <span
-            key={block.id}
-            aria-hidden
-            className={`absolute top-1/2 h-2 w-px -translate-y-1/2 ${index === active ? "bg-accent" : "bg-[rgba(236,230,218,.35)]"}`}
-            style={{ left: percent(block.startMs) }}
-          />
-        ))}
+        {/* Fill and playhead move with transforms, which need no layout: in a long video's
+            editor, a layout on every frame would cost more than the frame itself. */}
+        <div className="absolute inset-0 origin-left rounded-full bg-text" style={{ transform: `scaleX(${progress})` }} />
+        <BlockTicks />
       </div>
-      <span
-        aria-hidden
-        className="absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-[0_0_0_3px_var(--color-ink)]"
-        style={{ left: percent(timeMs) }}
-      />
+      <span aria-hidden className="pointer-events-none absolute inset-x-0 top-1/2" style={{ transform: `translateX(${progress * 100}%)` }}>
+        <span className="absolute top-0 left-0 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-[0_0_0_3px_var(--color-ink)]" />
+      </span>
     </div>
   );
 }
+
+/**
+ * A tick at every block start, drawn as one SVG path: a long video has thousands of
+ * blocks, and as many elements here would weigh on every layout. Re-renders only when
+ * the blocks or the active block change.
+ */
+const BlockTicks = memo(function BlockTicks() {
+  const durationMs = useEditor((state) => state.durationMs);
+  const blocks = useEditor((state) => state.track.blocks);
+  const active = useEditor((state) => activeBlockIndex(state.track.blocks, state.timeMs));
+  const ticks = useMemo(() => blocks.map((block) => tickPath(block.startMs, durationMs)).join(""), [blocks, durationMs]);
+  return (
+    <svg
+      aria-hidden
+      viewBox="0 0 1000 8"
+      preserveAspectRatio="none"
+      className="pointer-events-none absolute inset-x-0 top-1/2 h-2 w-full -translate-y-1/2 overflow-visible"
+    >
+      <path d={ticks} stroke="rgba(236,230,218,.35)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+      {active >= 0 && (
+        <path d={tickPath(blocks[active].startMs, durationMs)} stroke="var(--color-accent)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+      )}
+    </svg>
+  );
+});
+
+/** A vertical tick at `ms`, in the 1000-wide viewBox of <BlockTicks>. */
+const tickPath = (ms: number, durationMs: number) => `M${((Math.min(ms, durationMs) / durationMs) * 1000).toFixed(2)} 0V8`;
 
 function Controls() {
   const durationMs = useEditor((state) => state.durationMs);

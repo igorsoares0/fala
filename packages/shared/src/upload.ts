@@ -1,14 +1,22 @@
 import { z } from "zod";
 
+const MB = 1024 * 1024;
+const GB = 1024 * MB;
+
 /**
- * Upload limits shown in the drop zone ("MP4 · MOV · WEBM / up to 3 min · 1 GB")
- * and enforced by the browser, the upload API and the worker.
- * Per-plan limits replace these constants in Phase 6.
+ * What the system handles at most, shown in the drop zone ("up to 30 min · 4 GB")
+ * and enforced by the browser, the upload API and the worker. Plans (Phase 6)
+ * set lower limits on top of these.
  */
 export const UPLOAD_LIMITS = {
-  maxBytes: 1024 * 1024 * 1024,
-  maxDurationMs: 3 * 60 * 1000,
+  maxBytes: 4 * GB,
+  maxDurationMs: 30 * 60 * 1000,
 } as const;
+
+/** "up to 30 min · 4 GB" */
+export function uploadLimitsLabel(): string {
+  return `up to ${UPLOAD_LIMITS.maxDurationMs / 60_000} min · ${formatBytes(UPLOAD_LIMITS.maxBytes)}`;
+}
 
 /** Accepted MIME types and the extension used for the stored object. */
 export const ACCEPTED_VIDEO_TYPES = {
@@ -51,11 +59,33 @@ export const presignRequestSchema = z.object({
 
 export type PresignRequest = z.infer<typeof presignRequestSchema>;
 
+/**
+ * Uploads go to storage in parts (S3 multipart), so a dropped connection costs one
+ * part, not the whole file. S3 needs parts of at least 5 MB (except the last) and
+ * at most 10,000 of them; we stay within 1,000.
+ */
+export const MIN_UPLOAD_PART_BYTES = 5 * MB;
+export const DEFAULT_UPLOAD_PART_BYTES = 16 * MB;
+const MAX_UPLOAD_PARTS = 1_000;
+
+/** Part size and count for a file of `sizeBytes`. `preferredPartBytes` is a test override. */
+export function uploadPartPlan(sizeBytes: number, preferredPartBytes: number = DEFAULT_UPLOAD_PART_BYTES) {
+  const partSize = Math.max(MIN_UPLOAD_PART_BYTES, preferredPartBytes, Math.ceil(sizeBytes / MAX_UPLOAD_PARTS));
+  return { partSize, partCount: Math.max(1, Math.ceil(sizeBytes / partSize)) };
+}
+
 export type PresignResponse = {
-  uploadUrl: string;
+  partSize: number;
+  partCount: number;
   contentType: AcceptedVideoMimeType;
-  expiresAt: string;
 };
+
+/** Body of `POST /api/projects/:projectId/uploads/parts`: which parts to sign (a batch). */
+export const uploadPartsRequestSchema = z.object({
+  partNumbers: z.array(z.int().min(1).max(MAX_UPLOAD_PARTS)).min(1).max(20),
+});
+
+export type UploadPartsResponse = { urls: { partNumber: number; url: string }[] };
 
 /** "1 GB", "240 MB", "512 KB" — for limits and file sizes in the UI. */
 export function formatBytes(bytes: number): string {

@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db, enqueueJob, type Prisma } from "@fala/db";
-import { exportKey, PRESETS, sourceKey, type CaptionTrack, type ExportSnapshot } from "@fala/shared";
+import { exportKey, PRESETS, segmentWords, sourceKey, type CaptionTrack, type ExportSnapshot } from "@fala/shared";
 import { closeBrowser } from "../media/overlay";
 import { probeFile } from "../media/probe";
 import { createRunner } from "../runner";
@@ -56,21 +56,29 @@ afterAll(async () => {
   await rm(dir, { recursive: true, force: true });
 });
 
-async function queuedExport({ upload = true } = {}) {
+async function queuedExport({
+  upload = true,
+  source = sourcePath,
+  durationMs = DURATION_MS,
+  width = WIDTH,
+  height = HEIGHT,
+  captions = track,
+  presetKey = "bold" as ExportSnapshot["presetKey"],
+} = {}) {
   const project = await db.project.create({
-    data: { userId, name: "Render test", status: "READY", durationMs: DURATION_MS, width: WIDTH, height: HEIGHT },
+    data: { userId, name: "Render test", status: "READY", durationMs, width, height },
   });
   const key = sourceKey(userId, project.id, "src1", "mp4");
-  if (upload) await storage.uploadFile(key, sourcePath, "video/mp4");
+  if (upload) await storage.uploadFile(key, source, "video/mp4");
   const snapshot: ExportSnapshot = {
     sourceObjectKey: key,
     captionVersion: 1,
-    track,
-    presetKey: "bold",
-    style: PRESETS.bold.style,
-    width: WIDTH,
-    height: HEIGHT,
-    durationMs: DURATION_MS,
+    track: captions,
+    presetKey,
+    style: PRESETS[presetKey].style,
+    width,
+    height,
+    durationMs,
   };
   const created = await db.export.create({
     data: { projectId: project.id, version: 1, resolution: 720, snapshot: snapshot as unknown as Prisma.InputJsonValue },
@@ -135,6 +143,31 @@ describe("RENDER_EXPORT", () => {
     const gap = frameAt(output, 1.6);
     expect(highlightPixels(gap)).toBe(0);
     expect(whitePixels(gap)).toBe(0);
+  });
+
+  it("renders a 20-minute video with thousands of caption words", { timeout: 300_000 }, async () => {
+    const durationMs = 20 * 60_000;
+    const longSource = path.join(dir, "long.mp4");
+    execFileSync(config.ffmpegPath, [
+      "-v", "error",
+      "-f", "lavfi", "-i", "color=c=0x202020:s=180x320:r=15:d=1200",
+      "-f", "lavfi", "-i", "sine=frequency=440:duration=1200",
+      "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", "-y", longSource,
+    ]);
+    // A natural pace: ~3,200 words.
+    const words = Array.from({ length: Math.floor(durationMs / 370) }, (_, index) => ({
+      text: ["every", "word", "lands"][index % 3],
+      startMs: index * 370,
+      endMs: index * 370 + 320,
+    }));
+    const captions: CaptionTrack = { language: "en", words, blocks: segmentWords(words, { maxWords: 7, durationMs, language: "en" }) };
+
+    const { exportId, jobId } = await queuedExport({ source: longSource, durationMs, width: 180, height: 320, captions, presetKey: "classic" });
+    await run();
+    expect(await db.job.findUniqueOrThrow({ where: { id: jobId } })).toMatchObject({ status: "SUCCEEDED" });
+    const done = await db.export.findUniqueOrThrow({ where: { id: exportId } });
+    expect(done).toMatchObject({ status: "SUCCEEDED", width: 180, height: 320 });
+    expect(Math.abs(done.durationMs! - durationMs)).toBeLessThanOrEqual(500);
   });
 
   it("fails for good, with SOURCE_MISSING, when the original video is gone", { timeout: 60_000 }, async () => {

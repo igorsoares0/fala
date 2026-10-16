@@ -4,7 +4,7 @@ import { presignRequestSchema, projectIdSchema } from "@fala/shared";
 import { jsonError, withUser } from "@/lib/api";
 import { startUpload } from "@/lib/uploads";
 
-/** POST { mimeType, sizeBytes } → a presigned PUT URL for this project's source video. */
+/** POST { mimeType, sizeBytes } → start a multipart upload of this project's source video: its part size and count. */
 export async function POST(request: NextRequest, ctx: RouteContext<"/api/projects/[projectId]/uploads/presign">) {
   return withUser(async (user) => {
     const projectId = projectIdSchema.safeParse((await ctx.params).projectId);

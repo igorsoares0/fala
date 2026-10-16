@@ -81,4 +81,6 @@ Audio is sent to AssemblyAI (US by default; set `ASSEMBLYAI_BASE_URL=https://api
 
 ### R2 bucket setup
 
-Keep the bucket private. Add a CORS rule allowing `PUT` and `GET` from the app's origin with the `Content-Type` header. Set `R2_ENDPOINT` to `https://<account-id>.r2.cloudflarestorage.com`.
+Keep the bucket private. Add a CORS rule allowing `PUT` and `GET` from the app's origin with the `Content-Type` header. Browsers upload in parts (S3 multipart) and never read the `ETag` header, so it doesn't need to be exposed. Set `R2_ENDPOINT` to `https://<account-id>.r2.cloudflarestorage.com`.
+
+Add a lifecycle rule that aborts incomplete multipart uploads after 1 day: parts of an upload the user abandoned (closed tab, lost file) are then removed even if the app never hears about it.

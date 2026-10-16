@@ -1,8 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@fala/db";
-import { editBlockText, splitBlock, type CaptionTrack } from "@fala/shared";
-import { saveCaptions } from "./captions";
+import { editBlockText, segmentWords, splitBlock, type CaptionTrack } from "@fala/shared";
+import { MAX_WORDS, saveCaptions } from "./captions";
 import { getCaptionTrack } from "./transcription";
 
 const owner = { id: `test-cap-owner-${randomUUID()}`, name: "Owner", email: `cap-owner-${randomUUID()}@test.local` };
@@ -64,5 +64,20 @@ describe("saveCaptions", () => {
     const tooLate = { ...original, blocks: [{ ...original.blocks[0], endMs: 1500 }] };
     expect(await save(owner.id, id, tooLate, 1)).toMatchObject({ ok: false, conflict: false });
     expect((await getCaptionTrack(owner.id, id))?.version).toBe(1);
+  });
+
+  it("saves the captions of a 30-minute video, but refuses absurdly large documents", async () => {
+    const durationMs = 30 * 60_000;
+    const project = await db.project.create({ data: { userId: owner.id, name: "Talk", status: "READY", durationMs } });
+    await db.captionTrack.create({ data: { projectId: project.id, language: "en", words: original.words, blocks: original.blocks } });
+
+    const longTrack = (count: number): CaptionTrack => {
+      const step = Math.floor(durationMs / count);
+      const words = Array.from({ length: count }, (_, index) => ({ text: "word", startMs: index * step, endMs: index * step + step - 10 }));
+      return { language: "en", words, blocks: segmentWords(words, { maxWords: 3, durationMs, language: "en" }) };
+    };
+
+    expect(await save(owner.id, project.id, longTrack(7_500), 1)).toEqual({ ok: true, version: 2 });
+    expect(await save(owner.id, project.id, longTrack(MAX_WORDS + 1), 2)).toMatchObject({ ok: false, conflict: false });
   });
 });

@@ -5,22 +5,26 @@ import {
   ACCEPTED_VIDEO_TYPES,
   sourceKey,
   UPLOAD_LIMITS,
+  uploadPartPlan,
   type PresignRequest,
   type PresignResponse,
   type ProjectErrorCode,
+  type UploadPartsResponse,
 } from "@fala/shared";
 import { getStorage } from "@fala/storage";
 
 /**
- * Upload flow (spec FR-03): the browser asks for a presigned URL, PUTs the file
- * straight to object storage, then asks us to confirm. Only the confirmation —
- * after checking the stored object — moves the project forward and queues
- * validation. Like lib/projects.ts, everything is scoped by the owner's id.
+ * Upload flow (spec FR-03): the browser starts an upload, PUTs the file straight
+ * to object storage in parts (S3 multipart, so a dropped connection costs one
+ * part, not a 4 GB file), then asks us to confirm. Only the confirmation — after
+ * checking every part and the stored object — moves the project forward and
+ * queues validation. Like lib/projects.ts, everything is scoped by the owner's id.
  */
 
 export type UploadResult<T> = { ok: true; data: T } | { ok: false; status: 404 | 409; error: string };
 
-const UPLOAD_URL_TTL_SECONDS = 15 * 60;
+/** Part URLs are signed in small batches as the upload goes, so an hour is plenty. */
+const PART_URL_TTL_SECONDS = 60 * 60;
 export const THUMBNAIL_URL_TTL_SECONDS = 5 * 60;
 export const SOURCE_URL_TTL_SECONDS = 60 * 60;
 
@@ -32,14 +36,27 @@ const NOT_FOUND = { ok: false, status: 404, error: "This project doesn't exist a
 function findOwned(userId: string, projectId: string) {
   return db.project.findFirst({
     where: { id: projectId, userId, deletedAt: null },
-    select: { status: true, sourceObjectKey: true, sourceMimeType: true, thumbnailObjectKey: true },
+    select: {
+      status: true,
+      sourceObjectKey: true,
+      sourceMimeType: true,
+      sourceUploadId: true,
+      sourceSizeBytes: true,
+      thumbnailObjectKey: true,
+    },
   });
+}
+
+/** Part size override for tests (e.g. 5 MB parts with a 12 MB file); the default suits real uploads. */
+function preferredPartBytes() {
+  const value = Number(process.env.UPLOAD_PART_SIZE_BYTES);
+  return Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
 export async function startUpload(
   userId: string,
   projectId: string,
-  { mimeType }: PresignRequest,
+  { mimeType, sizeBytes }: PresignRequest,
 ): Promise<UploadResult<PresignResponse>> {
   const project = await findOwned(userId, projectId);
   if (!project) return NOT_FOUND;
@@ -47,8 +64,11 @@ export async function startUpload(
     return { ok: false, status: 409, error: "This project already has a video." };
   }
 
-  const uploadId = randomUUID().replaceAll("-", "");
-  const key = sourceKey(userId, projectId, uploadId, ACCEPTED_VIDEO_TYPES[mimeType]);
+  const storage = getStorage();
+  const fileId = randomUUID().replaceAll("-", "");
+  const key = sourceKey(userId, projectId, fileId, ACCEPTED_VIDEO_TYPES[mimeType]);
+  const multipartId = await storage.createMultipartUpload(key, mimeType);
+
   const updated = await db.$transaction(async (tx) => {
     const { count } = await tx.project.updateMany({
       where: { id: projectId, userId, deletedAt: null, status: { in: UPLOADABLE } },
@@ -56,6 +76,8 @@ export async function startUpload(
         status: "UPLOADING",
         sourceObjectKey: key,
         sourceMimeType: mimeType,
+        sourceUploadId: multipartId,
+        sourceSizeBytes: BigInt(sizeBytes),
         errorCode: null,
         captionSample: Prisma.DbNull,
       },
@@ -66,23 +88,45 @@ export async function startUpload(
     await tx.captionTrack.deleteMany({ where: { projectId } });
     return true;
   });
-  if (!updated) return { ok: false, status: 409, error: "This project already has a video." };
+  if (!updated) {
+    await storage.abortMultipartUpload(key, multipartId).catch(() => {});
+    return { ok: false, status: 409, error: "This project already has a video." };
+  }
 
-  const storage = getStorage();
-  // A previous attempt's file was never accepted; it's garbage now.
+  // A previous attempt's file (or its unfinished parts) was never accepted; it's garbage now.
   if (project.sourceObjectKey && project.sourceObjectKey !== key) {
+    if (project.sourceUploadId) await storage.abortMultipartUpload(project.sourceObjectKey, project.sourceUploadId).catch(() => {});
     await storage.deleteObject(project.sourceObjectKey).catch(() => {});
   }
 
-  const uploadUrl = await storage.presignPut(key, mimeType, UPLOAD_URL_TTL_SECONDS);
-  return {
-    ok: true,
-    data: {
-      uploadUrl,
-      contentType: mimeType,
-      expiresAt: new Date(Date.now() + UPLOAD_URL_TTL_SECONDS * 1000).toISOString(),
-    },
-  };
+  return { ok: true, data: { ...uploadPartPlan(sizeBytes, preferredPartBytes()), contentType: mimeType } };
+}
+
+/** Signed PUT URLs for a batch of parts of the project's upload in progress. */
+export async function signUploadParts(
+  userId: string,
+  projectId: string,
+  partNumbers: number[],
+): Promise<UploadResult<UploadPartsResponse>> {
+  const project = await findOwned(userId, projectId);
+  if (!project) return NOT_FOUND;
+  const { sourceObjectKey: key, sourceUploadId: uploadId, sourceSizeBytes } = project;
+  if (project.status !== "UPLOADING" || !key || !uploadId || sourceSizeBytes === null) {
+    return { ok: false, status: 409, error: "Start the upload first." };
+  }
+  const { partCount } = uploadPartPlan(Number(sourceSizeBytes), preferredPartBytes());
+  if (partNumbers.some((partNumber) => partNumber > partCount)) {
+    return { ok: false, status: 409, error: "That part isn't part of this upload." };
+  }
+
+  const storage = getStorage();
+  const urls = await Promise.all(
+    partNumbers.map(async (partNumber) => ({
+      partNumber,
+      url: await storage.presignUploadPart(key, uploadId, partNumber, PART_URL_TTL_SECONDS),
+    })),
+  );
+  return { ok: true, data: { urls } };
 }
 
 /**
@@ -103,6 +147,27 @@ export async function completeUpload(
 
   const key = project.sourceObjectKey;
   const storage = getStorage();
+
+  // Assemble the parts. The ETags come from storage itself, never from the browser.
+  if (project.sourceUploadId) {
+    const declared = Number(project.sourceSizeBytes ?? 0);
+    const { partCount } = uploadPartPlan(declared, preferredPartBytes());
+    const parts = await storage.listParts(key, project.sourceUploadId).catch(() => null);
+    // No upload to list: a concurrent confirmation already assembled it (the object check below decides).
+    if (parts !== null) {
+      const complete =
+        parts.length === partCount &&
+        parts.every((part, index) => part.partNumber === index + 1) &&
+        parts.reduce((total, part) => total + part.sizeBytes, 0) === declared;
+      if (!complete) return { ok: false, status: 409, error: "Some parts of the file haven't arrived yet." };
+      await storage.completeMultipartUpload(key, project.sourceUploadId, parts);
+    }
+    await db.project.updateMany({
+      where: { id: projectId, userId, status: "UPLOADING", sourceObjectKey: key, sourceUploadId: project.sourceUploadId },
+      data: { sourceUploadId: null },
+    });
+  }
+
   const stored = await storage.headObject(key);
 
   const problem: ProjectErrorCode | null = !stored || stored.sizeBytes === 0

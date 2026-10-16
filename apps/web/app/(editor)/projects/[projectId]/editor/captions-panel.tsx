@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useEffect, useRef, useState } from "react";
+import { Fragment, memo, useEffect, useMemo, useRef, useState } from "react";
 import {
   activeBlockIndex,
   activeWordIndex,
@@ -11,8 +11,10 @@ import {
   isNoSpaceLanguage,
   NUDGE_STEP_MS,
   type CaptionBlock,
+  type CaptionTrack,
+  type TranscriptWord,
 } from "@fala/shared";
-import { useEditor } from "./editor-store";
+import { useEditor, useEditorStore } from "./editor-store";
 import { FindReplace } from "./find-replace";
 
 /**
@@ -22,21 +24,31 @@ import { FindReplace } from "./find-replace";
  */
 export function CaptionsPanel({ className = "" }: { className?: string }) {
   const track = useEditor((state) => state.track);
-  const timeMs = useEditor((state) => state.timeMs);
+  // A number, not the clock: the list re-renders when the active block changes, not on every video frame.
+  const active = useEditor((state) => activeBlockIndex(state.track.blocks, state.timeMs));
   const selectedId = useEditor((state) => state.selectedId);
+  const editingId = useEditor((state) => state.editingId);
   const findOpen = useEditor((state) => state.findOpen);
   const setFindOpen = useEditor((state) => state.setFindOpen);
   const [query, setQuery] = useState("");
-  const active = activeBlockIndex(track.blocks, timeMs);
   const activeRowRef = useRef<HTMLLIElement | null>(null);
 
+  const listRef = useRef<HTMLOListElement | null>(null);
   useEffect(() => {
-    activeRowRef.current?.scrollIntoView({ block: "nearest" });
+    // Follow playback, but only scroll when the active row has left the visible part of the list.
+    const row = activeRowRef.current;
+    const list = listRef.current;
+    if (!row || !list) return;
+    const rowBox = row.getBoundingClientRect();
+    const listBox = list.getBoundingClientRect();
+    if (rowBox.top < listBox.top || rowBox.bottom > listBox.bottom) row.scrollIntoView({ block: "nearest" });
   }, [active]);
 
   // Words matching the find query get a yellow underline in the list.
-  const found = findOpen ? findMatches(track, query) : null;
-  const matched = new Set(found?.kind === "matches" ? found.wordIndices : []);
+  const matched = useMemo(() => {
+    const found = findOpen ? findMatches(track, query) : null;
+    return new Set(found?.kind === "matches" ? found.wordIndices : []);
+  }, [findOpen, track, query]);
 
   return (
     <section className={`min-h-0 min-w-0 flex-col ${className}`} aria-label="Captions">
@@ -65,14 +77,16 @@ export function CaptionsPanel({ className = "" }: { className?: string }) {
 
       {findOpen && <FindReplace query={query} onQueryChange={setQuery} />}
 
-      <ol className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 pb-6">
+      <ol ref={listRef} className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto px-3 pb-6 [contain:content]">
         {track.blocks.map((block, index) => (
           <BlockRow
             key={block.id}
+            track={track}
             block={block}
-            index={index}
             isActive={index === active}
             isSelected={block.id === selectedId}
+            isEditing={block.id === editingId}
+            isLast={index === track.blocks.length - 1}
             matched={matched}
             rowRef={index === active ? activeRowRef : undefined}
           />
@@ -90,41 +104,58 @@ const smallButton =
 const nudgeButton =
   "grid size-6 place-items-center rounded-md border border-line-button font-mono text-[13px] text-text hover:bg-panel-1";
 
-function BlockRow({
-  block,
-  index,
-  isActive,
-  isSelected,
-  matched,
-  rowRef,
-}: {
+type BlockRowProps = {
+  track: CaptionTrack;
   block: CaptionBlock;
-  index: number;
   isActive: boolean;
   isSelected: boolean;
+  isEditing: boolean;
+  isLast: boolean;
   matched: Set<number>;
   rowRef?: React.Ref<HTMLLIElement>;
-}) {
-  const track = useEditor((state) => state.track);
-  const timeMs = useEditor((state) => (isActive ? state.timeMs : -1));
-  const editing = useEditor((state) => state.editingId === block.id);
-  const isLast = useEditor((state) => index === state.track.blocks.length - 1);
-  const seek = useEditor((state) => state.seek);
-  const select = useEditor((state) => state.select);
-  const startEditing = useEditor((state) => state.startEditing);
-  const split = useEditor((state) => state.split);
-  const merge = useEditor((state) => state.merge);
-  const nudge = useEditor((state) => state.nudge);
+};
 
+/**
+ * Re-render a row only when something it shows changed. An edit replaces the whole
+ * track, but most rows' blocks and words are the same objects as before.
+ */
+function sameRow(previous: BlockRowProps, next: BlockRowProps) {
+  if (
+    previous.block !== next.block ||
+    previous.isActive !== next.isActive ||
+    previous.isSelected !== next.isSelected ||
+    previous.isEditing !== next.isEditing ||
+    previous.isLast !== next.isLast ||
+    previous.matched !== next.matched ||
+    previous.rowRef !== next.rowRef ||
+    previous.track.language !== next.track.language
+  ) {
+    return false;
+  }
+  for (let index = next.block.wordStart; index <= next.block.wordEnd; index++) {
+    if (previous.track.words[index] !== next.track.words[index]) return false;
+  }
+  return true;
+}
+
+/**
+ * One block. Rows hold no store subscriptions of their own: with thousands of blocks,
+ * per-row subscriptions alone would cost more than a video frame. Only the active
+ * row follows the clock (for the karaoke), through <SpokenWords>.
+ */
+const BlockRow = memo(function BlockRow({ track, block, isActive, isSelected, isEditing, isLast, matched, rowRef }: BlockRowProps) {
+  const store = useEditorStore();
   const words = blockWords(track, block);
-  const spokenUpTo = isActive ? activeWordIndex(track.words, block, timeMs) : -1;
   const joiner = isNoSpaceLanguage(track.language) ? "" : " ";
   const flag = blockFlag(track, block);
+  const editor = () => store.getState();
 
   function choose() {
-    select(block.id);
-    seek(block.startMs);
+    editor().select(block.id);
+    editor().seek(block.startMs);
   }
+
+  const wordProps = { block, words, joiner, isSelected, matched };
 
   return (
     <li
@@ -133,7 +164,8 @@ function BlockRow({
       aria-current={isActive ? "true" : undefined}
       data-selected={isSelected || undefined}
       data-testid="caption-block"
-      className={`flex cursor-pointer flex-col gap-1.5 rounded-[10px] border px-3.5 pt-3 pb-3.5 transition-colors ${
+      // Off-screen rows skip layout and paint: long videos have thousands of blocks.
+      className={`flex cursor-pointer flex-col gap-1.5 rounded-[10px] border px-3.5 pt-3 pb-3.5 transition-colors [contain-intrinsic-size:auto_84px] [content-visibility:auto] ${
         isSelected ? "border-[rgba(236,230,218,.16)] bg-panel-2" : isActive ? "border-transparent bg-panel-1" : "border-transparent hover:bg-panel-1"
       }`}
     >
@@ -157,78 +189,38 @@ function BlockRow({
         )}
       </div>
 
-      {editing ? (
+      {isEditing ? (
         <EditText block={block} initial={words.map((word) => word.text).join(joiner)} />
+      ) : isActive ? (
+        <SpokenWords {...wordProps} />
       ) : (
-        // Inline text with real spaces, so it reads (and copies) as words; split handles sit inline between them.
-        <span dir="auto" className="text-[17px] leading-[1.45] tracking-[-0.005em]">
-          {words.map((word, wordIndex) => {
-            const globalIndex = block.wordStart + wordIndex;
-            return (
-              <Fragment key={wordIndex}>
-                {wordIndex > 0 && joiner}
-                {wordIndex > 0 && isSelected && (
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      split(block.id, globalIndex - 1);
-                    }}
-                    aria-label={`Split before “${word.text}”`}
-                    title="Split here"
-                    className="group mr-[0.28em] inline-grid h-[22px] w-3 cursor-col-resize place-items-center align-middle"
-                  >
-                    <span className="h-4 w-0.5 rounded-sm bg-[rgba(236,230,218,.25)] group-hover:bg-accent group-focus-visible:bg-accent" />
-                  </button>
-                )}
-                <span
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    select(block.id);
-                    seek(word.startMs);
-                  }}
-                  className={`rounded-[4px] ${matched.has(globalIndex) ? "underline decoration-[#ffd400] decoration-2 underline-offset-4" : ""} ${
-                    !isActive
-                      ? "text-[#cfc8bb] hover:bg-[rgba(236,230,218,.09)]"
-                      : wordIndex === spokenUpTo
-                        ? "-mx-[3px] bg-[rgba(255,90,31,.2)] px-[3px] text-white shadow-[inset_0_-2px_0_var(--color-accent)]"
-                        : wordIndex < spokenUpTo
-                          ? "text-text hover:bg-[rgba(236,230,218,.09)]"
-                          : "text-muted hover:bg-[rgba(236,230,218,.09)]"
-                  }`}
-                >
-                  {word.text}
-                </span>
-              </Fragment>
-            );
-          })}
-        </span>
+        <Words {...wordProps} spokenUpTo={null} />
       )}
 
-      {isSelected && !editing && (
+      {isSelected && !isEditing && (
         <div className="flex flex-wrap items-center gap-2 pt-1" onClick={(event) => event.stopPropagation()}>
-          <button type="button" className={smallButton} onClick={() => startEditing(block.id)}>
+          <button type="button" className={smallButton} onClick={() => editor().startEditing(block.id)}>
             Edit text
           </button>
-          <button type="button" className={smallButton} onClick={() => merge(block.id)} disabled={isLast}>
+          <button type="button" className={smallButton} onClick={() => editor().merge(block.id)} disabled={isLast}>
             Merge with next
           </button>
           <span className="ml-auto flex items-center gap-3 font-mono text-[11px] text-muted">
             <span className="flex items-center gap-1" role="group" aria-label="Block start">
               start
-              <button type="button" className={nudgeButton} aria-label="Start 0.1 s earlier" onClick={() => nudge(block.id, "start", -NUDGE_STEP_MS)}>
+              <button type="button" className={nudgeButton} aria-label="Start 0.1 s earlier" onClick={() => editor().nudge(block.id, "start", -NUDGE_STEP_MS)}>
                 −
               </button>
-              <button type="button" className={nudgeButton} aria-label="Start 0.1 s later" onClick={() => nudge(block.id, "start", NUDGE_STEP_MS)}>
+              <button type="button" className={nudgeButton} aria-label="Start 0.1 s later" onClick={() => editor().nudge(block.id, "start", NUDGE_STEP_MS)}>
                 +
               </button>
             </span>
             <span className="flex items-center gap-1" role="group" aria-label="Block end">
               end
-              <button type="button" className={nudgeButton} aria-label="End 0.1 s earlier" onClick={() => nudge(block.id, "end", -NUDGE_STEP_MS)}>
+              <button type="button" className={nudgeButton} aria-label="End 0.1 s earlier" onClick={() => editor().nudge(block.id, "end", -NUDGE_STEP_MS)}>
                 −
               </button>
-              <button type="button" className={nudgeButton} aria-label="End 0.1 s later" onClick={() => nudge(block.id, "end", NUDGE_STEP_MS)}>
+              <button type="button" className={nudgeButton} aria-label="End 0.1 s later" onClick={() => editor().nudge(block.id, "end", NUDGE_STEP_MS)}>
                 +
               </button>
             </span>
@@ -236,6 +228,69 @@ function BlockRow({
         </div>
       )}
     </li>
+  );
+}, sameRow);
+
+type WordsProps = {
+  block: CaptionBlock;
+  words: TranscriptWord[];
+  joiner: string;
+  isSelected: boolean;
+  matched: Set<number>;
+};
+
+/** The active row's words, following the clock: re-renders once per spoken word, not per frame. */
+function SpokenWords(props: WordsProps) {
+  const spokenUpTo = useEditor((state) => activeWordIndex(state.track.words, props.block, state.timeMs));
+  return <Words {...props} spokenUpTo={spokenUpTo} />;
+}
+
+/** Inline text with real spaces, so it reads (and copies) as words; split handles sit inline between them. */
+function Words({ block, words, joiner, isSelected, matched, spokenUpTo }: WordsProps & { spokenUpTo: number | null }) {
+  const store = useEditorStore();
+  return (
+    <span dir="auto" className="text-[17px] leading-[1.45] tracking-[-0.005em]">
+      {words.map((word, wordIndex) => {
+        const globalIndex = block.wordStart + wordIndex;
+        return (
+          <Fragment key={wordIndex}>
+            {wordIndex > 0 && joiner}
+            {wordIndex > 0 && isSelected && (
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  store.getState().split(block.id, globalIndex - 1);
+                }}
+                aria-label={`Split before “${word.text}”`}
+                title="Split here"
+                className="group mr-[0.28em] inline-grid h-[22px] w-3 cursor-col-resize place-items-center align-middle"
+              >
+                <span className="h-4 w-0.5 rounded-sm bg-[rgba(236,230,218,.25)] group-hover:bg-accent group-focus-visible:bg-accent" />
+              </button>
+            )}
+            <span
+              onClick={(event) => {
+                event.stopPropagation();
+                store.getState().select(block.id);
+                store.getState().seek(word.startMs);
+              }}
+              className={`rounded-[4px] ${matched.has(globalIndex) ? "underline decoration-[#ffd400] decoration-2 underline-offset-4" : ""} ${
+                spokenUpTo === null
+                  ? "text-[#cfc8bb] hover:bg-[rgba(236,230,218,.09)]"
+                  : wordIndex === spokenUpTo
+                    ? "-mx-[3px] bg-[rgba(255,90,31,.2)] px-[3px] text-white shadow-[inset_0_-2px_0_var(--color-accent)]"
+                    : wordIndex < spokenUpTo
+                      ? "text-text hover:bg-[rgba(236,230,218,.09)]"
+                      : "text-muted hover:bg-[rgba(236,230,218,.09)]"
+              }`}
+            >
+              {word.text}
+            </span>
+          </Fragment>
+        );
+      })}
+    </span>
   );
 }
 

@@ -98,6 +98,10 @@ model Project {
   name               String
   status             ProjectStatus @default(CREATED)
   sourceObjectKey    String?
+  /// Multipart upload in progress for `sourceObjectKey` (cleared once completed or aborted).
+  sourceUploadId     String?
+  /// Size the browser declared for that upload; the finished upload must match it.
+  sourceSizeBytes    BigInt?
   thumbnailObjectKey String?
   durationMs         Int?
   width              Int?

@@ -40,11 +40,11 @@ export const transcribeVideo: JobHandler<Payload> = {
       const sourcePath = path.join(dir, "source");
       const audioPath = path.join(dir, "audio.m4a");
       await storage.downloadToFile(payload.sourceObjectKey, sourcePath, signal);
-      await extractAudio(config.ffmpegPath, sourcePath, audioPath, signal);
+      await extractAudio(config.ffmpegPath, sourcePath, audioPath, signal, durationMs);
 
       let result;
       try {
-        result = await transcriber.transcribe({ audioPath, signal });
+        result = await transcriber.transcribe({ audioPath, durationMs, signal });
       } catch (error) {
         if (error instanceof TranscriptionError) {
           throw error.kind === "no-speech"

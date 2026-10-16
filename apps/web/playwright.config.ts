@@ -36,6 +36,8 @@ export default defineConfig({
         ...testDatabaseAndBucket,
         BETTER_AUTH_URL: baseURL,
         AUTH_RATE_LIMIT: "off",
+        // Uploads go in 5 MB parts (the S3 minimum), so a 12 MB test file exercises several parts.
+        UPLOAD_PART_SIZE_BYTES: String(5 * 1024 * 1024),
         // Keep the Google button deterministic (disabled) in tests.
         GOOGLE_CLIENT_ID: "",
         GOOGLE_CLIENT_SECRET: "",
