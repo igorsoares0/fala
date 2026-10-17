@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatBytes, mimeTypeForFile, presignRequestSchema, UPLOAD_LIMITS, uploadLimitsLabel, uploadPartPlan } from "./upload";
+import { formatBytes, mimeTypeForFile, presignRequestSchema, UPLOAD_LIMITS, uploadPartPlan } from "./upload";
 
 describe("mimeTypeForFile", () => {
   it("trusts a known extension over an empty or vague browser type", () => {
@@ -55,9 +55,5 @@ describe("uploadPartPlan", () => {
 
   it("never goes below the 5 MB S3 minimum, even when a test asks for smaller parts", () => {
     expect(uploadPartPlan(12 * MB, 1 * MB)).toEqual({ partSize: 5 * MB, partCount: 3 });
-  });
-
-  it("describes the limits for the drop zone", () => {
-    expect(uploadLimitsLabel()).toBe("up to 30 min · 4 GB");
   });
 });

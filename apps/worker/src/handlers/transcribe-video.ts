@@ -1,5 +1,5 @@
 import path from "node:path";
-import { db, type Prisma } from "@fala/db";
+import { confirmUsage, db, releaseUsage, transcriptionUsageKey, type Prisma } from "@fala/db";
 import {
   blockWords,
   DEFAULT_PRESET_KEY,
@@ -70,6 +70,7 @@ export const transcribeVideo: JobHandler<Payload> = {
           data: { status: "READY", errorCode: null, captionSample },
         });
         if (count !== 1) return;
+        await confirmUsage(tx, transcriptionUsageKey(payload.projectId, payload.sourceObjectKey));
 
         const transcript = {
           sourceObjectKey: payload.sourceObjectKey,
@@ -105,5 +106,7 @@ export const transcribeVideo: JobHandler<Payload> = {
     // A generic failure here is still a transcription failure: the video itself is fine and can be retried.
     const errorCode = code === "NO_SPEECH" ? "NO_SPEECH" : "TRANSCRIPTION_FAILED";
     await tx.project.updateMany({ where: stillWaitingFor(payload), data: { status: "FAILED", errorCode } });
+    // Nothing was transcribed: the reserved minutes go back (a retry reserves them again).
+    await releaseUsage(tx, { idempotencyKey: transcriptionUsageKey(payload.projectId, payload.sourceObjectKey) });
   },
 };

@@ -24,6 +24,8 @@ model User {
   sessions      Session[]
   accounts      Account[]
   projects      Project[]
+  subscription  Subscription?
+  usageEntries  UsageEntry[]
 
   @@map("user")
 }
@@ -262,4 +264,59 @@ model Export {
   @@index([projectId, createdAt])
   @@index([status])
   @@map("export")
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+/// A user's paid plan (spec FR-13). No row means the Free plan.
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// A key of PLANS in @fala/shared.
+  planKey              String
+  status               SubscriptionStatus @default(ACTIVE)
+  currentPeriodStart   DateTime
+  currentPeriodEnd     DateTime
+  paddleCustomerId     String?            @unique
+  paddleSubscriptionId String?            @unique
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@map("subscription")
+}
+
+enum UsageStatus {
+  RESERVED
+  CONFIRMED
+  RELEASED
+}
+
+enum UsageType {
+  TRANSCRIPTION
+}
+
+/// Usage ledger (spec FR-14): reserved before work that costs money, then confirmed or released.
+model UsageEntry {
+  id             String      @id @default(cuid())
+  userId         String
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId      String?
+  /// Billing period it counts against: "2026-10" (calendar month) or the subscription period's start.
+  periodKey      String
+  usageType      UsageType
+  seconds        Int
+  status         UsageStatus @default(RESERVED)
+  /// One entry per billable operation, e.g. "transcription:{projectId}:{uploadId}".
+  idempotencyKey String      @unique
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([userId, periodKey])
+  @@index([projectId])
+  @@map("usage_entry")
 }

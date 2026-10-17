@@ -32,3 +32,4 @@ export const db = new Proxy({} as PrismaClient, {
 });
 
 export { enqueueJob } from "./jobs";
+export * from "./usage";

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/dal";
+import { getUsage } from "@/lib/billing";
 import { listExports } from "@/lib/exports";
 import { getProject } from "@/lib/projects";
 import { getCaptionTrack } from "@/lib/transcription";
@@ -27,8 +28,10 @@ async function Editor({ params }: { params: PageProps<"/projects/[projectId]">["
   const project = await getProject(user.id, projectId);
   // Missing and foreign projects look identical, so ids from other accounts reveal nothing.
   if (!project) notFound();
-  const [captions, exports] =
-    project.status === "READY" ? await Promise.all([getCaptionTrack(user.id, project.id), listExports(user.id, project.id)]) : [null, null];
+  const [captions, exports, usage] =
+    project.status === "READY"
+      ? await Promise.all([getCaptionTrack(user.id, project.id), listExports(user.id, project.id), getUsage(user.id)])
+      : [null, null, null];
 
   if (captions && project.durationMs) {
     return (
@@ -43,6 +46,7 @@ async function Editor({ params }: { params: PageProps<"/projects/[projectId]">["
         height={project.height}
         posterSrc={thumbnailSrc(project)}
         exports={exports ?? []}
+        maxResolution={usage?.plan.maxResolution ?? 720}
       />
     );
   }

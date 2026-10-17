@@ -94,13 +94,13 @@ function ConfigStage({
   onCancel: () => void;
   onStarted: () => void;
 }) {
-  const { start } = useExports();
+  const { start, maxResolution } = useExports();
   const presetKey = useEditor((state) => state.presetKey);
   const styleConfig = useEditor((state) => state.styleConfig);
   const blocks = useEditor((state) => state.track.blocks.length);
   const durationMs = useEditor((state) => state.durationMs);
-  const options = resolutionOptions(width, height);
-  const [resolution, setResolution] = useState<ExportResolution>(options.findLast((option) => !option.disabled)?.value ?? 720);
+  const options = resolutionOptions(width, height, maxResolution);
+  const [resolution, setResolution] = useState<ExportResolution>(options.findLast((option) => option.disabled === null)?.value ?? 720);
   const [busy, setBusy] = useState<"saving" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -131,14 +131,16 @@ function ConfigStage({
               type="button"
               role="radio"
               aria-checked={selected}
-              disabled={option.disabled}
+              disabled={option.disabled !== null}
               onClick={() => setResolution(option.value)}
               className={`flex flex-col items-start gap-1 rounded-[12px] px-4 py-3.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
                 selected ? "border-[1.5px] border-text bg-panel-2" : "border-[1.5px] border-line-strong hover:bg-panel-2"
               }`}
             >
               <span className="text-[19px] font-bold tracking-[-0.02em]">{option.value}p</span>
-              <span className="text-[12.5px] text-muted">{option.disabled ? "Your video is smaller" : option.copy}</span>
+              <span className="text-[12.5px] text-muted">
+                {option.disabled === "plan" ? "Creator and Pro" : option.disabled === "smaller" ? "Your video is smaller" : option.copy}
+              </span>
               {option.size && <span className="font-mono text-[10.5px] text-muted tabular-nums">{option.size}</span>}
             </button>
           );
@@ -171,13 +173,16 @@ function ConfigStage({
   );
 }
 
-/** 720p and 1080p, each with the size it would really produce; an option that adds nothing over the smaller one is disabled. */
-function resolutionOptions(width: number | null, height: number | null) {
+/**
+ * 720p and 1080p, each with the size it would really produce. Disabled when the plan
+ * doesn't include it, or when it adds nothing over the smaller one (a small video).
+ */
+function resolutionOptions(width: number | null, height: number | null, maxResolution: ExportResolution) {
   let previous = "";
   return EXPORT_RESOLUTIONS.map((value) => {
     const size = width && height ? exportDimensions(width, height, value) : null;
     const label = size ? `${size.width}×${size.height}` : "";
-    const disabled = label !== "" && label === previous;
+    const disabled: "plan" | "smaller" | null = value > maxResolution ? "plan" : label !== "" && label === previous ? "smaller" : null;
     previous = label;
     return { value, copy: RESOLUTION_COPY[value], size: label, disabled };
   });

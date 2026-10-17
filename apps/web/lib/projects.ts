@@ -1,6 +1,6 @@
 import "server-only";
 import { z } from "zod";
-import { db, enqueueJob, type ExportStatus } from "@fala/db";
+import { db, enqueueJob, releaseUsage, type ExportStatus } from "@fala/db";
 import { parseProjectStyle } from "./style";
 
 /**
@@ -103,6 +103,8 @@ export async function deleteProject(userId: string, projectId: string) {
       where: { projectId, status: { in: ["PENDING", "RETRY_WAIT"] } },
       data: { status: "CANCELLED", completedAt: new Date() },
     });
+    // Minutes held for work that will never finish come back; spent minutes stay spent.
+    await releaseUsage(tx, { projectId });
     await enqueueJob(tx, "DELETE_PROJECT_ASSETS", projectId, { projectId, userId }, { maxAttempts: 5 });
     return true;
   });

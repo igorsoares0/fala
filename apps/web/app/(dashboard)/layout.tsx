@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { Wordmark } from "@/components/wordmark";
 import { AppNav } from "./app-nav";
+import { UsageMeter } from "./usage-meter";
 import { UserMenu } from "./user-menu";
 
 export default function AppLayout({ children }: LayoutProps<"/">) {
@@ -10,6 +11,9 @@ export default function AppLayout({ children }: LayoutProps<"/">) {
         <Wordmark />
         <AppNav />
         <div className="flex-1" />
+        <Suspense fallback={null}>
+          <UsageMeter />
+        </Suspense>
         <Suspense fallback={<span className="size-8 rounded-full bg-panel-2" />}>
           <UserMenu />
         </Suspense>

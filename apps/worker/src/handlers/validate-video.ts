@@ -1,6 +1,13 @@
 import path from "node:path";
-import { db, enqueueJob } from "@fala/db";
-import { projectErrorCodeSchema, thumbnailKey, uploadIdFromSourceKey, type JobPayload } from "@fala/shared";
+import { accountPeriod, db, enqueueJob, reserveTranscription } from "@fala/db";
+import {
+  projectErrorCodeSchema,
+  thumbnailKey,
+  UPLOAD_LIMITS,
+  uploadIdFromSourceKey,
+  usageSeconds,
+  type JobPayload,
+} from "@fala/shared";
 import { JobError } from "../errors";
 import { evaluateProbe } from "../media/evaluate-probe";
 import { probeFile } from "../media/probe";
@@ -19,8 +26,10 @@ const stillWaitingFor = (payload: Payload) => ({
 });
 
 /**
- * Checks the uploaded file with ffprobe, extracts a thumbnail, stores the metadata
- * and hands the project to transcription (spec FR-04). The original is never modified.
+ * Checks the uploaded file with ffprobe against the owner's plan, extracts a
+ * thumbnail, stores the metadata and hands the project to transcription (spec
+ * FR-04) — reserving its minutes in the same transaction, so the usage limit holds
+ * even with several uploads at once (FR-14). The original is never modified.
  */
 export const validateVideo: JobHandler<Payload> = {
   async run({ job, payload, signal, storage, config }) {
@@ -41,7 +50,11 @@ export const validateVideo: JobHandler<Payload> = {
 
       const sizeBytes = await storage.downloadToFile(payload.sourceObjectKey, sourcePath, signal);
       const probe = await probeFile(config.ffprobePath, sourcePath, signal);
-      const metadata = evaluateProbe(probe, sizeBytes);
+      const { plan } = await accountPeriod(db, project.userId);
+      const metadata = evaluateProbe(probe, sizeBytes, {
+        maxBytes: UPLOAD_LIMITS.maxBytes,
+        maxDurationMs: Math.min(plan.maxVideoMs, UPLOAD_LIMITS.maxDurationMs),
+      });
 
       await extractThumbnail(config.ffmpegPath, sourcePath, thumbnailPath, metadata.durationMs, signal);
       const thumbnailObjectKey = thumbnailKey(project.userId, payload.projectId, uploadId);
@@ -52,12 +65,22 @@ export const validateVideo: JobHandler<Payload> = {
           where: stillWaitingFor(payload),
           data: { status: "PROCESSING", errorCode: null, thumbnailObjectKey, ...metadata },
         });
-        if (count === 1) {
-          await enqueueJob(tx, "TRANSCRIBE_VIDEO", payload.projectId, {
-            projectId: payload.projectId,
-            sourceObjectKey: payload.sourceObjectKey,
-          });
+        if (count !== 1) return;
+        const reservation = await reserveTranscription(tx, {
+          userId: project.userId,
+          projectId: payload.projectId,
+          sourceObjectKey: payload.sourceObjectKey,
+          seconds: usageSeconds(metadata.durationMs),
+        });
+        if (!reservation.ok) {
+          // Out of minutes: the video stays valid (thumbnail, duration), but isn't transcribed.
+          await tx.project.update({ where: { id: payload.projectId }, data: { status: "FAILED", errorCode: "USAGE_LIMIT" } });
+          return;
         }
+        await enqueueJob(tx, "TRANSCRIBE_VIDEO", payload.projectId, {
+          projectId: payload.projectId,
+          sourceObjectKey: payload.sourceObjectKey,
+        });
       };
     });
   },

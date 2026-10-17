@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense, cache } from "react";
+import { getUsage } from "@/lib/billing";
 import { requireUser } from "@/lib/dal";
 import { formatProjectDate } from "@/lib/dates";
 import { listProjects } from "@/lib/projects";
@@ -41,11 +42,13 @@ async function ProjectCount() {
 }
 
 async function Projects() {
-  const projects = await getMyProjects();
+  const user = await requireUser();
+  const [projects, usage] = await Promise.all([getMyProjects(), getUsage(user.id)]);
   const now = new Date();
   return (
     <ProjectGrid
       projects={projects.map((project) => ({ ...project, dateLabel: formatProjectDate(project.createdAt, now) }))}
+      limits={{ maxVideoMs: usage.plan.maxVideoMs, remainingSeconds: usage.remainingSeconds }}
     />
   );
 }

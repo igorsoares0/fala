@@ -14,6 +14,7 @@ import { EditorToast } from "./toast";
 import { readDraft, useAutosave } from "./use-autosave";
 import { useEditorShortcuts } from "./use-editor-shortcuts";
 import { ExportsProvider } from "./use-exports";
+import type { ExportResolution } from "@fala/shared";
 import type { ExportView } from "@/lib/exports";
 
 type Props = EditorInit & {
@@ -22,6 +23,7 @@ type Props = EditorInit & {
   height: number | null;
   posterSrc: string;
   exports: ExportView[];
+  maxResolution: ExportResolution;
 };
 
 /**
@@ -29,10 +31,10 @@ type Props = EditorInit & {
  * ≥1100px three columns (captions · preview · style); 720–1099px captions + preview
  * with style in a drawer; <720px preview on top and Captions | Style tabs.
  */
-export function EditorShell({ name, width, height, posterSrc, exports, ...init }: Props) {
+export function EditorShell({ name, width, height, posterSrc, exports, maxResolution, ...init }: Props) {
   return (
     <EditorStoreProvider init={init}>
-      <ExportsProvider initial={exports}>
+      <ExportsProvider initial={exports} maxResolution={maxResolution}>
         <EditorHeader>
           <ProjectNameInput projectId={init.projectId} initialName={name} />
           <SaveIndicator />

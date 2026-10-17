@@ -31,10 +31,11 @@ export async function createTestUser() {
 
 /** A project in UPLOADED state whose source object is `fixture` (uploaded to the test bucket). */
 export async function createUploadedProject(userId: string, fixture: string, status: ProjectStatus = "UPLOADED") {
-  const project = await db.project.create({ data: { userId, name: fixture, status }, select: { id: true } });
+  const project = await db.project.create({ data: { userId, name: path.basename(fixture), status }, select: { id: true } });
   const extension = path.extname(fixture).slice(1);
   const key = sourceKey(userId, project.id, randomUUID().replaceAll("-", ""), extension);
-  await testStorage().uploadFile(key, path.join(FIXTURES, fixture), "application/octet-stream");
+  // A fixture name, or an absolute path to a file made by the test.
+  await testStorage().uploadFile(key, path.resolve(FIXTURES, fixture), "application/octet-stream");
   await db.project.update({ where: { id: project.id }, data: { sourceObjectKey: key } });
   const job = await enqueueJob(db, "VALIDATE_VIDEO", project.id, { projectId: project.id, sourceObjectKey: key });
   return { projectId: project.id, sourceObjectKey: key, jobId: job.id };

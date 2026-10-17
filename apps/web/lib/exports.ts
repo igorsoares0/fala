@@ -1,5 +1,5 @@
 import "server-only";
-import { db, enqueueJob, Prisma } from "@fala/db";
+import { accountPeriod, db, enqueueJob, lockAccount, Prisma } from "@fala/db";
 import {
   captionTrackSchema,
   exportErrorFor,
@@ -76,7 +76,7 @@ const ownedExport = (userId: string, exportId: string) => ({ id: exportId, proje
 
 export type CreateExportResult =
   | { ok: true; export: ExportView }
-  | { ok: false; status: 404 | 409; error: string; reason?: "not-ready" | "unsaved" };
+  | { ok: false; status: 403 | 404 | 409; error: string; reason?: "not-ready" | "unsaved" | "plan" | "busy" };
 
 /**
  * Freezes the project's current captions and style and queues the render.
@@ -115,6 +115,11 @@ export async function createExport(
   const active = await findActiveExport(projectId);
   if (active) return { ok: true, export: toView(active) };
 
+  const { plan } = await accountPeriod(db, userId);
+  if (resolution > plan.maxResolution) {
+    return { ok: false, status: 403, reason: "plan", error: `Your plan exports up to ${plan.maxResolution}p. Creator and Pro export in 1080p.` };
+  }
+
   const style = parseProjectStyle(project.style);
   const snapshot = exportSnapshotSchema.parse({
     sourceObjectKey,
@@ -129,6 +134,13 @@ export async function createExport(
 
   try {
     const created = await db.$transaction(async (tx) => {
+      // Renders at once, across all of the user's projects: checked under the account lock.
+      await lockAccount(tx, userId);
+      const rendering = await tx.export.count({
+        where: { status: { in: ["QUEUED", "RENDERING"] }, project: { userId, deletedAt: null } },
+      });
+      if (rendering >= plan.simultaneousExports) return null;
+
       const { _max } = await tx.export.aggregate({ where: { projectId }, _max: { version: true } });
       const row = await tx.export.create({
         data: {
@@ -142,6 +154,15 @@ export async function createExport(
       await enqueueJob(tx, "RENDER_EXPORT", projectId, { projectId, exportId: row.id }, { maxAttempts: RENDER_MAX_ATTEMPTS, exportId: row.id });
       return row;
     });
+    if (!created) {
+      const renders = plan.simultaneousExports === 1 ? "1 render" : `${plan.simultaneousExports} renders`;
+      return {
+        ok: false,
+        status: 409,
+        reason: "busy",
+        error: `Your plan runs ${renders} at a time. This one can start when another finishes.`,
+      };
+    }
     return { ok: true, export: toView(created) };
   } catch (error) {
     // Two clicks at once both took the same version number: the other one won.

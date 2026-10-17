@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { db } from "@fala/db";
 import { editBlockText, exportSnapshotSchema, type CaptionTrack } from "@fala/shared";
 import { saveCaptions } from "./captions";
@@ -16,6 +16,16 @@ const track: CaptionTrack = {
 
 beforeAll(async () => {
   await db.user.createMany({ data: [owner, intruder] });
+  // 1080p and parallel renders need a paid plan.
+  const now = Date.now();
+  await db.subscription.create({
+    data: { userId: owner.id, planKey: "pro", currentPeriodStart: new Date(now - 86_400_000), currentPeriodEnd: new Date(now + 30 * 86_400_000) },
+  });
+});
+
+// Each test starts with no render in flight (the plan limits how many run at once).
+beforeEach(async () => {
+  await db.export.updateMany({ where: { project: { userId: owner.id }, status: { in: ["QUEUED", "RENDERING"] } }, data: { status: "SUCCEEDED" } });
 });
 
 afterAll(async () => {
@@ -117,5 +127,32 @@ describe("retryExport and downloads", () => {
 
     const url = new URL((await exportDownloadUrl(owner.id, exportId))!);
     expect(url.searchParams.get("response-content-disposition")).toContain("cafe-sao-paulo_v1.mp4");
+  });
+});
+
+describe("plan limits on exports", () => {
+  it("keeps Free to 720p and to one render at a time across projects", async () => {
+    const free = { id: `test-exp-free-${randomUUID()}`, name: "Free", email: `exp-free-${randomUUID()}@test.local` };
+    await db.user.create({ data: free });
+    try {
+      const make = async () => {
+        const project = await db.project.create({
+          data: { userId: free.id, name: "Clip", status: "READY", durationMs: 1000, width: 1080, height: 1920, sourceObjectKey: "users/x/projects/y/source/z.mp4" },
+        });
+        await db.captionTrack.create({ data: { projectId: project.id, language: "en", words: track.words, blocks: track.blocks } });
+        return project.id;
+      };
+      const first = await make();
+      const second = await make();
+
+      expect(await createExport(free.id, first, { resolution: 1080, captionVersion: 1 })).toMatchObject({ ok: false, status: 403, reason: "plan" });
+      expect(await createExport(free.id, first, { resolution: 720, captionVersion: 1 })).toMatchObject({ ok: true });
+      expect(await createExport(free.id, second, { resolution: 720, captionVersion: 1 })).toMatchObject({ ok: false, status: 409, reason: "busy" });
+
+      await db.export.updateMany({ where: { projectId: first }, data: { status: "SUCCEEDED" } });
+      expect(await createExport(free.id, second, { resolution: 720, captionVersion: 1 })).toMatchObject({ ok: true });
+    } finally {
+      await db.user.delete({ where: { id: free.id } });
+    }
   });
 });

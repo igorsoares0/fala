@@ -13,6 +13,7 @@ describe("project errors", () => {
   it("states the limits in the copy", () => {
     expect(PROJECT_ERRORS.FILE_TOO_LARGE.body).toContain("4 GB");
     expect(PROJECT_ERRORS.VIDEO_TOO_LONG.body).toContain("30 minutes");
+    expect(PROJECT_ERRORS.USAGE_LIMIT.body).toContain("Nothing was deducted");
   });
 
   it("falls back to the generic server error for unknown codes", () => {

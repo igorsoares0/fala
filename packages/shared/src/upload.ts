@@ -13,11 +13,6 @@ export const UPLOAD_LIMITS = {
   maxDurationMs: 30 * 60 * 1000,
 } as const;
 
-/** "up to 30 min · 4 GB" */
-export function uploadLimitsLabel(): string {
-  return `up to ${UPLOAD_LIMITS.maxDurationMs / 60_000} min · ${formatBytes(UPLOAD_LIMITS.maxBytes)}`;
-}
-
 /** Accepted MIME types and the extension used for the stored object. */
 export const ACCEPTED_VIDEO_TYPES = {
   "video/mp4": "mp4",

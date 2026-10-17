@@ -19,6 +19,8 @@ type ExportsContext = {
   exports: ExportView[];
   /** The newest export, whatever its state. */
   latest: ExportView | null;
+  /** Highest resolution the user's plan exports. */
+  maxResolution: ExportResolution;
   dialogOpen: boolean;
   setDialogOpen: (open: boolean) => void;
   start: (resolution: ExportResolution) => Promise<StartResult>;
@@ -27,7 +29,15 @@ type ExportsContext = {
 
 const Context = createContext<ExportsContext | null>(null);
 
-export function ExportsProvider({ initial, children }: { initial: ExportView[]; children: React.ReactNode }) {
+export function ExportsProvider({
+  initial,
+  maxResolution,
+  children,
+}: {
+  initial: ExportView[];
+  maxResolution: ExportResolution;
+  children: React.ReactNode;
+}) {
   const store = useEditorStore();
   const [exports, setExports] = useState(initial);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -90,8 +100,8 @@ export function ExportsProvider({ initial, children }: { initial: ExportView[]; 
   );
 
   const value = useMemo(
-    () => ({ exports, latest: exports[0] ?? null, dialogOpen, setDialogOpen, start, retry }),
-    [exports, dialogOpen, start, retry],
+    () => ({ exports, latest: exports[0] ?? null, maxResolution, dialogOpen, setDialogOpen, start, retry }),
+    [exports, maxResolution, dialogOpen, start, retry],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

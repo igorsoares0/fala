@@ -1,6 +1,9 @@
-import { readdir } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { mkdtemp, readdir, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { db, enqueueJob } from "@fala/db";
+import { accountPeriod, db, enqueueJob } from "@fala/db";
 import { projectPrefix } from "@fala/shared";
 import { createStorage } from "@fala/storage";
 import { createRunner } from "./runner";
@@ -17,6 +20,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await db.job.deleteMany({});
+  await db.usageEntry.deleteMany({ where: { userId } });
 });
 
 afterAll(async () => {
@@ -32,6 +36,44 @@ async function runJob(expectedJobId: string) {
 }
 
 const project = (id: string) => db.project.findUniqueOrThrow({ where: { id } });
+
+describe("VALIDATE_VIDEO and the plan", () => {
+  it("reserves the video's minutes as it queues transcription", async () => {
+    const { projectId, jobId } = await createUploadedProject(userId, "vertical-2s.mp4");
+    await runJob(jobId);
+    expect(await db.usageEntry.findMany({ where: { projectId } })).toMatchObject([{ status: "RESERVED", usageType: "TRANSCRIPTION", seconds: 2 }]);
+  });
+
+  it("fails with USAGE_LIMIT, without transcribing, when the minutes are gone", async () => {
+    const { periodKey } = await accountPeriod(db, userId);
+    await db.usageEntry.create({
+      data: { userId, periodKey, usageType: "TRANSCRIPTION", seconds: 600, status: "CONFIRMED", idempotencyKey: `test:${projectPrefix(userId, "full")}` },
+    });
+    const { projectId, jobId } = await createUploadedProject(userId, "vertical-2s.mp4");
+    expect(await runJob(jobId)).toMatchObject({ status: "SUCCEEDED" });
+    expect(await project(projectId)).toMatchObject({ status: "FAILED", errorCode: "USAGE_LIMIT" });
+    expect(await db.job.count({ where: { projectId, type: "TRANSCRIBE_VIDEO" } })).toBe(0);
+  });
+
+  it("refuses a video longer than the plan allows (Free: 3 minutes)", { timeout: 60_000 }, async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "fala-long-"));
+    try {
+      const file = path.join(dir, "long.mp4");
+      execFileSync(config.ffmpegPath, [
+        "-v", "error",
+        "-f", "lavfi", "-i", "color=c=gray:s=160x90:r=5:d=190",
+        "-f", "lavfi", "-i", "sine=duration=190",
+        "-c:v", "libx264", "-preset", "ultrafast", "-c:a", "aac", "-shortest", "-y", file,
+      ]);
+      const { projectId, jobId } = await createUploadedProject(userId, file);
+      expect(await runJob(jobId)).toMatchObject({ status: "FAILED", lastErrorCode: "VIDEO_TOO_LONG" });
+      expect(await project(projectId)).toMatchObject({ status: "FAILED", errorCode: "VIDEO_TOO_LONG" });
+      expect(await db.usageEntry.count({ where: { projectId } })).toBe(0);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+});
 
 describe("VALIDATE_VIDEO", () => {
   it("stores a valid vertical video's metadata and thumbnail, then queues transcription", async () => {

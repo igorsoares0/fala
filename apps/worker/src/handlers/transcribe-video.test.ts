@@ -2,7 +2,7 @@ import { mkdtemp, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { db } from "@fala/db";
+import { db, transcriptionUsageKey } from "@fala/db";
 import { blockText, captionTrackSchema } from "@fala/shared";
 import { extractAudio } from "../media/audio";
 import { probeFile } from "../media/probe";
@@ -47,6 +47,29 @@ describe("extractAudio", () => {
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
+  });
+});
+
+/** The minutes validation reserved for this transcription. */
+async function reserved(projectId: string, sourceObjectKey: string) {
+  const idempotencyKey = transcriptionUsageKey(projectId, sourceObjectKey);
+  await db.usageEntry.create({ data: { userId, projectId, periodKey: "test", usageType: "TRANSCRIPTION", seconds: 2, idempotencyKey } });
+  return () => db.usageEntry.findUniqueOrThrow({ where: { idempotencyKey } });
+}
+
+describe("TRANSCRIBE_VIDEO usage", () => {
+  it("confirms the reserved minutes when captions are ready", async () => {
+    const { projectId, sourceObjectKey } = await createProjectAwaitingTranscription(userId);
+    const entry = await reserved(projectId, sourceObjectKey);
+    await run();
+    expect(await entry()).toMatchObject({ status: "CONFIRMED" });
+  });
+
+  it("gives the minutes back when there was nothing to transcribe", async () => {
+    const { projectId, sourceObjectKey } = await createProjectAwaitingTranscription(userId);
+    const entry = await reserved(projectId, sourceObjectKey);
+    await run("silence");
+    expect(await entry()).toMatchObject({ status: "RELEASED" });
   });
 });
 

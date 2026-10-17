@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { StatusPoller } from "@/components/status-poller";
-import { checkVideoFile } from "@/lib/check-video-file";
+import { checkVideoFile, type PlanUploadLimits } from "@/lib/check-video-file";
 import { createProjectAction } from "@/lib/project-actions";
 import type { ProjectSummary } from "@/lib/projects";
 import { needsPolling } from "@/lib/project-view";
@@ -14,7 +14,7 @@ import { ProjectCard } from "./project-card";
 /** Date labels are computed on the server so server and client render identical text. */
 export type ProjectCardData = ProjectSummary & { dateLabel: string };
 
-export function ProjectGrid({ projects }: { projects: ProjectCardData[] }) {
+export function ProjectGrid({ projects, limits }: { projects: ProjectCardData[]; limits: PlanUploadLimits }) {
   const router = useRouter();
   const uploads = useLocalUploads();
   const [creating, startCreating] = useTransition();
@@ -23,7 +23,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCardData[] }) {
   function onFile(file: File) {
     setError(null);
     startCreating(async () => {
-      const check = await checkVideoFile(file);
+      const check = await checkVideoFile(file, limits);
       if (!check.ok) return setError(check.error);
 
       const result = await createProjectAction(file.name);
@@ -42,7 +42,7 @@ export function ProjectGrid({ projects }: { projects: ProjectCardData[] }) {
         </p>
       )}
       <div className="grid grid-cols-[repeat(auto-fill,minmax(190px,1fr))] gap-x-5 gap-y-7">
-        <DropZoneTile onFile={onFile} busy={creating} />
+        <DropZoneTile onFile={onFile} busy={creating} maxVideoMs={limits.maxVideoMs} />
         {projects.map((project) => (
           <ProjectCard key={project.id} project={project} />
         ))}

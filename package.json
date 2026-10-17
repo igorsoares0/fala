@@ -17,7 +17,8 @@
     "db:generate": "npm run generate -w @fala/db",
     "db:migrate": "npm run migrate -w @fala/db",
     "dev:worker": "npm run dev -w @fala/worker",
-    "eval:transcription": "npm run eval -w @fala/worker"
+    "eval:transcription": "npm run eval -w @fala/worker",
+    "plan:set": "npm run plan:set -w @fala/web --"
   },
   "devDependencies": {
     "@types/node": "^24",

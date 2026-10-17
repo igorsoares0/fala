@@ -1,6 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
-import { db, enqueueJob, Prisma, type ProjectStatus } from "@fala/db";
+import { db, enqueueJob, Prisma, usageSummary, type ProjectStatus } from "@fala/db";
 import {
   ACCEPTED_VIDEO_TYPES,
   sourceKey,
@@ -33,6 +33,8 @@ const UPLOADABLE: ProjectStatus[] = ["CREATED", "UPLOADING", "FAILED"];
 
 const NOT_FOUND = { ok: false, status: 404, error: "This project doesn't exist anymore." } as const;
 
+export const OUT_OF_MINUTES = "You've used all your minutes for this period. Switch plans or wait for them to renew.";
+
 function findOwned(userId: string, projectId: string) {
   return db.project.findFirst({
     where: { id: projectId, userId, deletedAt: null },
@@ -62,6 +64,10 @@ export async function startUpload(
   if (!project) return NOT_FOUND;
   if (!UPLOADABLE.includes(project.status)) {
     return { ok: false, status: 409, error: "This project already has a video." };
+  }
+  // Early refusal only: the worker checks the real duration against the minutes left.
+  if ((await usageSummary(db, userId)).remainingSeconds <= 0) {
+    return { ok: false, status: 409, error: OUT_OF_MINUTES };
   }
 
   const storage = getStorage();

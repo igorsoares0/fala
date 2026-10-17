@@ -8,7 +8,8 @@
     "start": "dotenv -e ../../.env -- next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test:e2e": "dotenv -e ../../.env -- playwright test"
+    "test:e2e": "dotenv -e ../../.env -- playwright test",
+    "plan:set": "dotenv -e ../../.env -- tsx scripts/set-plan.ts"
   },
   "dependencies": {
     "@fala/db": "*",
