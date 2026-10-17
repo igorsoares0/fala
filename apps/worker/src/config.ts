@@ -16,6 +16,10 @@ const envSchema = z.object({
   TRANSCRIPTION_PROVIDER: z.preprocess(emptyAsUndefined, z.enum(["assemblyai", "fake"]).default("assemblyai")),
   ASSEMBLYAI_API_KEY: z.preprocess(emptyAsUndefined, z.string().optional()),
   ASSEMBLYAI_BASE_URL: z.preprocess(emptyAsUndefined, z.url().optional()),
+  EMAIL_PROVIDER: z.preprocess(emptyAsUndefined, z.enum(["resend", "log"]).optional()),
+  RESEND_API_KEY: z.preprocess(emptyAsUndefined, z.string().optional()),
+  EMAIL_FROM: z.preprocess(emptyAsUndefined, z.string().default("Fala <onboarding@resend.dev>")),
+  APP_URL: z.preprocess(emptyAsUndefined, z.url().default("http://localhost:3000")),
   NODE_ENV: z.string().optional(),
 });
 
@@ -31,6 +35,9 @@ export type WorkerConfig = {
   transcription:
     | { provider: "assemblyai"; apiKey: string; baseUrl?: string }
     | { provider: "fake" };
+  email: { provider: "resend"; apiKey: string; from: string } | { provider: "log"; from: string };
+  /** Base of links in emails (the web app). */
+  appUrl: string;
   /** A RUNNING job whose lease lapses becomes claimable again; renewed every leaseMs / 3. */
   leaseMs: number;
   pollIntervalMs: number;
@@ -42,6 +49,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): WorkerConfig {
   const parsed = envSchema.parse(env);
   return {
     transcription: transcriptionConfig(parsed),
+    email: emailConfig(parsed),
+    appUrl: parsed.APP_URL.replace(/\/$/, ""),
     workerId: parsed.WORKER_ID,
     concurrency: parsed.WORKER_CONCURRENCY,
     tempDir: parsed.TEMP_DIR,
@@ -53,6 +62,17 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): WorkerConfig {
     pollIntervalMs: 1_000,
     shutdownGraceMs: 25_000,
   };
+}
+
+function emailConfig(env: z.infer<typeof envSchema>): WorkerConfig["email"] {
+  const provider = env.EMAIL_PROVIDER ?? (env.RESEND_API_KEY ? "resend" : "log");
+  if (provider === "log") {
+    // Printing emails is for development only: in production they must really go out.
+    if (env.NODE_ENV === "production") throw new Error("Set RESEND_API_KEY (emails can't be logged in production).");
+    return { provider: "log", from: env.EMAIL_FROM };
+  }
+  if (!env.RESEND_API_KEY) throw new Error("RESEND_API_KEY is not set.");
+  return { provider: "resend", apiKey: env.RESEND_API_KEY, from: env.EMAIL_FROM };
 }
 
 function transcriptionConfig(env: z.infer<typeof envSchema>): WorkerConfig["transcription"] {

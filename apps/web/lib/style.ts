@@ -1,4 +1,5 @@
 import "server-only";
+import { ACTIVE_NOW } from "./activity";
 import { db, type Prisma } from "@fala/db";
 import { DEFAULT_PROJECT_STYLE, projectStyleInputSchema, type ProjectStyleInput } from "@fala/shared";
 
@@ -21,6 +22,7 @@ export async function saveProjectStyle(userId: string, projectId: string, input:
   if (owned !== 1) return { ok: false, error: "This project doesn't exist anymore." };
 
   const configuration = input.style as unknown as Prisma.InputJsonValue;
+  await db.project.update({ where: { id: projectId }, data: ACTIVE_NOW() });
   await db.projectStyle.upsert({
     where: { projectId },
     create: { projectId, presetKey: input.presetKey, configuration },

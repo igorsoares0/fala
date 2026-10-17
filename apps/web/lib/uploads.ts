@@ -45,6 +45,7 @@ function findOwned(userId: string, projectId: string) {
       sourceUploadId: true,
       sourceSizeBytes: true,
       thumbnailObjectKey: true,
+      sourceDeletedAt: true,
     },
   });
 }
@@ -213,7 +214,7 @@ export async function getThumbnailUrl(userId: string, projectId: string): Promis
 export async function getSourceUrl(userId: string, projectId: string): Promise<string | null> {
   const project = await findOwned(userId, projectId);
   // Only a validated video (it has a thumbnail) is streamed, never one mid-upload.
-  if (!project?.sourceObjectKey || !project.thumbnailObjectKey) return null;
+  if (!project?.sourceObjectKey || !project.thumbnailObjectKey || project.sourceDeletedAt) return null;
   if (project.status === "CREATED" || project.status === "UPLOADING") return null;
   return getStorage().presignGet(project.sourceObjectKey, SOURCE_URL_TTL_SECONDS);
 }

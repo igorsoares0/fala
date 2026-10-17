@@ -1,5 +1,6 @@
 import "server-only";
-import { db, Prisma, type SubscriptionStatus } from "@fala/db";
+import { db, enqueueEmail, Prisma, type SubscriptionStatus } from "@fala/db";
+import { planFromKey } from "@fala/shared";
 import { PLAN_RANK, priceToPlan, type SubscriptionState } from "./paddle";
 
 /**
@@ -26,7 +27,8 @@ export async function syncSubscription(state: SubscriptionState, tx: Prisma.Tran
   const bySubscription = await tx.subscription.findUnique({ where: { paddleSubscriptionId: state.subscriptionId } });
   const userId = bySubscription?.userId ?? state.userId;
   if (!userId) return "unknown-user";
-  if (!(await tx.user.findUnique({ where: { id: userId }, select: { id: true } }))) return "unknown-user";
+  const owner = await tx.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+  if (!owner) return "unknown-user";
 
   const existing = bySubscription ?? (await tx.subscription.findUnique({ where: { userId } }));
   const updatedAt = new Date(state.updatedAt);
@@ -63,7 +65,37 @@ export async function syncSubscription(state: SubscriptionState, tx: Prisma.Tran
     paddleUpdatedAt: updatedAt,
   };
   await tx.subscription.upsert({ where: { userId }, create: { userId, ...data }, update: data });
+  await notifyChange(tx, owner, existing, data);
   return "applied";
+}
+
+type Row = { planKey: string; status: SubscriptionStatus; cancelAt: Date | null; paddleSubscriptionId: string | null };
+const day = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+
+/** Emails for what changed (spec FR-15), one per occurrence even when Paddle repeats itself. */
+async function notifyChange(
+  tx: Prisma.TransactionClient | typeof db,
+  owner: { email: string; name: string },
+  before: Row | null,
+  after: Row & { paddleSubscriptionId: string; currentPeriodStart: Date },
+) {
+  const plan = planFromKey(after.planKey);
+  const send = (template: Parameters<typeof enqueueEmail>[1]["template"], dedupeKey: string, data: Record<string, string | number> = {}) =>
+    enqueueEmail(tx, { template, to: owner.email, data: { name: owner.name, plan: plan.name, minutes: plan.monthlyMinutes, maxMinutes: plan.maxVideoMs / 60_000, ...data }, dedupeKey });
+  const sub = after.paddleSubscriptionId;
+
+  const isNew = !before || before.paddleSubscriptionId !== sub || before.status === "CANCELED";
+  if (isNew && after.status !== "CANCELED") return send("subscription-started", `subscription-started:${sub}`);
+  if (!before) return;
+  if (after.status === "PAST_DUE" && before.status !== "PAST_DUE") {
+    await send("payment-failed", `payment-failed:${sub}:${after.currentPeriodStart.toISOString()}`);
+  }
+  if (after.cancelAt && !before.cancelAt) {
+    await send("subscription-canceled", `subscription-canceled:${sub}:${after.cancelAt.toISOString()}`, { endsOn: day.format(after.cancelAt) });
+  }
+  if (after.planKey !== before.planKey && after.status !== "CANCELED") {
+    await send("subscription-changed", `subscription-changed:${sub}:${after.planKey}:${after.currentPeriodStart.toISOString()}`);
+  }
 }
 
 export type PaddleWebhookEvent = { eventId: string; eventType: string; data: unknown };

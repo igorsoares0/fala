@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/dal";
 import { getUsage } from "@/lib/billing";
-import { listExports } from "@/lib/exports";
-import { getProject } from "@/lib/projects";
+import { listExports, SOURCE_REMOVED } from "@/lib/exports";
+import { getProject, touchProject } from "@/lib/projects";
 import { getCaptionTrack } from "@/lib/transcription";
 import { SaveIndicator } from "@/components/save-indicator";
 import { thumbnailSrc } from "@/lib/thumbnail";
@@ -30,7 +30,7 @@ async function Editor({ params }: { params: PageProps<"/projects/[projectId]">["
   if (!project) notFound();
   const [captions, exports, usage] =
     project.status === "READY"
-      ? await Promise.all([getCaptionTrack(user.id, project.id), listExports(user.id, project.id), getUsage(user.id)])
+      ? await Promise.all([getCaptionTrack(user.id, project.id), listExports(user.id, project.id), getUsage(user.id), touchProject(user.id, project.id)])
       : [null, null, null];
 
   if (captions && project.durationMs) {
@@ -47,6 +47,7 @@ async function Editor({ params }: { params: PageProps<"/projects/[projectId]">["
         posterSrc={thumbnailSrc(project)}
         exports={exports ?? []}
         maxResolution={usage?.plan.maxResolution ?? 720}
+        sourceRemovedMessage={project.sourceDeletedAt ? SOURCE_REMOVED : null}
       />
     );
   }

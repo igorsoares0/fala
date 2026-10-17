@@ -9,7 +9,7 @@ export const exportResolutionSchema = z.union([z.literal(720), z.literal(1080)])
 
 export type ExportResolution = z.infer<typeof exportResolutionSchema>;
 
-export const EXPORT_STATUSES = ["QUEUED", "RENDERING", "SUCCEEDED", "FAILED"] as const;
+export const EXPORT_STATUSES = ["QUEUED", "RENDERING", "SUCCEEDED", "FAILED", "EXPIRED"] as const;
 
 export type ExportStatus = (typeof EXPORT_STATUSES)[number];
 

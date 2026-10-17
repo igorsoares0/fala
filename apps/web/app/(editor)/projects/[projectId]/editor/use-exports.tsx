@@ -21,6 +21,8 @@ type ExportsContext = {
   latest: ExportView | null;
   /** Highest resolution the user's plan exports. */
   maxResolution: ExportResolution;
+  /** Why exporting is impossible for this project (its original was removed), or null. */
+  blocked: string | null;
   dialogOpen: boolean;
   setDialogOpen: (open: boolean) => void;
   start: (resolution: ExportResolution) => Promise<StartResult>;
@@ -32,10 +34,12 @@ const Context = createContext<ExportsContext | null>(null);
 export function ExportsProvider({
   initial,
   maxResolution,
+  blocked,
   children,
 }: {
   initial: ExportView[];
   maxResolution: ExportResolution;
+  blocked: string | null;
   children: React.ReactNode;
 }) {
   const store = useEditorStore();
@@ -100,8 +104,8 @@ export function ExportsProvider({
   );
 
   const value = useMemo(
-    () => ({ exports, latest: exports[0] ?? null, maxResolution, dialogOpen, setDialogOpen, start, retry }),
-    [exports, maxResolution, dialogOpen, start, retry],
+    () => ({ exports, latest: exports[0] ?? null, maxResolution, blocked, dialogOpen, setDialogOpen, start, retry }),
+    [exports, maxResolution, blocked, dialogOpen, start, retry],
   );
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }

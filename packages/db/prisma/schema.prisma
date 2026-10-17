@@ -19,6 +19,8 @@ model User {
   email         String    @unique
   emailVerified Boolean   @default(false)
   image         String?
+  /// "Email me when an export finishes" (Account → Preferences).
+  emailOnExport Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   sessions      Session[]
@@ -115,6 +117,12 @@ model Project {
   errorCode          String?
   /// First caption block's words, for the dashboard card's caption sample.
   captionSample      Json?
+  /// Last time the user worked on it (editor opened, edits saved, export started): drives source retention.
+  lastActiveAt       DateTime      @default(now())
+  /// When the "original will be removed" warning was sent.
+  sourceExpiryWarnedAt DateTime?
+  /// The original video was removed by the retention policy; captions stay, export needs a new upload.
+  sourceDeletedAt    DateTime?
   jobs               Job[]
   transcript         Transcript?
   captionTrack       CaptionTrack?
@@ -134,6 +142,9 @@ enum JobType {
   TRANSCRIBE_VIDEO
   RENDER_EXPORT
   DELETE_PROJECT_ASSETS
+  SEND_EMAIL
+  RETENTION_SWEEP
+  DELETE_ACCOUNT_ASSETS
 }
 
 enum JobStatus {
@@ -149,8 +160,11 @@ enum JobStatus {
 /// and hold a lease; an expired lease makes a RUNNING job claimable again.
 model Job {
   id               String    @id @default(cuid())
-  projectId        String
-  project          Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// Null for account-level work (emails, retention, account deletion).
+  projectId        String?
+  project          Project?  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  /// At most one job per key (e.g. one email per occurrence, one retention sweep per hour).
+  dedupeKey        String?   @unique
   /// Set for RENDER_EXPORT jobs.
   exportId         String?
   export           Export?   @relation(fields: [exportId], references: [id], onDelete: Cascade)
@@ -232,6 +246,8 @@ enum ExportStatus {
   RENDERING
   SUCCEEDED
   FAILED
+  /// Removed by the retention policy; render again for a new file.
+  EXPIRED
 }
 
 /// One rendered MP4 (spec FR-11, FR-12). Never overwritten: a new render is a new version.

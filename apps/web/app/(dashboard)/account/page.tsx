@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { db } from "@fala/db";
 import { requireUser } from "@/lib/dal";
 import { initials } from "@/lib/initials";
 import { outlineButton } from "@/components/ui";
 import { SignOutButton } from "../sign-out-button";
+import { DeleteAccount } from "./delete-account";
+import { Preferences } from "./preferences";
 import { ProfileForm } from "./profile-form";
 
 export const metadata: Metadata = { title: "Account" };
@@ -28,7 +31,14 @@ export default function AccountPage() {
 
 async function Profile() {
   const user = await requireUser();
+  const [accounts, settings] = await Promise.all([
+    db.account.findMany({ where: { userId: user.id }, select: { providerId: true } }),
+    db.user.findUniqueOrThrow({ where: { id: user.id }, select: { emailOnExport: true } }),
+  ]);
+  const google = accounts.some((account) => account.providerId === "google");
+  const hasPassword = accounts.some((account) => account.providerId === "credential");
   return (
+    <>
     <section className="flex flex-col gap-5 border-b border-line pb-9">
       <span className="text-[22px] font-bold tracking-[-0.03em]">Profile</span>
       <div className="flex items-center gap-4">
@@ -37,10 +47,13 @@ async function Profile() {
         </span>
         <div className="flex min-w-0 flex-col gap-1">
           <span className="text-[17px] font-bold tracking-[-0.01em]">{user.name}</span>
-          <span className="truncate font-mono text-[11.5px] text-muted">{user.email}</span>
+          <span className="truncate font-mono text-[11.5px] text-muted">{google ? "connected with Google" : user.email}</span>
         </div>
       </div>
       <ProfileForm initialName={user.name} email={user.email} />
     </section>
+    <Preferences email={user.email} hasPassword={hasPassword} emailOnExport={settings.emailOnExport} />
+    <DeleteAccount email={user.email} />
+    </>
   );
 }

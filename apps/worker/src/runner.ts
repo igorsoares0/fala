@@ -82,7 +82,7 @@ export function createRunner({
     handler: JobHandler<unknown>,
     payload: unknown,
     cause: unknown,
-    fields: Record<string, string | number>,
+    fields: Record<string, string | number | null>,
   ) {
     try {
       if (cause instanceof LeaseLostError) {

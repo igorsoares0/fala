@@ -38,7 +38,8 @@ export function ExportDialog({ width, height }: { width: number | null; height: 
 function OpenExportDialog({ width, height }: { width: number | null; height: number | null }) {
   const { latest, setDialogOpen } = useExports();
   // "latest" shows the newest export's state; "config" is the form for a new one.
-  const [stage, setStage] = useState<Stage>(latest ? "latest" : "config");
+  // An expired newest version has nothing to show: start from the form.
+  const [stage, setStage] = useState<Stage>(latest && latest.status !== "EXPIRED" ? "latest" : "config");
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
@@ -57,7 +58,7 @@ function OpenExportDialog({ width, height }: { width: number | null; height: num
   }, [setDialogOpen]);
 
   const close = () => setDialogOpen(false);
-  const showLatest = stage === "latest" && latest !== null;
+  const showLatest = stage === "latest" && latest !== null && latest.status !== "EXPIRED";
 
   return (
     <div className="fixed inset-0 z-30 grid place-items-center overflow-y-auto bg-[rgba(8,7,6,.62)] p-4 backdrop-blur-[6px]" onClick={close}>
@@ -278,7 +279,7 @@ function DoneStage({ item, onNewVersion }: { item: ExportView; onNewVersion: () 
 
 function PreviousVersions({ exclude }: { exclude: string | null }) {
   const { exports } = useExports();
-  const done = exports.filter((item) => item.status === "SUCCEEDED" && item.id !== exclude);
+  const done = exports.filter((item) => (item.status === "SUCCEEDED" || item.status === "EXPIRED") && item.id !== exclude);
   if (done.length === 0) return null;
   return (
     <section aria-label="Previous versions" className="flex flex-col gap-2.5 border-t border-line pt-4">
@@ -292,9 +293,16 @@ function PreviousVersions({ exclude }: { exclude: string | null }) {
               {item.fileSizeBytes ? ` · ${formatBytes(item.fileSizeBytes)}` : ""}
               {item.completedAt ? ` · ${formatExportDate(new Date(item.completedAt))}` : ""}
             </span>
-            <a href={downloadHref(item)} download={item.fileName} className="font-semibold underline underline-offset-4 hover:text-white" aria-label={`Download v${item.version}`}>
-              Download
-            </a>
+            {item.status === "EXPIRED" ? (
+              // Files are kept for 30 days; the captions and style are still there to render again.
+              <span className="text-muted" title="Exports are kept for 30 days">
+                Expired · render again
+              </span>
+            ) : (
+              <a href={downloadHref(item)} download={item.fileName} className="font-semibold underline underline-offset-4 hover:text-white" aria-label={`Download v${item.version}`}>
+                Download
+              </a>
+            )}
           </li>
         ))}
       </ul>

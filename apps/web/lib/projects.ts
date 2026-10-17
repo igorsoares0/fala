@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { db, enqueueJob, releaseUsage, type ExportStatus } from "@fala/db";
+import { ACTIVE_NOW } from "./activity";
 import { parseProjectStyle } from "./style";
 
 /**
@@ -18,6 +19,7 @@ const projectSummarySelect = {
   width: true,
   height: true,
   thumbnailObjectKey: true,
+  sourceDeletedAt: true,
   captionSample: true,
   style: { select: { presetKey: true, configuration: true } },
   // The newest export that's rendering or done: drives "Rendering N%" / "Exported" on the card.
@@ -34,6 +36,11 @@ const projectSummarySelect = {
 type ProjectRow = Awaited<ReturnType<typeof findProjects>>[number];
 
 const ownedAndLive = (userId: string) => ({ userId, deletedAt: null });
+
+/** The user opened the project in the editor. */
+export async function touchProject(userId: string, projectId: string) {
+  await db.project.updateMany({ where: { id: projectId, ...ownedAndLive(userId), sourceDeletedAt: null }, data: ACTIVE_NOW() });
+}
 
 function findProjects(userId: string) {
   return db.project.findMany({

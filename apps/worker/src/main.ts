@@ -1,5 +1,5 @@
 import { setTimeout as sleep } from "node:timers/promises";
-import { db } from "@fala/db";
+import { db, enqueueJobOnce } from "@fala/db";
 import { createStorage } from "@fala/storage";
 import { loadConfig } from "./config";
 import { log, sanitizeErrorMessage } from "./log";
@@ -8,6 +8,13 @@ import { createRunner } from "./runner";
 import { sweepStaleTempDirs } from "./temp";
 
 const STALE_TEMP_DIR_MS = 60 * 60_000;
+const HOUR_MS = 60 * 60_000;
+
+/** One retention sweep per hour, however many workers run: the hour is the job's dedupe key. */
+async function scheduleRetentionSweep() {
+  const hour = new Date(Math.floor(Date.now() / HOUR_MS) * HOUR_MS).toISOString();
+  await enqueueJobOnce(db, "RETENTION_SWEEP", null, {}, `retention:${hour}`);
+}
 
 async function main() {
   const config = loadConfig();
@@ -31,6 +38,11 @@ async function main() {
   }
 
   const loops = Promise.all(Array.from({ length: config.concurrency }, loop));
+
+  const schedule = () => scheduleRetentionSweep().catch((error) => log.warn("retention.schedule_failed", { error: sanitizeErrorMessage(error) }));
+  void schedule();
+  const scheduler = setInterval(schedule, 5 * 60_000);
+  stop.signal.addEventListener("abort", () => clearInterval(scheduler), { once: true });
 
   // Graceful shutdown (spec §18.2): stop claiming, let running jobs finish within the
   // grace period, then release whatever is left so another worker can take it.

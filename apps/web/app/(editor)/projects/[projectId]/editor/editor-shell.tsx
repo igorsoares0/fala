@@ -24,6 +24,8 @@ type Props = EditorInit & {
   posterSrc: string;
   exports: ExportView[];
   maxResolution: ExportResolution;
+  /** Set when retention removed the original video: captions stay, export can't run. */
+  sourceRemovedMessage: string | null;
 };
 
 /**
@@ -31,16 +33,24 @@ type Props = EditorInit & {
  * ≥1100px three columns (captions · preview · style); 720–1099px captions + preview
  * with style in a drawer; <720px preview on top and Captions | Style tabs.
  */
-export function EditorShell({ name, width, height, posterSrc, exports, maxResolution, ...init }: Props) {
+export function EditorShell({ name, width, height, posterSrc, exports, maxResolution, sourceRemovedMessage, ...init }: Props) {
   return (
     <EditorStoreProvider init={init}>
-      <ExportsProvider initial={exports} maxResolution={maxResolution}>
+      <ExportsProvider initial={exports} maxResolution={maxResolution} blocked={sourceRemovedMessage}>
         <EditorHeader>
           <ProjectNameInput projectId={init.projectId} initialName={name} />
           <SaveIndicator />
           <UndoRedo />
           <EditorHeaderControls />
         </EditorHeader>
+        {sourceRemovedMessage && (
+          <p role="status" className="border-b border-line bg-warning/10 px-4 py-2 text-[13px] text-text">
+            <span aria-hidden className="mr-2 text-warning">
+              ◆
+            </span>
+            {sourceRemovedMessage}
+          </p>
+        )}
         <EditorLayout width={width} height={height} posterSrc={posterSrc} />
         <EditorToast />
         <ExportDialog width={width} height={height} />

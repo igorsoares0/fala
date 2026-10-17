@@ -12,3 +12,5 @@ export * from "./caption-render";
 export * from "./caption-timeline";
 export * from "./export";
 export * from "./plans";
+export * from "./email";
+export * from "./retention";

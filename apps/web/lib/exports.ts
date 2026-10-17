@@ -10,7 +10,10 @@ import {
   type ExportStatus,
 } from "@fala/shared";
 import { getStorage } from "@fala/storage";
+import { ACTIVE_NOW } from "./activity";
 import { parseProjectStyle } from "./style";
+
+export const SOURCE_REMOVED = "The original video was removed after 90 days without activity, so this project can't be exported again. Its captions are kept.";
 
 /**
  * Exports (spec FR-11, FR-12): each one renders a frozen snapshot of the captions
@@ -94,6 +97,7 @@ export async function createExport(
     select: {
       status: true,
       sourceObjectKey: true,
+      sourceDeletedAt: true,
       width: true,
       height: true,
       durationMs: true,
@@ -107,6 +111,9 @@ export async function createExport(
   const track = captionTrackSchema.safeParse(captionTrack);
   if (project.status !== "READY" || !track.success || !sourceObjectKey || !width || !height || !durationMs) {
     return { ok: false, status: 409, reason: "not-ready", error: "Export is available once transcription finishes." };
+  }
+  if (project.sourceDeletedAt) {
+    return { ok: false, status: 409, reason: "not-ready", error: SOURCE_REMOVED };
   }
   if (captionTrack!.version !== captionVersion) {
     return { ok: false, status: 409, reason: "unsaved", error: "Your latest changes are still saving. Try again in a moment." };
@@ -151,6 +158,7 @@ export async function createExport(
         },
         select: exportSelect,
       });
+      await tx.project.update({ where: { id: projectId }, data: ACTIVE_NOW() });
       await enqueueJob(tx, "RENDER_EXPORT", projectId, { projectId, exportId: row.id }, { maxAttempts: RENDER_MAX_ATTEMPTS, exportId: row.id });
       return row;
     });

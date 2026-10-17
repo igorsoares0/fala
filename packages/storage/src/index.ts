@@ -10,6 +10,7 @@ import {
   DeleteObjectsCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListMultipartUploadsCommand,
   ListObjectsV2Command,
   ListPartsCommand,
   PutObjectCommand,
@@ -103,6 +104,24 @@ export function createStorage(config: StorageConfig) {
           MultipartUpload: { Parts: parts.map((part) => ({ PartNumber: part.partNumber, ETag: part.etag })) },
         }),
       );
+    },
+
+    /** Unfinished multipart uploads under `prefix` (their parts aren't objects yet). */
+    async listMultipartUploads(prefix: string): Promise<{ key: string; uploadId: string }[]> {
+      const uploads: { key: string; uploadId: string }[] = [];
+      let keyMarker: string | undefined;
+      let uploadIdMarker: string | undefined;
+      do {
+        const page = await client.send(
+          new ListMultipartUploadsCommand({ Bucket, Prefix: prefix, KeyMarker: keyMarker, UploadIdMarker: uploadIdMarker }),
+        );
+        for (const upload of page.Uploads ?? []) {
+          if (upload.Key && upload.UploadId) uploads.push({ key: upload.Key, uploadId: upload.UploadId });
+        }
+        keyMarker = page.IsTruncated ? page.NextKeyMarker : undefined;
+        uploadIdMarker = page.IsTruncated ? page.NextUploadIdMarker : undefined;
+      } while (keyMarker);
+      return uploads;
     },
 
     /** Drops an unfinished multipart upload and its parts. Safe to repeat. */

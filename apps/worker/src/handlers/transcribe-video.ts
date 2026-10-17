@@ -1,5 +1,5 @@
 import path from "node:path";
-import { confirmUsage, db, releaseUsage, transcriptionUsageKey, type Prisma } from "@fala/db";
+import { confirmUsage, db, notifyIfNearLimit, releaseUsage, transcriptionUsageKey, type Prisma } from "@fala/db";
 import {
   blockWords,
   DEFAULT_PRESET_KEY,
@@ -31,10 +31,11 @@ const stillWaitingFor = (payload: Payload) => ({
  */
 export const transcribeVideo: JobHandler<Payload> = {
   async run({ job, payload, signal, storage, config, transcriber }) {
-    const project = await db.project.findFirst({ where: stillWaitingFor(payload), select: { durationMs: true } });
+    const project = await db.project.findFirst({ where: stillWaitingFor(payload), select: { durationMs: true, userId: true } });
     if (!project) return noChanges;
     if (!project.durationMs) throw new JobError("PROCESSING_FAILED", "Project has no duration", { retryable: false });
     const durationMs = project.durationMs;
+    const userId = project.userId;
 
     return withTempDir(config.tempDir, job.id, async (dir) => {
       const sourcePath = path.join(dir, "source");
@@ -71,6 +72,7 @@ export const transcribeVideo: JobHandler<Payload> = {
         });
         if (count !== 1) return;
         await confirmUsage(tx, transcriptionUsageKey(payload.projectId, payload.sourceObjectKey));
+        await notifyIfNearLimit(tx, userId);
 
         const transcript = {
           sourceObjectKey: payload.sourceObjectKey,

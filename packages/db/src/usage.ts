@@ -1,4 +1,5 @@
-import { planFromKey, uploadIdFromSourceKey, type Plan, type UsageSummary } from "@fala/shared";
+import { NEAR_LIMIT_SHARE, planFromKey, uploadIdFromSourceKey, usageMinutes, type Plan, type UsageSummary } from "@fala/shared";
+import { enqueueEmail } from "./jobs";
 import type { Prisma, PrismaClient } from "./generated/prisma/client";
 
 /**
@@ -117,4 +118,27 @@ export async function confirmUsage(tx: Client, idempotencyKey: string) {
 /** The work failed for good, or its project is gone: the reserved minutes come back. */
 export async function releaseUsage(tx: Client, target: { idempotencyKey: string } | { projectId: string }) {
   await tx.usageEntry.updateMany({ where: { ...target, status: "RESERVED" }, data: { status: "RELEASED" } });
+}
+
+const reminderDay = new Intl.DateTimeFormat("en-US", { month: "long", day: "numeric", timeZone: "UTC" });
+
+/** Emails the user once per period when confirmed usage reaches 80% of the plan (spec FR-15). */
+export async function notifyIfNearLimit(tx: Prisma.TransactionClient, userId: string) {
+  const summary = await usageSummary(tx, userId);
+  if (summary.confirmedSeconds < summary.limitSeconds * NEAR_LIMIT_SHARE) return;
+  const user = await tx.user.findUnique({ where: { id: userId }, select: { email: true, name: true } });
+  if (!user) return;
+  const period = await accountPeriod(tx, userId);
+  await enqueueEmail(tx, {
+    template: "usage-near-limit",
+    to: user.email,
+    data: {
+      name: user.name,
+      used: usageMinutes(summary.confirmedSeconds),
+      limit: summary.plan.monthlyMinutes,
+      plan: summary.plan.name,
+      renews: reminderDay.format(new Date(summary.periodEnd)),
+    },
+    dedupeKey: `usage-near-limit:${userId}:${period.periodKey}`,
+  });
 }

@@ -1,18 +1,24 @@
 import "server-only";
-
-interface EmailMessage {
-  to: string;
-  subject: string;
-  text: string;
-}
+import { randomUUID } from "node:crypto";
+import { db, enqueueEmail } from "@fala/db";
+import type { EmailData, EmailTemplate } from "@fala/shared";
 
 /**
- * Transactional email entry point. Until Resend is wired in (Phase 6) messages
- * are written to the server log so auth flows can be exercised locally.
+ * Transactional email from the web app (spec FR-15): queued for the worker, which
+ * renders and sends it. Returns as soon as it's queued; a slow or failing email
+ * provider never delays or breaks the request.
  */
-export async function sendEmail(message: EmailMessage): Promise<void> {
-  if (process.env.NODE_ENV === "production") {
-    throw new Error("Email delivery is not configured yet.");
-  }
-  console.info(`[email] to=${message.to} subject="${message.subject}"\n${message.text}`);
+export async function queueEmail({
+  template,
+  to,
+  data,
+  dedupeKey = `${template}:${randomUUID()}`,
+}: {
+  template: EmailTemplate;
+  to: string;
+  data?: EmailData;
+  /** Same key, one email. Defaults to a fresh key (every call sends). */
+  dedupeKey?: string;
+}): Promise<void> {
+  await enqueueEmail(db, { template, to, data, dedupeKey });
 }

@@ -1,4 +1,5 @@
 import "server-only";
+import { ACTIVE_NOW } from "./activity";
 import { db, type Prisma } from "@fala/db";
 import { blockWords, captionTrackSchema, type CaptionTrack } from "@fala/shared";
 
@@ -59,7 +60,7 @@ export async function saveCaptions(userId: string, projectId: string, input: Sav
         current: stored?.success ? { words: stored.data.words, blocks: stored.data.blocks } : null,
       };
     }
-    await tx.project.update({ where: { id: projectId }, data: { captionSample } });
+    await tx.project.update({ where: { id: projectId }, data: { captionSample, ...ACTIVE_NOW() } });
     return { ok: true, version: input.baseVersion + 1 };
   });
 }

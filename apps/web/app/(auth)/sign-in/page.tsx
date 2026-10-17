@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { PRESETS } from "@fala/shared";
 import { CaptionSample } from "@/components/caption-sample";
 import { Wordmark } from "@/components/wordmark";
 import { isGoogleSignInEnabled } from "@/lib/auth-config";
+import { DeletedNotice } from "./deleted-notice";
 import { SignInForm } from "./sign-in-form";
 
 export const metadata: Metadata = { title: "Sign in" };
@@ -14,7 +16,10 @@ export default function SignInPage() {
     <div className="flex min-h-screen flex-wrap">
       <div className="flex min-h-screen flex-[1_1_440px] flex-col px-10 pt-7 pb-8">
         <Wordmark href="/sign-in" />
-        <div className="flex flex-1 items-center justify-center py-10">
+        <div className="flex flex-1 flex-col items-center justify-center py-10">
+          <Suspense fallback={null}>
+            <DeletedNotice />
+          </Suspense>
           <SignInForm googleEnabled={isGoogleSignInEnabled()} />
         </div>
         <span className="max-w-[380px] self-center text-center font-mono text-[11px] leading-[1.6] text-pretty text-muted">

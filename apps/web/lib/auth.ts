@@ -3,8 +3,10 @@ import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@fala/db";
+import { PLANS } from "@fala/shared";
 import { isGoogleSignInEnabled } from "./auth-config";
-import { sendEmail } from "./email";
+import { prepareAccountDeletion } from "./account-deletion";
+import { queueEmail } from "./email";
 
 const RESET_PASSWORD_TOKEN_TTL_SECONDS = 30 * 60;
 
@@ -16,11 +18,39 @@ export const auth = betterAuth({
     resetPasswordTokenExpiresIn: RESET_PASSWORD_TOKEN_TTL_SECONDS,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
-      await sendEmail({
-        to: user.email,
-        subject: "Your Fala sign-in link",
-        text: `Use this link to choose a new password and sign in. It expires in 30 minutes.\n\n${url}`,
-      });
+      await queueEmail({ template: "reset-password", to: user.email, data: { name: user.name, url } });
+    },
+  },
+  // Used to confirm a new address when the email changes (Account → Profile).
+  emailVerification: {
+    sendVerificationEmail: async ({ user, url }) => {
+      await queueEmail({ template: "verify-email", to: user.email, data: { name: user.name, url } });
+    },
+  },
+  user: {
+    // The current email stays active until the new one is confirmed.
+    changeEmail: { enabled: true },
+    deleteUser: {
+      enabled: true,
+      // Cancels billing and queues file removal; throws (and so stops the deletion) if billing can't be canceled.
+      beforeDelete: async (user) => prepareAccountDeletion(user),
+    },
+    additionalFields: {
+      emailOnExport: { type: "boolean", defaultValue: true, input: false },
+    },
+  },
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          await queueEmail({
+            template: "welcome",
+            to: user.email,
+            data: { name: user.name, minutes: PLANS.free.monthlyMinutes },
+            dedupeKey: `welcome:${user.id}`,
+          });
+        },
+      },
     },
   },
   socialProviders: isGoogleSignInEnabled()

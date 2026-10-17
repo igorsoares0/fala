@@ -10,7 +10,7 @@ import { LeaseLostError } from "./errors";
 
 export type ClaimedJob = {
   id: string;
-  projectId: string;
+  projectId: string | null;
   type: JobType;
   payload: unknown;
   attempts: number;

@@ -1,7 +1,7 @@
 import type { ExportErrorCode, ProjectErrorCode } from "@fala/shared";
 
 /** A project failure (upload, transcription) or an export failure (rendering). */
-export type JobErrorCode = ProjectErrorCode | ExportErrorCode;
+export type JobErrorCode = ProjectErrorCode | ExportErrorCode | "EMAIL_FAILED";
 
 /**
  * A failure with a known cause. `retryable: false` means repeating the job can't

@@ -1,6 +1,6 @@
 import { stat } from "node:fs/promises";
 import path from "node:path";
-import { db } from "@fala/db";
+import { db, enqueueEmail } from "@fala/db";
 import {
   exportDimensions,
   exportErrorCodeSchema,
@@ -46,7 +46,11 @@ export const renderExport: JobHandler<Payload> = {
   async run({ job, payload, signal, storage, config }) {
     const record = await db.export.findFirst({
       where: stillRendering(payload),
-      select: { resolution: true, snapshot: true, project: { select: { userId: true } } },
+      select: {
+        resolution: true,
+        snapshot: true,
+        project: { select: { userId: true, name: true, user: { select: { email: true, name: true, emailOnExport: true } } } },
+      },
     });
     if (!record) return noChanges;
     const parsed = exportSnapshotSchema.safeParse(record.snapshot);
@@ -123,7 +127,7 @@ export const renderExport: JobHandler<Payload> = {
       log.info("render.done", { jobId: job.id, exportId: payload.exportId, width, height, overlayFrames: overlay.frameCount, bytes: size });
 
       return async (tx) => {
-        await tx.export.updateMany({
+        const { count } = await tx.export.updateMany({
           where: stillRendering(payload),
           data: {
             status: "SUCCEEDED",
@@ -136,6 +140,15 @@ export const renderExport: JobHandler<Payload> = {
             completedAt: new Date(),
           },
         });
+        const owner = record.project.user;
+        if (count === 1 && owner.emailOnExport) {
+          await enqueueEmail(tx, {
+            template: "export-ready",
+            to: owner.email,
+            data: { name: owner.name, projectName: record.project.name, projectId: payload.projectId, resolution: Math.min(width, height) },
+            dedupeKey: `export-ready:${payload.exportId}`,
+          });
+        }
       };
     });
   },

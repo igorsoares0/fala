@@ -9,24 +9,42 @@ export function ProfileForm({ initialName, email }: { initialName: string; email
   const router = useRouter();
   const [name, setName] = useState(initialName);
   const [savedName, setSavedName] = useState(initialName);
+  const [newEmail, setNewEmail] = useState(email);
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ kind: "saved" | "error"; text: string } | null>(null);
 
   const trimmed = name.trim();
-  const dirty = trimmed !== savedName && trimmed.length > 0;
+  const trimmedEmail = newEmail.trim().toLowerCase();
+  const nameChanged = trimmed !== savedName && trimmed.length > 0;
+  const emailChanged = trimmedEmail !== email.toLowerCase() && trimmedEmail !== pendingEmail && /^\S+@\S+\.\S+$/.test(trimmedEmail);
+  const dirty = nameChanged || emailChanged;
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!dirty) return;
     setBusy(true);
     setStatus(null);
-    const { error } = await authClient.updateUser({ name: trimmed });
-    setBusy(false);
-    if (error) {
-      setStatus({ kind: "error", text: "We couldn't save your name. Try again." });
-      return;
+    if (nameChanged) {
+      const { error } = await authClient.updateUser({ name: trimmed });
+      if (error) {
+        setBusy(false);
+        setStatus({ kind: "error", text: "We couldn't save your name. Try again." });
+        return;
+      }
+      setSavedName(trimmed);
     }
-    setSavedName(trimmed);
+    if (emailChanged) {
+      // The new address must be confirmed first; until then the current one stays active.
+      const { error } = await authClient.changeEmail({ newEmail: trimmedEmail, callbackURL: "/account" });
+      if (error) {
+        setBusy(false);
+        setStatus({ kind: "error", text: error.message ?? "We couldn't change your email. Try again." });
+        return;
+      }
+      setPendingEmail(trimmedEmail);
+    }
+    setBusy(false);
     setStatus({ kind: "saved", text: "Changes saved" });
     router.refresh();
   }
@@ -50,9 +68,26 @@ export function ProfileForm({ initialName, email }: { initialName: string; email
         </label>
         <label className="flex flex-col gap-[7px]">
           <span className={fieldLabel}>Email</span>
-          <input value={email} readOnly aria-readonly className={`${textInput} text-muted`} />
+          <input
+            name="email"
+            type="email"
+            value={newEmail}
+            onChange={(event) => {
+              setNewEmail(event.target.value);
+              setStatus(null);
+            }}
+            autoComplete="email"
+            maxLength={320}
+            className={textInput}
+          />
         </label>
       </div>
+      {(pendingEmail || emailChanged) && (
+        <p className="text-[13px] text-pretty text-muted">
+          We&apos;ll send a confirmation link to {pendingEmail ? <strong className="text-text">{pendingEmail}</strong> : "the new address"}. Until you
+          click it, your current email stays active.
+        </p>
+      )}
       <div className="flex items-center gap-3">
         <button type="submit" disabled={!dirty || busy} className={smallCreamButton}>
           {busy ? "Saving…" : "Save changes"}

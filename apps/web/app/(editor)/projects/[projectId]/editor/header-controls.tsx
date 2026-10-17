@@ -53,7 +53,16 @@ export function EditorHeaderControls() {
 
 /** Opens the export dialog; mirrors the newest render ("Rendering N%", "Render failed"), as in the handoff header. */
 function ExportButton() {
-  const { latest, setDialogOpen } = useExports();
+  const { latest, blocked, setDialogOpen } = useExports();
+  if (blocked) {
+    return (
+      <span title={blocked}>
+        <button type="button" disabled className="rounded-[9px] bg-[rgba(236,230,218,.12)] px-4 py-1.5 text-[13.5px] font-semibold text-muted">
+          Export
+        </button>
+      </span>
+    );
+  }
   const failed = latest?.status === "FAILED";
   const rendering = latest !== null && isActiveExport(latest.status);
   return (
