@@ -1,6 +1,7 @@
-# Fala worker in production (spec §18.2), e.g. on a Hetzner CX33 (4 vCPU, 8 GB):
+# Fala worker without Coolify (with Coolify, see deploy/README.md — same image, same limits):
 #   cd deploy/worker && docker compose up -d --build
-# One render at a time keeps the server responsive; add servers (not concurrency) to grow.
+# Sized to share a Hetzner CX33 (4 vCPU, 8 GB) with the web app: one render at a time,
+# 2 CPUs. Add servers (not concurrency) to grow.
 services:
   worker:
     build:
@@ -17,8 +18,8 @@ services:
     volumes:
       # Sources (up to 4 GB) and renders are written here and removed after each job.
       - worker-temp:/work
-    cpus: 3
-    mem_limit: 6g
+    cpus: 2
+    mem_limit: 4608m
     # Lets a running job finish (or go back to the queue) on deploys and restarts.
     stop_grace_period: 40s
     logging:

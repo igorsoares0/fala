@@ -7,4 +7,7 @@
 .env.*
 docs
 fixtures
-apps/web
+**/.turbo
+**/tsconfig.tsbuildinfo
+apps/web/e2e
+apps/web/test-results

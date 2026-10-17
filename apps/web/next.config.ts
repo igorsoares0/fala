@@ -47,6 +47,12 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // A self-contained server for the Docker image (apps/web/Dockerfile), traced from the
+  // repo root so the workspace packages and the Prisma client come along.
+  // Note: R2_ENDPOINT (CSP above) and NEXT_PUBLIC_* are read at build time — in Coolify
+  // they must be build variables.
+  output: "standalone",
+  outputFileTracingRoot: repoRoot,
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
   },
