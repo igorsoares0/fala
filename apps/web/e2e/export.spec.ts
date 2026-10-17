@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createProject, openReadyProject, signUp, uniqueEmail } from "./helpers";
+import { createProject, openReadyProject, PROCESSING_TIMEOUT, signUp, uniqueEmail } from "./helpers";
 
 // A real render: the test worker draws the captions with Chromium and encodes with FFmpeg.
 test("export an MP4, download it, and keep earlier versions", async ({ page }) => {
@@ -49,7 +49,7 @@ test("export an MP4, download it, and keep earlier versions", async ({ page }) =
 test("export stays unavailable until the project has captions", async ({ page }) => {
   await signUp(page, { name: "Editor", email: uniqueEmail("unavailable") });
   const card = await createProject(page, "broken.mp4", "not-a-video.mp4");
-  await expect(card.getByText("Error")).toBeVisible({ timeout: 30_000 });
+  await expect(card.getByText("Error")).toBeVisible({ timeout: PROCESSING_TIMEOUT });
   await card.getByRole("link", { name: "Open broken" }).click();
   await expect(page.getByRole("button", { name: "Export" })).toBeDisabled();
 });

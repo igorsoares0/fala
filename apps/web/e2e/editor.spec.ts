@@ -1,12 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
-import { createProject, signUp, uniqueEmail } from "./helpers";
+import { bufferVideo, createProject, PROCESSING_TIMEOUT, signUp, uniqueEmail } from "./helpers";
 
 // WEBM because Playwright's Chromium can't decode H.264. The worker uses scripted
 // captions (fake transcription): 11 words, 3 words per block by default.
 async function openReadyProject(page: Page, label: string) {
   await signUp(page, { name: "Editor", email: uniqueEmail(label) });
   const card = await createProject(page, `${label} clip.webm`, "landscape-2s.webm");
-  await expect(card.getByText("Ready")).toBeVisible({ timeout: 30_000 });
+  await expect(card.getByText("Ready")).toBeVisible({ timeout: PROCESSING_TIMEOUT });
   await card.getByRole("link", { name: `Open ${label} clip` }).click();
   await expect(page.getByTestId("caption-overlay")).toBeVisible();
 }
@@ -20,11 +20,13 @@ test("captions play over the video, word by word", async ({ page }) => {
   await expect(overlay).toContainText("It's");
   await expect(overlay.locator("[data-active]")).toHaveText("It's");
 
+  const video = await bufferVideo(page);
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(page.getByRole("button", { name: "Pause" })).toBeVisible();
-  // The highlighted word moves on, and later the block changes too.
-  await expect(overlay.locator("[data-active]")).not.toHaveText("It's", { timeout: 5_000 });
-  await expect(page.getByTestId("caption-block").nth(1)).toHaveAttribute("aria-current", "true", { timeout: 5_000 });
+  // The highlighted word moves on, and later the block changes too — timed by the video's clock.
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime), { timeout: 20_000 }).toBeGreaterThan(0.6);
+  await expect(overlay.locator("[data-active]")).not.toHaveText("It's", { timeout: 10_000 });
+  await expect(page.getByTestId("caption-block").nth(1)).toHaveAttribute("aria-current", "true", { timeout: 10_000 });
   expect(Number(await page.getByRole("slider", { name: "Playback position" }).getAttribute("aria-valuenow"))).toBeGreaterThan(0);
 });
 

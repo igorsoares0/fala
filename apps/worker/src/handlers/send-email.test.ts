@@ -17,7 +17,7 @@ afterAll(async () => {
 });
 
 async function queue(key = `test:${Math.random()}`) {
-  await enqueueEmail(db, { template: "export-ready", to: "someone@example.com", data: { name: "Ana", projectName: "Trip", projectId: "p1", resolution: 1080 }, dedupeKey: key });
+  await enqueueEmail(db, { template: "export-ready", to: "someone@fala-customer.io", data: { name: "Ana", projectName: "Trip", projectId: "p1", resolution: 1080 }, dedupeKey: key });
   return db.job.findFirstOrThrow({ where: { type: "SEND_EMAIL" }, orderBy: { createdAt: "desc" } });
 }
 
@@ -33,7 +33,7 @@ describe("SEND_EMAIL", () => {
     expect(url).toBe("https://api.resend.com/emails");
     expect((init.headers as Record<string, string>)["idempotency-key"]).toBe(job.id);
     const body = JSON.parse(String(init.body));
-    expect(body).toMatchObject({ from: "Fala <onboarding@resend.dev>", to: ["someone@example.com"], subject: '"Trip" is ready' });
+    expect(body).toMatchObject({ from: "Fala <onboarding@resend.dev>", to: ["someone@fala-customer.io"], subject: '"Trip" is ready' });
     expect(body.text).toContain("https://fala.test/projects/p1");
   });
 
@@ -79,5 +79,25 @@ describe("email templates", () => {
 
   it("escapes names in HTML", () => {
     expect(renderEmail("welcome", { name: "<b>Ana</b>", minutes: 10 }, "https://fala.test").html).not.toContain("<b>Ana</b>");
+  });
+});
+
+describe("undeliverable addresses", () => {
+  it("are never sent, even with a real key configured", async () => {
+    const fetch = vi.fn();
+    vi.stubGlobal("fetch", fetch);
+    for (const to of ["someone@e2e.test", "worker@test.local", "a@example.com", "b@mail.example.org", "c@x.invalid"]) {
+      await enqueueEmail(db, { template: "welcome", to, data: { name: "Test", minutes: 10 }, dedupeKey: `undeliverable:${to}:${Math.random()}` });
+      await createRunner({ config: resend, storage }).processNextJob();
+    }
+    expect(fetch).not.toHaveBeenCalled();
+    expect(await db.job.count({ where: { type: "SEND_EMAIL", status: "SUCCEEDED" } })).toBe(5);
+  });
+
+  it("still lets real addresses through", async () => {
+    const { isUndeliverable } = await import("./send-email");
+    expect(isUndeliverable("ana@gmail.com")).toBe(false);
+    expect(isUndeliverable("team@testing.io")).toBe(false);
+    expect(isUndeliverable("x@examples.com")).toBe(false);
   });
 });

@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { createProject, signUp, uniqueEmail } from "./helpers";
+import { createProject, PROCESSING_TIMEOUT, signUp, uniqueEmail } from "./helpers";
 
 test("create a project from a file, rename it, then delete it", async ({ page }) => {
   await signUp(page, { name: "Creator", email: uniqueEmail("crud") });
@@ -40,7 +40,7 @@ test("another account cannot open someone else's project or its thumbnail", asyn
   const ownerPage = await (await browser.newContext()).newPage();
   await signUp(ownerPage, { name: "Owner", email: uniqueEmail("owner") });
   const card = await createProject(ownerPage, "Secret plans.mov");
-  await expect(card.getByText("Ready")).toBeVisible({ timeout: 30_000 });
+  await expect(card.getByText("Ready")).toBeVisible({ timeout: PROCESSING_TIMEOUT });
   const href = await card.getByRole("link", { name: "Open Secret plans" }).getAttribute("href");
   const projectUrl = new URL(href!, ownerPage.url()).toString();
 

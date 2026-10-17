@@ -39,6 +39,19 @@ async function main() {
 
   const loops = Promise.all(Array.from({ length: config.concurrency }, loop));
 
+  // Heartbeat for the deep health check: a worker not seen for a few minutes is stale.
+  const beat = () =>
+    db.workerHeartbeat
+      .upsert({
+        where: { workerId: config.workerId },
+        create: { workerId: config.workerId, lastSeenAt: new Date(), runningJobs: runner.inFlightCount() },
+        update: { lastSeenAt: new Date(), runningJobs: runner.inFlightCount() },
+      })
+      .catch((error) => log.warn("worker.heartbeat_failed", { error: sanitizeErrorMessage(error) }));
+  void beat();
+  const heartbeat = setInterval(beat, 30_000);
+  stop.signal.addEventListener("abort", () => clearInterval(heartbeat), { once: true });
+
   const schedule = () => scheduleRetentionSweep().catch((error) => log.warn("retention.schedule_failed", { error: sanitizeErrorMessage(error) }));
   void schedule();
   const scheduler = setInterval(schedule, 5 * 60_000);
@@ -58,6 +71,7 @@ async function main() {
       await loops;
     }
     await closeBrowser().catch(() => {});
+    await db.workerHeartbeat.deleteMany({ where: { workerId: config.workerId } }).catch(() => {});
     await db.$disconnect();
     log.info("worker.stopped", { signal });
     process.exit(0);

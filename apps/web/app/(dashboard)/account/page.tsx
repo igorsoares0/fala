@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import Link from "next/link";
 import { db } from "@fala/db";
 import { requireUser } from "@/lib/dal";
 import { initials } from "@/lib/initials";
@@ -25,6 +26,17 @@ export default function AccountPage() {
         </div>
         <SignOutButton className={outlineButton}>Sign out</SignOutButton>
       </section>
+      <nav aria-label="Policies" className="flex gap-4 border-t border-line pt-6 text-[13px] text-muted">
+        <Link href="/terms" className="hover:text-text">
+          Terms
+        </Link>
+        <Link href="/privacy" className="hover:text-text">
+          Privacy
+        </Link>
+        <Link href="/refunds" className="hover:text-text">
+          Refunds
+        </Link>
+      </nav>
     </main>
   );
 }

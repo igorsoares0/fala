@@ -14,6 +14,9 @@ export default defineConfig({
   testDir: "./e2e",
   globalSetup: "./e2e/global-setup.ts",
   fullyParallel: true,
+  // Two browsers at once: every test uploads, transcribes and sometimes renders on the
+  // same machine, and more parallelism starves the worker of CPU (timeouts, not bugs).
+  workers: 2,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? "github" : "list",
@@ -24,7 +27,7 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   expect: { timeout: 10_000 },
   // Most tests upload a video and wait for the worker to validate and transcribe it.
-  timeout: 60_000,
+  timeout: 120_000,
   webServer: [
     {
       // A production build: no on-demand compilation, so timings match real use.
@@ -38,6 +41,8 @@ export default defineConfig({
         AUTH_RATE_LIMIT: "off",
         // Uploads go in 5 MB parts (the S3 minimum), so a 12 MB test file exercises several parts.
         UPLOAD_PART_SIZE_BYTES: String(5 * 1024 * 1024),
+        // `next start` here runs with development settings (sandbox, local storage).
+        FALA_SKIP_ENV_CHECK: "1",
         // Keep the Google button deterministic (disabled) in tests.
         GOOGLE_CLIENT_ID: "",
         GOOGLE_CLIENT_SECRET: "",
@@ -55,6 +60,9 @@ export default defineConfig({
         TEMP_DIR: "/tmp/fala-worker-e2e",
         // Scripted captions, no network: E2E never calls the real transcription service.
         TRANSCRIPTION_PROVIDER: "fake",
+        // Emails are printed, never sent: test addresses are fake, and a real send would bounce.
+        EMAIL_PROVIDER: "log",
+        RESEND_API_KEY: "",
       },
     },
   ],

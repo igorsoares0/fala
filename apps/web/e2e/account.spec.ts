@@ -18,7 +18,8 @@ test("profile, preferences and password link", async ({ page }) => {
 
   const exportEmails = page.getByRole("switch", { name: "Email me when an export finishes" });
   await expect(exportEmails).toHaveAttribute("aria-checked", "true");
-  await exportEmails.click();
+  // Wait for the save to reach the server before reloading.
+  await Promise.all([page.waitForResponse((response) => response.request().method() === "POST" && response.ok()), exportEmails.click()]);
   await expect(exportEmails).toHaveAttribute("aria-checked", "false");
   await page.reload();
   await expect(page.getByRole("switch", { name: "Email me when an export finishes" })).toHaveAttribute("aria-checked", "false");

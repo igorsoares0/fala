@@ -11,6 +11,7 @@ import {
 } from "@fala/shared";
 import { getStorage } from "@fala/storage";
 import { ACTIVE_NOW } from "./activity";
+import { RATE_LIMITED, takeToken } from "./rate-limit";
 import { parseProjectStyle } from "./style";
 
 export const SOURCE_REMOVED = "The original video was removed after 90 days without activity, so this project can't be exported again. Its captions are kept.";
@@ -79,7 +80,7 @@ const ownedExport = (userId: string, exportId: string) => ({ id: exportId, proje
 
 export type CreateExportResult =
   | { ok: true; export: ExportView }
-  | { ok: false; status: 403 | 404 | 409; error: string; reason?: "not-ready" | "unsaved" | "plan" | "busy" };
+  | { ok: false; status: 403 | 404 | 409 | 429; error: string; reason?: "not-ready" | "unsaved" | "plan" | "busy" | "rate-limited" };
 
 /**
  * Freezes the project's current captions and style and queues the render.
@@ -121,6 +122,7 @@ export async function createExport(
 
   const active = await findActiveExport(projectId);
   if (active) return { ok: true, export: toView(active) };
+  if (!(await takeToken("export", userId))) return { ok: false, status: 429, reason: "rate-limited", error: RATE_LIMITED };
 
   const { plan } = await accountPeriod(db, userId);
   if (resolution > plan.maxResolution) {

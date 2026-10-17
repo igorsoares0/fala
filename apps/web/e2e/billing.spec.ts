@@ -11,6 +11,7 @@ test("usage shows in the header and on Plan & usage, and Free exports stay at 72
   await openReadyProject(page, "usage");
 
   await page.getByRole("button", { name: "Export", exact: true }).click();
+  await expect(page.getByRole("dialog", { name: "Export video" })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole("radio", { name: /1080p/ })).toBeDisabled();
   await expect(page.getByRole("radio", { name: /1080p/ })).toContainText("Creator and Pro");
   await page.keyboard.press("Escape");
@@ -21,7 +22,7 @@ test("usage shows in the header and on Plan & usage, and Free exports stay at 72
   await expect(page.getByText("up to 3 min · 4 GB")).toBeVisible();
 
   await meter.click();
-  await expect(page.getByRole("heading", { name: "Plan & usage" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Plan & usage" })).toBeVisible({ timeout: 20_000 });
   await expect(page.getByRole("region", { name: "Your plan" })).toContainText("up to 3 min");
   await expect(page.getByRole("article", { name: "Free" })).toContainText("YOUR PLAN");
   // Monthly / yearly prices; checkout stays unavailable without Paddle keys (as in tests).

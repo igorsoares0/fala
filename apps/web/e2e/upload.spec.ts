@@ -3,10 +3,8 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import { createProject, signUp, uniqueEmail, videoFile } from "./helpers";
+import { bufferVideo, createProject, PROCESSING_TIMEOUT, signUp, uniqueEmail, videoFile } from "./helpers";
 
-// The worker runs during E2E (see playwright.config.ts); validation takes a few seconds.
-const PROCESSING_TIMEOUT = 30_000;
 
 test("an uploaded video is validated and shows its thumbnail and duration", async ({ page }) => {
   await signUp(page, { name: "Uploader", email: uniqueEmail("upload") });
@@ -40,8 +38,7 @@ test("captions follow the video: clicking a block seeks, playing moves the activ
   expect(await blocks.count()).toBeGreaterThan(2);
   await expect(blocks.first()).toContainText("00:00.0 →");
 
-  const video = page.getByTestId("project-video");
-  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.readyState)).toBeGreaterThanOrEqual(1);
+  const video = await bufferVideo(page);
 
   // Clicking a block jumps the video to its start.
   await blocks.nth(2).click();
@@ -55,7 +52,9 @@ test("captions follow the video: clicking a block seeks, playing moves the activ
     v.muted = true;
     return v.play();
   });
-  await expect(blocks.nth(1)).toHaveAttribute("aria-current", "true", { timeout: 5_000 });
+  // Wait on the video's own clock, not wall time: under load playback can start late.
+  await expect.poll(() => video.evaluate((v: HTMLVideoElement) => v.currentTime), { timeout: 20_000 }).toBeGreaterThan(0.6);
+  await expect(blocks.nth(1)).toHaveAttribute("aria-current", "true", { timeout: 10_000 });
 });
 
 test("a video without sound fails with a clear message, and another file fixes it", async ({ page }) => {

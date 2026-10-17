@@ -5,6 +5,12 @@ import { expect, type Page } from "@playwright/test";
 
 export const TEST_PASSWORD = "correct-horse-battery";
 
+/**
+ * How long a test waits for the worker to validate and transcribe an upload. Alone it
+ * takes seconds; with the whole suite in parallel (renders included) the queue backs up.
+ */
+export const PROCESSING_TIMEOUT = 60_000;
+
 const FIXTURES = path.resolve(__dirname, "../../../fixtures/media");
 
 export function uniqueEmail(label: string) {
@@ -46,8 +52,24 @@ export async function createProject(page: Page, fileName: string, fixture?: stri
 export async function openReadyProject(page: Page, label: string) {
   await signUp(page, { name: "Editor", email: uniqueEmail(label) });
   const card = await createProject(page, `${label} clip.webm`, "landscape-2s.webm");
-  await expect(card.getByText("Ready")).toBeVisible({ timeout: 30_000 });
+  await expect(card.getByText("Ready")).toBeVisible({ timeout: PROCESSING_TIMEOUT });
   await card.getByRole("link", { name: `Open ${label} clip` }).click();
   await expect(page.getByTestId("caption-block").first()).toBeVisible();
   return page.url();
+}
+
+/**
+ * Waits until the editor's video can actually play. The player only preloads metadata,
+ * and under load (the full suite renders and transcribes in parallel) fetching and
+ * decoding can take seconds: tests that time playback must start from a buffered video.
+ */
+export async function bufferVideo(page: Page) {
+  const video = page.getByTestId("project-video");
+  await video.evaluate((element: HTMLVideoElement) => {
+    element.muted = true;
+    element.preload = "auto";
+    if (element.readyState < 3) element.load();
+  });
+  await expect.poll(() => video.evaluate((element: HTMLVideoElement) => element.readyState), { timeout: 30_000 }).toBeGreaterThanOrEqual(3);
+  return video;
 }

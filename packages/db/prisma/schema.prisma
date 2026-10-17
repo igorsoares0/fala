@@ -354,3 +354,24 @@ model PaddleEvent {
 
   @@map("paddle_event")
 }
+
+/// Liveness of each worker process, for the deep health check (stale = not seen for a while).
+model WorkerHeartbeat {
+  workerId    String   @id
+  lastSeenAt  DateTime
+  runningJobs Int      @default(0)
+  startedAt   DateTime @default(now())
+
+  @@map("worker_heartbeat")
+}
+
+/// Fixed-window counters for per-user limits on expensive actions (exports, uploads).
+model RateLimitBucket {
+  /// "{action}:{userId}:{windowStart}"
+  key       String   @id
+  count     Int      @default(0)
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("rate_limit_bucket")
+}

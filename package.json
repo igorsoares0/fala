@@ -19,7 +19,8 @@
     "dev:worker": "npm run dev -w @fala/worker",
     "eval:transcription": "npm run eval -w @fala/worker",
     "plan:set": "npm run plan:set -w @fala/web --",
-    "paddle:tunnel": "npm run paddle:tunnel -w @fala/web"
+    "paddle:tunnel": "npm run paddle:tunnel -w @fala/web",
+    "db:deploy": "npm run migrate:deploy -w @fala/db"
   },
   "devDependencies": {
     "@types/node": "^24",

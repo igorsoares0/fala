@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { handlePaddleEvent } from "@/lib/billing-sync";
+import { log } from "@/lib/log";
 import { getPaddle, paddleSettings, toSubscriptionState } from "@/lib/paddle";
 
 /**
@@ -22,6 +23,6 @@ export async function POST(request: Request) {
     { eventId: event.eventId, eventType: event.eventType, data: event.data },
     (data) => toSubscriptionState(data as Parameters<typeof toSubscriptionState>[0]),
   );
-  console.info(JSON.stringify({ event: "paddle.webhook", type: event.eventType, eventId: event.eventId, result }));
+  log.info("paddle.webhook", { type: event.eventType, eventId: event.eventId, result });
   return NextResponse.json({ ok: true });
 }

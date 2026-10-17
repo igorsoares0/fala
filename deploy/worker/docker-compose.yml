@@ -1,0 +1,31 @@
+# Fala worker in production (spec §18.2), e.g. on a Hetzner CX33 (4 vCPU, 8 GB):
+#   cd deploy/worker && docker compose up -d --build
+# One render at a time keeps the server responsive; add servers (not concurrency) to grow.
+services:
+  worker:
+    build:
+      context: ../..
+      dockerfile: apps/worker/Dockerfile
+    image: fala-worker:latest
+    restart: unless-stopped
+    init: true
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      WORKER_CONCURRENCY: "1"
+      TEMP_DIR: /work
+    volumes:
+      # Sources (up to 4 GB) and renders are written here and removed after each job.
+      - worker-temp:/work
+    cpus: 3
+    mem_limit: 6g
+    # Lets a running job finish (or go back to the queue) on deploys and restarts.
+    stop_grace_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+volumes:
+  worker-temp:

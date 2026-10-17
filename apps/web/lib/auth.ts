@@ -63,7 +63,16 @@ export const auth = betterAuth({
     : undefined,
   // On by default in production (3 sign-in/sign-up attempts per 10s per IP).
   // E2E runs set AUTH_RATE_LIMIT=off because every test signs up from localhost.
-  rateLimit: process.env.AUTH_RATE_LIMIT === "off" ? { enabled: false } : undefined,
+  rateLimit:
+    process.env.AUTH_RATE_LIMIT === "off"
+      ? { enabled: false }
+      : {
+          // Emails cost money and can be used to pester someone: a few per hour is plenty.
+          customRules: {
+            "/request-password-reset": { window: 3600, max: 5 },
+            "/change-email": { window: 3600, max: 5 },
+          },
+        },
   // Must stay last: lets Server Actions set auth cookies.
   plugins: [nextCookies()],
 });

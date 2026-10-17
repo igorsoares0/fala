@@ -7,6 +7,18 @@ import { noChanges, type JobHandler } from "./types";
 type Payload = JobPayload<"SEND_EMAIL">;
 
 const RESEND_URL = "https://api.resend.com/emails";
+
+/**
+ * Domains that never receive mail (RFC 2606/6761) and the test suites' addresses.
+ * Sending there only bounces and burns the provider's quota and reputation, so these
+ * are always printed instead — whatever key happens to be configured.
+ */
+const NEVER_DELIVERABLE = /@(?:[^@]+\.)?(?:test|local|localhost|invalid|example)$|@(?:[^@]+\.)?example\.(?:com|net|org)$/i;
+
+export function isUndeliverable(address: string): boolean {
+  return NEVER_DELIVERABLE.test(address.trim());
+}
+
 const SEND_TIMEOUT_MS = 15_000;
 
 /**
@@ -18,7 +30,7 @@ export const sendEmail: JobHandler<Payload> = {
   async run({ job, payload, config, signal }) {
     const email = renderEmail(payload.template, payload.data, config.appUrl);
 
-    if (config.email.provider === "log") {
+    if (config.email.provider === "log" || isUndeliverable(payload.to)) {
       log.info("email.logged", { jobId: job.id, template: payload.template });
       process.stdout.write(`[email] to=${payload.to} subject="${email.subject}"\n${email.text}\n`);
       return noChanges;

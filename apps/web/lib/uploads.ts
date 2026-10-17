@@ -12,6 +12,7 @@ import {
   type UploadPartsResponse,
 } from "@fala/shared";
 import { getStorage } from "@fala/storage";
+import { RATE_LIMITED, takeToken } from "./rate-limit";
 
 /**
  * Upload flow (spec FR-03): the browser starts an upload, PUTs the file straight
@@ -21,7 +22,7 @@ import { getStorage } from "@fala/storage";
  * queues validation. Like lib/projects.ts, everything is scoped by the owner's id.
  */
 
-export type UploadResult<T> = { ok: true; data: T } | { ok: false; status: 404 | 409; error: string };
+export type UploadResult<T> = { ok: true; data: T } | { ok: false; status: 404 | 409 | 429; error: string };
 
 /** Part URLs are signed in small batches as the upload goes, so an hour is plenty. */
 const PART_URL_TTL_SECONDS = 60 * 60;
@@ -66,6 +67,7 @@ export async function startUpload(
   if (!UPLOADABLE.includes(project.status)) {
     return { ok: false, status: 409, error: "This project already has a video." };
   }
+  if (!(await takeToken("upload", userId))) return { ok: false, status: 429, error: RATE_LIMITED };
   // Early refusal only: the worker checks the real duration against the minutes left.
   if ((await usageSummary(db, userId)).remainingSeconds <= 0) {
     return { ok: false, status: 409, error: OUT_OF_MINUTES };

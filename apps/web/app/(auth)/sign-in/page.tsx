@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Suspense } from "react";
 import { PRESETS } from "@fala/shared";
 import { CaptionSample } from "@/components/caption-sample";
@@ -15,7 +16,7 @@ export default function SignInPage() {
   return (
     <div className="flex min-h-screen flex-wrap">
       <div className="flex min-h-screen flex-[1_1_440px] flex-col px-10 pt-7 pb-8">
-        <Wordmark href="/sign-in" />
+        <Wordmark href="/" />
         <div className="flex flex-1 flex-col items-center justify-center py-10">
           <Suspense fallback={null}>
             <DeletedNotice />
@@ -23,8 +24,15 @@ export default function SignInPage() {
           <SignInForm googleEnabled={isGoogleSignInEnabled()} />
         </div>
         <span className="max-w-[380px] self-center text-center font-mono text-[11px] leading-[1.6] text-pretty text-muted">
-          By continuing you accept the Terms and Privacy Policy. Audio sent for transcription is processed by an
-          external provider.
+          By continuing you accept the{" "}
+          <Link href="/terms" className="underline underline-offset-2 hover:text-text">
+            Terms
+          </Link>{" "}
+          and{" "}
+          <Link href="/privacy" className="underline underline-offset-2 hover:text-text">
+            Privacy Policy
+          </Link>
+          . Audio sent for transcription is processed by an external provider.
         </span>
       </div>
 

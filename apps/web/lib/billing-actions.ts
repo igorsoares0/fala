@@ -4,6 +4,7 @@ import { z } from "zod";
 import { db } from "@fala/db";
 import { cancelPlan, changePlan, keepPlan, portalUrl, previewPlanChange, type ChangeResult } from "@/lib/billing-changes";
 import { requireUser } from "@/lib/dal";
+import { log, safeError } from "@/lib/log";
 
 /** Plan changes from the Plan & usage page. Paddle errors become a calm message; details go to the server log. */
 
@@ -15,7 +16,7 @@ async function guarded<T>(work: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await work();
   } catch (error) {
-    console.error(JSON.stringify({ event: "billing.action_failed", error: error instanceof Error ? error.message.slice(0, 300) : String(error) }));
+    log.error("billing.action_failed", { error: safeError(error) });
     return fallback;
   }
 }
