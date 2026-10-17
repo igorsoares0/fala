@@ -1,5 +1,5 @@
 /**
- * Admin: puts an account on a plan until payments (Paddle) arrive.
+ * Dev/sandbox tool: puts an account on a plan without going through Paddle.
  *
  *   npm run plan:set -- someone@example.com creator
  *
@@ -9,6 +9,8 @@ import { db } from "@fala/db";
 import { planKeySchema } from "@fala/shared";
 
 async function main() {
+  // In production the plan comes from Paddle only.
+  if (process.env.PADDLE_ENV === "production") throw new Error("plan:set is a sandbox/dev tool; plans come from Paddle in production.");
   const [email, planArg] = process.argv.slice(2);
   const plan = planKeySchema.safeParse(planArg);
   if (!email || !plan.success) throw new Error("Usage: npm run plan:set -- <email> <free|creator|pro>");

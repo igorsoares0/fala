@@ -277,13 +277,21 @@ model Subscription {
   id                   String             @id @default(cuid())
   userId               String             @unique
   user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  /// A key of PLANS in @fala/shared.
+  /// A key of PLANS in @fala/shared: the plan in effect now.
   planKey              String
+  /// A downgrade that takes effect when the current period ends.
+  pendingPlanKey       String?
+  /// "month" or "year".
+  billingInterval      String             @default("month")
   status               SubscriptionStatus @default(ACTIVE)
+  /// A scheduled cancellation: the plan stays until then.
+  cancelAt             DateTime?
   currentPeriodStart   DateTime
   currentPeriodEnd     DateTime
   paddleCustomerId     String?            @unique
   paddleSubscriptionId String?            @unique
+  /// `updated_at` of the newest Paddle state applied: older events never overwrite it.
+  paddleUpdatedAt      DateTime?
   createdAt            DateTime           @default(now())
   updatedAt            DateTime           @updatedAt
 
@@ -319,4 +327,14 @@ model UsageEntry {
   @@index([userId, periodKey])
   @@index([projectId])
   @@map("usage_entry")
+}
+
+/// Paddle webhook events already processed (spec §13.2): a replayed event is ignored.
+model PaddleEvent {
+  id          String   @id @default(cuid())
+  eventId     String   @unique
+  type        String
+  receivedAt  DateTime @default(now())
+
+  @@map("paddle_event")
 }

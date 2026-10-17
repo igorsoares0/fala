@@ -1,16 +1,13 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import {
-  NEAR_LIMIT_SHARE,
-  PLAN_KEYS,
-  PLANS,
-  usageMinutes,
-  type Plan,
-  type UsageSummary,
-} from "@fala/shared";
+import { db } from "@fala/db";
+import { NEAR_LIMIT_SHARE, planFromKey, usageMinutes, type Plan, type UsageSummary } from "@fala/shared";
 import { getUsage, recentUsage, type UsageActivity } from "@/lib/billing";
 import { requireUser } from "@/lib/dal";
 import { formatExportDate } from "@/lib/dates";
+import { isBillingConfigured, paddleSettings } from "@/lib/paddle";
+import { PlanActions } from "./plan-actions";
+import { PlanChooser, type CheckoutConfig } from "./plan-chooser";
 
 export const metadata: Metadata = { title: "Plan & usage" };
 
@@ -31,7 +28,16 @@ export default function BillingPage() {
 
 async function Billing() {
   const user = await requireUser();
-  const [usage, activity] = await Promise.all([getUsage(user.id), recentUsage(user.id)]);
+  const [usage, activity, subscription] = await Promise.all([
+    getUsage(user.id),
+    recentUsage(user.id),
+    db.subscription.findUnique({ where: { userId: user.id } }),
+  ]);
+  const subscribed = subscription !== null && subscription.status !== "CANCELED" && subscription.paddleSubscriptionId !== null;
+  const settings = isBillingConfigured() ? paddleSettings() : null;
+  const checkout: CheckoutConfig | null = settings
+    ? { environment: settings.environment, clientToken: settings.clientToken, prices: settings.prices, email: user.email, userId: user.id }
+    : null;
   const used = usage.confirmedSeconds + usage.reservedSeconds;
   const renews = day.format(new Date(usage.periodEnd));
   const lastDay = new Date(new Date(usage.periodEnd).getTime() - DAY_MS);
@@ -58,18 +64,22 @@ async function Billing() {
 
       <div className="grid gap-5 min-[860px]:grid-cols-2">
         <UsageCard usage={usage} renews={renews} />
-        <PlanCard plan={usage.plan} renews={renews} />
+        <PlanCard plan={usage.plan} renews={renews} status={planStatus(subscribed ? subscription : null, renews)}>
+          <PlanActions
+            subscribed={subscribed}
+            scheduled={Boolean(subscription?.cancelAt || subscription?.pendingPlanKey)}
+            canManage={Boolean(subscription?.paddleCustomerId) && settings !== null}
+          />
+        </PlanCard>
       </div>
 
       <section aria-labelledby="plans-title" className="flex flex-col gap-4">
-        <h2 id="plans-title" className="font-mono text-[11.5px] tracking-[0.08em] text-muted">
-          PLANS
-        </h2>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(250px,1fr))] gap-4">
-          {PLAN_KEYS.map((key) => (
-            <PlanOption key={key} plan={PLANS[key]} current={usage.plan} />
-          ))}
-        </div>
+        <PlanChooser
+          current={usage.plan.key}
+          interval={subscription?.billingInterval === "year" ? "year" : "month"}
+          subscribed={subscribed}
+          checkout={checkout}
+        />
       </section>
 
       <Activity entries={activity} />
@@ -127,12 +137,32 @@ function planFacts(plan: Plan) {
   ] as const;
 }
 
-function PlanCard({ plan, renews }: { plan: Plan; renews: string }) {
+type SubscriptionRow = { status: string; cancelAt: Date | null; pendingPlanKey: string | null };
+
+/** The plan card's status line: renewal, a scheduled change, or a failed payment. */
+function planStatus(subscription: SubscriptionRow | null, renews: string): { text: string; warning: boolean } {
+  if (!subscription) return { text: `free · renews ${renews}`, warning: false };
+  if (subscription.status === "PAST_DUE") return { text: "payment failed — update your card", warning: true };
+  if (subscription.cancelAt) return { text: `cancels ${day.format(subscription.cancelAt)}`, warning: true };
+  if (subscription.pendingPlanKey) return { text: `moves to ${planFromKey(subscription.pendingPlanKey).name} on ${renews}`, warning: false };
+  return { text: `active · renews ${renews}`, warning: false };
+}
+
+function PlanCard({
+  plan,
+  status,
+  children,
+}: {
+  plan: Plan;
+  renews: string;
+  status: { text: string; warning: boolean };
+  children: React.ReactNode;
+}) {
   return (
     <section className={card} aria-label="Your plan">
       <div className="flex items-center justify-between gap-3 font-mono text-[11.5px] text-muted">
         <span className="tracking-[0.08em]">YOUR PLAN</span>
-        <span>active · renews {renews}</span>
+        <span className={status.warning ? "text-warning" : undefined}>{status.text}</span>
       </div>
       <span className="text-[36px] leading-none font-bold tracking-[-0.04em]">{plan.name}</span>
       <dl className="flex flex-col">
@@ -143,63 +173,8 @@ function PlanCard({ plan, renews }: { plan: Plan; renews: string }) {
           </div>
         ))}
       </dl>
-      <button
-        type="button"
-        disabled
-        title="Available soon"
-        className="self-start rounded-[9px] border border-line-button px-3.5 py-2 text-[13.5px] font-semibold text-text disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        Payment &amp; invoices
-      </button>
+      {children}
     </section>
-  );
-}
-
-function PlanOption({ plan, current }: { plan: Plan; current: Plan }) {
-  const isCurrent = plan.key === current.key;
-  const upgrade = plan.monthlyMinutes > current.monthlyMinutes;
-  return (
-    <article
-      aria-label={plan.name}
-      className={`flex flex-col gap-4 rounded-[16px] bg-panel-1 p-6 ${isCurrent ? "border-[1.5px] border-text" : "border border-line"}`}
-    >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-[20px] font-bold tracking-[-0.02em]">{plan.name}</span>
-        {isCurrent && <span className="rounded-full bg-text px-2 py-0.5 font-mono text-[10.5px] font-semibold text-ink">YOUR PLAN</span>}
-      </div>
-      <div className="flex flex-col gap-1">
-        <span className="flex items-baseline gap-1">
-          <span className="text-[40px] leading-none font-bold tracking-[-0.05em]">${plan.monthlyUsd}</span>
-          <span className="text-[14px] text-muted">/ month</span>
-        </span>
-        <span className="font-mono text-[11.5px] text-muted">
-          {plan.yearlyUsd > 0 ? `or $${plan.yearlyUsd} / year — $${plan.yearlyUsd / 12} a month` : "no card needed"}
-        </span>
-      </div>
-      <ul className="flex flex-col gap-1.5 text-[13.5px] text-muted">
-        {planFacts(plan).map(([label, value]) => (
-          <li key={label}>
-            <span className="text-text">{value}</span> · {label.toLowerCase()}
-          </li>
-        ))}
-      </ul>
-      {isCurrent ? (
-        <span className="mt-auto rounded-[9px] border border-dashed border-line-button px-3.5 py-2 text-center text-[13.5px] font-semibold text-muted">
-          Current plan
-        </span>
-      ) : (
-        <button
-          type="button"
-          disabled
-          title="Checkout arrives soon"
-          className={`mt-auto rounded-[9px] px-3.5 py-2 text-[13.5px] font-semibold disabled:cursor-not-allowed disabled:opacity-60 ${
-            upgrade ? "bg-text text-ink" : "border border-line-button text-text"
-          }`}
-        >
-          {upgrade ? `Switch to ${plan.name}` : `Move to ${plan.name}`}
-        </button>
-      )}
-    </article>
   );
 }
 

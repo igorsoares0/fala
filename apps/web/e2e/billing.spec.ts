@@ -24,6 +24,13 @@ test("usage shows in the header and on Plan & usage, and Free exports stay at 72
   await expect(page.getByRole("heading", { name: "Plan & usage" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Your plan" })).toContainText("up to 3 min");
   await expect(page.getByRole("article", { name: "Free" })).toContainText("YOUR PLAN");
+  // Monthly / yearly prices; checkout stays unavailable without Paddle keys (as in tests).
+  const creator = page.getByRole("article", { name: "Creator" });
+  await expect(creator).toContainText("$12");
+  await page.getByRole("radio", { name: /Yearly/ }).click();
+  await expect(creator).toContainText("$9");
+  await expect(creator).toContainText("billed $108 once a year");
+
   const row = page.getByTestId("usage-row").first();
   await expect(row).toContainText("usage clip");
   await expect(row).toContainText("confirmed");

@@ -84,3 +84,16 @@ Audio is sent to AssemblyAI (US by default; set `ASSEMBLYAI_BASE_URL=https://api
 Keep the bucket private. Add a CORS rule allowing `PUT` and `GET` from the app's origin with the `Content-Type` header. Browsers upload in parts (S3 multipart) and never read the `ETag` header, so it doesn't need to be exposed. Set `R2_ENDPOINT` to `https://<account-id>.r2.cloudflarestorage.com`.
 
 Add a lifecycle rule that aborts incomplete multipart uploads after 1 day: parts of an upload the user abandoned (closed tab, lost file) are then removed even if the app never hears about it.
+
+## Plans and payments
+
+Plans and their limits live in `packages/shared/src/plans.ts`; usage is metered in `packages/db/src/usage.ts` (minutes reserved when a video is validated, confirmed when its captions are ready, released when transcription fails or the project is deleted).
+
+Payments use **Paddle Billing**. The app learns about payments only from signed webhooks (`/api/webhooks/paddle`); the browser's checkout result is never trusted.
+
+1. In Paddle (sandbox first) create an **API key** and a **client-side token** (Developer tools → Authentication) and set `PADDLE_API_KEY` and `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`.
+2. Create the "Fala Creator" and "Fala Pro" products with a monthly and a yearly price each, and set the four `PADDLE_PRICE_*` ids.
+3. Locally, run `npm run dev` and, in another terminal, `npm run paddle:tunnel`: it opens a cloudflared tunnel and points the sandbox webhook destination at it. The first run prints `PADDLE_WEBHOOK_SECRET` for `.env`.
+4. In production, add a notification destination for `https://<your domain>/api/webhooks/paddle` with the subscription events, and use the production keys with `PADDLE_ENV="production"`.
+
+Test cards and simulated renewals/failures are in the Paddle sandbox. `npm run plan:set -- <email> <free|creator|pro>` sets a plan without Paddle, in sandbox/dev only.

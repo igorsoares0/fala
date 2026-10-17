@@ -9,12 +9,15 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test:e2e": "dotenv -e ../../.env -- playwright test",
-    "plan:set": "dotenv -e ../../.env -- tsx scripts/set-plan.ts"
+    "plan:set": "dotenv -e ../../.env -- tsx scripts/set-plan.ts",
+    "paddle:tunnel": "dotenv -e ../../.env -- tsx scripts/paddle-tunnel.ts"
   },
   "dependencies": {
     "@fala/db": "*",
     "@fala/shared": "*",
     "@fala/storage": "*",
+    "@paddle/paddle-js": "1.6.5",
+    "@paddle/paddle-node-sdk": "3.10.0",
     "better-auth": "^1.7.8",
     "lucide-react": "^1.57.0",
     "next": "16.4.1",
