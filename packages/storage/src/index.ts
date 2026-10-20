@@ -74,11 +74,16 @@ export function createStorage(config: StorageConfig) {
       return UploadId;
     },
 
-    /** URL for a single PUT of one part of a multipart upload. */
-    presignUploadPart(key: string, uploadId: string, partNumber: number, expiresInSeconds: number) {
-      return getSignedUrl(client, new UploadPartCommand({ Bucket, Key: key, UploadId: uploadId, PartNumber: partNumber }), {
-        expiresIn: expiresInSeconds,
-      });
+    /**
+     * URL for a single PUT of one part of a multipart upload. Content-Length is signed,
+     * so the PUT must carry exactly `sizeBytes` (browsers set it from the Blob).
+     */
+    presignUploadPart(key: string, uploadId: string, partNumber: number, sizeBytes: number, expiresInSeconds: number) {
+      return getSignedUrl(
+        client,
+        new UploadPartCommand({ Bucket, Key: key, UploadId: uploadId, PartNumber: partNumber, ContentLength: sizeBytes }),
+        { expiresIn: expiresInSeconds, signableHeaders: new Set(["content-length"]) },
+      );
     },
 
     /** Parts stored so far, in order (the server reads ETags here, so browsers never need to). */

@@ -77,6 +77,14 @@ describe("email templates", () => {
     }
   });
 
+  it("never put a name in emails to addresses nobody has confirmed yet", () => {
+    for (const template of ["confirm-email", "verify-email"] as const) {
+      const email = renderEmail(template, { name: "Visit evil.example now", url: "https://fala.test/api/auth/verify-email?token=x" }, "https://fala.test");
+      expect(email.text).not.toContain("evil.example");
+      expect(email.text).toContain("https://fala.test/api/auth/verify-email?token=x");
+    }
+  });
+
   it("escapes names in HTML", () => {
     expect(renderEmail("welcome", { name: "<b>Ana</b>", minutes: 10 }, "https://fala.test").html).not.toContain("<b>Ana</b>");
   });

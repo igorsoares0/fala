@@ -22,7 +22,7 @@ import { RATE_LIMITED, takeToken } from "./rate-limit";
  * queues validation. Like lib/projects.ts, everything is scoped by the owner's id.
  */
 
-export type UploadResult<T> = { ok: true; data: T } | { ok: false; status: 404 | 409 | 429; error: string };
+export type UploadResult<T> = { ok: true; data: T } | { ok: false; status: 403 | 404 | 409 | 429; error: string };
 
 /** Part URLs are signed in small batches as the upload goes, so an hour is plenty. */
 const PART_URL_TTL_SECONDS = 60 * 60;
@@ -35,6 +35,8 @@ const UPLOADABLE: ProjectStatus[] = ["CREATED", "UPLOADING", "FAILED"];
 const NOT_FOUND = { ok: false, status: 404, error: "This project doesn't exist anymore." } as const;
 
 export const OUT_OF_MINUTES = "You've used all your minutes for this period. Switch plans or wait for them to renew.";
+
+export const CONFIRM_EMAIL_FIRST = "Confirm your email to upload videos. We sent you a link when you signed up.";
 
 function findOwned(userId: string, projectId: string) {
   return db.project.findFirst({
@@ -67,6 +69,9 @@ export async function startUpload(
   if (!UPLOADABLE.includes(project.status)) {
     return { ok: false, status: 409, error: "This project already has a video." };
   }
+  // Free minutes cost real money: an account gets them once it owns a real address.
+  const owner = await db.user.findUnique({ where: { id: userId }, select: { emailVerified: true } });
+  if (!owner?.emailVerified) return { ok: false, status: 403, error: CONFIRM_EMAIL_FIRST };
   if (!(await takeToken("upload", userId))) return { ok: false, status: 429, error: RATE_LIMITED };
   // Early refusal only: the worker checks the real duration against the minutes left.
   if ((await usageSummary(db, userId)).remainingSeconds <= 0) {
@@ -123,7 +128,8 @@ export async function signUploadParts(
   if (project.status !== "UPLOADING" || !key || !uploadId || sourceSizeBytes === null) {
     return { ok: false, status: 409, error: "Start the upload first." };
   }
-  const { partCount } = uploadPartPlan(Number(sourceSizeBytes), preferredPartBytes());
+  const declared = Number(sourceSizeBytes);
+  const { partSize, partCount } = uploadPartPlan(declared, preferredPartBytes());
   if (partNumbers.some((partNumber) => partNumber > partCount)) {
     return { ok: false, status: 409, error: "That part isn't part of this upload." };
   }
@@ -132,10 +138,16 @@ export async function signUploadParts(
   const urls = await Promise.all(
     partNumbers.map(async (partNumber) => ({
       partNumber,
-      url: await storage.presignUploadPart(key, uploadId, partNumber, PART_URL_TTL_SECONDS),
+      // The URL only accepts this part's exact size, so nobody can park more bytes than they declared.
+      url: await storage.presignUploadPart(key, uploadId, partNumber, partBytes(declared, partSize, partNumber), PART_URL_TTL_SECONDS),
     })),
   );
   return { ok: true, data: { urls } };
+}
+
+/** Size of one part: every part is `partSize` except the last, which holds the rest. */
+function partBytes(sizeBytes: number, partSize: number, partNumber: number) {
+  return Math.min(partSize, sizeBytes - (partNumber - 1) * partSize);
 }
 
 /**

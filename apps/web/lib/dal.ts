@@ -8,6 +8,8 @@ export interface CurrentUser {
   id: string;
   name: string;
   email: string;
+  /** Uploads wait until the address is confirmed (see lib/uploads.ts). */
+  emailVerified: boolean;
 }
 
 /**
@@ -17,8 +19,8 @@ export interface CurrentUser {
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return null;
-  const { id, name, email } = session.user;
-  return { id, name, email };
+  const { id, name, email, emailVerified } = session.user;
+  return { id, name, email, emailVerified };
 });
 
 /** Returns the signed-in user or redirects to the sign-in page. */

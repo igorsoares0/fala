@@ -9,7 +9,7 @@ const users: string[] = [];
 
 async function newUser(plan?: "creator" | "pro") {
   const id = `test-usage-${randomUUID()}`;
-  await db.user.create({ data: { id, name: "Usage", email: `${id}@test.local` } });
+  await db.user.create({ data: { id, name: "Usage", email: `${id}@test.local`, emailVerified: true } });
   users.push(id);
   if (plan) {
     const now = Date.now();

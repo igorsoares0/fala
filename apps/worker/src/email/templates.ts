@@ -32,9 +32,16 @@ export function renderEmail(template: EmailTemplate, data: EmailData, appUrl: st
       action: { label: "Choose a password", url: value("url") },
       footer: ACCOUNT_FOOTER,
     }),
+    // Sent to addresses nobody has confirmed yet: no user-supplied text (such as the name) goes in.
+    "confirm-email": () => ({
+      subject: "Confirm your email for Fala",
+      body: ["Hi,", "Confirm this address to start uploading videos to your new Fala account."],
+      action: { label: "Confirm email", url: value("url") },
+      footer: "You're receiving this because this address was used to create a Fala account. If it wasn't you, ignore it.",
+    }),
     "verify-email": () => ({
       subject: "Confirm your new email for Fala",
-      body: [name, "Confirm this address to use it for your Fala account. Until you do, your current email stays active."],
+      body: ["Hi,", "Confirm this address to use it for your Fala account. Until you do, your current email stays active."],
       action: { label: "Confirm email", url: value("url") },
       footer: "You're receiving this because someone asked to use this address for a Fala account. If it wasn't you, ignore it.",
     }),

@@ -4,6 +4,7 @@ import { getUsage } from "@/lib/billing";
 import { requireUser } from "@/lib/dal";
 import { formatProjectDate } from "@/lib/dates";
 import { listProjects } from "@/lib/projects";
+import { ConfirmEmailNotice } from "./confirm-email-notice";
 import { ProjectGrid } from "./project-grid";
 
 export const metadata: Metadata = { title: "Projects" };
@@ -46,10 +47,14 @@ async function Projects() {
   const [projects, usage] = await Promise.all([getMyProjects(), getUsage(user.id)]);
   const now = new Date();
   return (
-    <ProjectGrid
-      projects={projects.map((project) => ({ ...project, dateLabel: formatProjectDate(project.createdAt, now) }))}
-      limits={{ maxVideoMs: usage.plan.maxVideoMs, remainingSeconds: usage.remainingSeconds }}
-    />
+    <>
+      {!user.emailVerified && <ConfirmEmailNotice email={user.email} />}
+      <ProjectGrid
+        projects={projects.map((project) => ({ ...project, dateLabel: formatProjectDate(project.createdAt, now) }))}
+        limits={{ maxVideoMs: usage.plan.maxVideoMs, remainingSeconds: usage.remainingSeconds }}
+        canUpload={user.emailVerified}
+      />
+    </>
   );
 }
 

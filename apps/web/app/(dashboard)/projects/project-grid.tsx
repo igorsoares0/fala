@@ -14,7 +14,16 @@ import { ProjectCard } from "./project-card";
 /** Date labels are computed on the server so server and client render identical text. */
 export type ProjectCardData = ProjectSummary & { dateLabel: string };
 
-export function ProjectGrid({ projects, limits }: { projects: ProjectCardData[]; limits: PlanUploadLimits }) {
+export function ProjectGrid({
+  projects,
+  limits,
+  canUpload,
+}: {
+  projects: ProjectCardData[];
+  limits: PlanUploadLimits;
+  /** False until the account's email is confirmed (the server refuses uploads until then). */
+  canUpload: boolean;
+}) {
   const router = useRouter();
   const uploads = useLocalUploads();
   const [creating, startCreating] = useTransition();
@@ -22,6 +31,7 @@ export function ProjectGrid({ projects, limits }: { projects: ProjectCardData[];
 
   function onFile(file: File) {
     setError(null);
+    if (!canUpload) return setError("Confirm your email first: open the link we sent you, then drop the video again.");
     startCreating(async () => {
       const check = await checkVideoFile(file, limits);
       if (!check.ok) return setError(check.error);

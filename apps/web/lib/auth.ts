@@ -4,11 +4,28 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { nextCookies } from "better-auth/next-js";
 import { db } from "@fala/db";
 import { PLANS } from "@fala/shared";
-import { isGoogleSignInEnabled } from "./auth-config";
+import { authIpAddressOptions, isGoogleSignInEnabled } from "./auth-config";
 import { prepareAccountDeletion } from "./account-deletion";
 import { queueEmail } from "./email";
 
 const RESET_PASSWORD_TOKEN_TTL_SECONDS = 30 * 60;
+
+/**
+ * Emails to an address nobody has confirmed carry no user-supplied text (such as the
+ * name): anyone can sign up with someone else's address, and must not be able to
+ * send them a message of their choosing from our domain.
+ */
+const nameIfConfirmed = (user: { name: string; emailVerified: boolean }): { name?: string } =>
+  user.emailVerified ? { name: user.name } : {};
+
+async function queueWelcome(user: { id: string; email: string; name: string }) {
+  await queueEmail({
+    template: "welcome",
+    to: user.email,
+    data: { name: user.name, minutes: PLANS.free.monthlyMinutes },
+    dedupeKey: `welcome:${user.id}`,
+  });
+}
 
 export const auth = betterAuth({
   database: prismaAdapter(db, { provider: "postgresql" }),
@@ -18,14 +35,21 @@ export const auth = betterAuth({
     resetPasswordTokenExpiresIn: RESET_PASSWORD_TOKEN_TTL_SECONDS,
     revokeSessionsOnPasswordReset: true,
     sendResetPassword: async ({ user, url }) => {
-      await queueEmail({ template: "reset-password", to: user.email, data: { name: user.name, url } });
+      await queueEmail({ template: "reset-password", to: user.email, data: { ...nameIfConfirmed(user), url } });
     },
   },
-  // Used to confirm a new address when the email changes (Account → Profile).
+  // Confirms the address after sign-up (uploads wait for it, see lib/uploads.ts) and
+  // a new address when the email changes (Account → Profile).
   emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: true,
     sendVerificationEmail: async ({ user, url }) => {
-      await queueEmail({ template: "verify-email", to: user.email, data: { name: user.name, url } });
+      // An address other than the stored one is an email change waiting for confirmation.
+      const stored = await db.user.findUnique({ where: { id: user.id }, select: { email: true } });
+      const template = stored?.email === user.email ? "confirm-email" : "verify-email";
+      await queueEmail({ template, to: user.email, data: { url } });
     },
+    afterEmailVerification: async (user) => queueWelcome(user),
   },
   user: {
     // The current email stays active until the new one is confirmed.
@@ -42,13 +66,9 @@ export const auth = betterAuth({
   databaseHooks: {
     user: {
       create: {
+        // Google accounts arrive confirmed; email sign-ups get their welcome once they confirm.
         after: async (user) => {
-          await queueEmail({
-            template: "welcome",
-            to: user.email,
-            data: { name: user.name, minutes: PLANS.free.monthlyMinutes },
-            dedupeKey: `welcome:${user.id}`,
-          });
+          if (user.emailVerified) await queueWelcome(user);
         },
       },
     },
@@ -71,8 +91,10 @@ export const auth = betterAuth({
           customRules: {
             "/request-password-reset": { window: 3600, max: 5 },
             "/change-email": { window: 3600, max: 5 },
+            "/send-verification-email": { window: 3600, max: 5 },
           },
         },
+  advanced: { ipAddress: authIpAddressOptions() },
   // Must stay last: lets Server Actions set auth cookies.
   plugins: [nextCookies()],
 });

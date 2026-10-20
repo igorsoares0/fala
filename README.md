@@ -37,7 +37,7 @@ Local object storage is [SeaweedFS](https://github.com/seaweedfs/seaweedfs) (`we
 
 Transcription uses [AssemblyAI](https://www.assemblyai.com). Without a key, keep `TRANSCRIPTION_PROVIDER="fake"` in `.env`: the worker then produces the same scripted captions for every video. For real captions set `TRANSCRIPTION_PROVIDER="assemblyai"` and `ASSEMBLYAI_API_KEY`.
 
-Google sign-in is optional locally: set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` to enable the button. Password-reset emails are printed to the dev server log until Resend is wired in.
+Google sign-in is optional locally: set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` to enable the button. Without `RESEND_API_KEY` the worker prints emails to its log instead of sending them — including the link a new account opens to confirm its email, which uploads wait for.
 
 ## Scripts
 

@@ -17,7 +17,8 @@ export function uniqueEmail(label: string) {
   return `${label}-${randomUUID().slice(0, 8)}@e2e.test`;
 }
 
-export async function signUp(page: Page, { name, email }: { name: string; email: string }) {
+/** Signs up and, unless `confirm` is false, opens the confirmation link like the user would (uploads wait for it). */
+export async function signUp(page: Page, { name, email, confirm = true }: { name: string; email: string; confirm?: boolean }) {
   await page.goto("/sign-in");
   await page.getByRole("button", { name: "Create account" }).click();
   await page.getByLabel("Name").fill(name);
@@ -25,6 +26,36 @@ export async function signUp(page: Page, { name, email }: { name: string; email:
   await page.getByLabel("Password").fill(TEST_PASSWORD);
   await page.getByRole("button", { name: "Create account", exact: true }).click();
   await expect(page).toHaveURL(/\/projects$/);
+  if (!confirm) return;
+  await page.goto(await confirmationLink(email));
+  await expect(page).toHaveURL(/\/projects$/);
+  await waitForDropZone(page);
+  await expect(page.getByText("Confirm your email to upload videos")).toHaveCount(0);
+}
+
+/**
+ * Waits until React has hydrated the dashboard's file input. After a full page load
+ * (the confirmation link), a file set any earlier fires a change nobody listens to.
+ */
+export async function waitForDropZone(page: Page) {
+  await page.waitForFunction(() => {
+    const input = document.querySelector('[data-testid="new-video-input"]');
+    return input !== null && Object.keys(input).some((key) => key.startsWith("__reactProps"));
+  });
+}
+
+/** The link in the newest "confirm your email" message queued for `email` (the worker only prints emails in tests). */
+export async function confirmationLink(email: string): Promise<string> {
+  process.env.DATABASE_URL = process.env.DATABASE_URL_TEST;
+  const { db } = await import("@fala/db");
+  const job = await db.job.findFirst({
+    where: { type: "SEND_EMAIL", payload: { path: ["to"], equals: email }, AND: { payload: { path: ["template"], equals: "confirm-email" } } },
+    orderBy: { createdAt: "desc" },
+    select: { payload: true },
+  });
+  const url = (job?.payload as { data?: { url?: string } } | undefined)?.data?.url;
+  if (!url) throw new Error(`No confirmation email queued for ${email}`);
+  return url;
 }
 
 /** A fixture video presented to the browser under another file name. */

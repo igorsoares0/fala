@@ -3,6 +3,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import path from "node:path";
 import { afterAll, describe, expect, it } from "vitest";
 import { db } from "@fala/db";
+import { authIpAddressOptions } from "./auth-config";
 import { productionEnvProblems } from "./env";
 import { RATE_LIMITS, takeToken } from "./rate-limit";
 
@@ -97,5 +98,18 @@ describe("production configuration", () => {
 
   it("holds production back while the legal pages still have placeholders", () => {
     expect(productionEnvProblems(complete).some((problem) => problem.startsWith("lib/legal.ts"))).toBe(true);
+  });
+});
+
+describe("sign-in rate limit client IP", () => {
+  it("keeps Better Auth's defaults unless the deploy says where the IP is", () => {
+    expect(authIpAddressOptions({})).toEqual({});
+  });
+
+  it("reads a proxy's client-IP header and trusted proxy ranges from the environment", () => {
+    expect(authIpAddressOptions({ AUTH_IP_HEADER: " CF-Connecting-IP ", AUTH_TRUSTED_PROXIES: "10.0.0.0/8, 172.16.0.0/12," })).toEqual({
+      ipAddressHeaders: ["cf-connecting-ip"],
+      trustedProxies: ["10.0.0.0/8", "172.16.0.0/12"],
+    });
   });
 });

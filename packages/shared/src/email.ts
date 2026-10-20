@@ -7,6 +7,7 @@ import { z } from "zod";
  */
 export const EMAIL_TEMPLATES = [
   "reset-password",
+  "confirm-email",
   "verify-email",
   "welcome",
   "export-ready",

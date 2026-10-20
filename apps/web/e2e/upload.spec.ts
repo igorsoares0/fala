@@ -3,8 +3,27 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { expect, test } from "@playwright/test";
-import { bufferVideo, createProject, PROCESSING_TIMEOUT, signUp, uniqueEmail, videoFile } from "./helpers";
+import { bufferVideo, confirmationLink, createProject, PROCESSING_TIMEOUT, signUp, uniqueEmail, videoFile, waitForDropZone } from "./helpers";
 
+test("a new account confirms its email before uploading", async ({ page }) => {
+  const email = uniqueEmail("unconfirmed");
+  await signUp(page, { name: "Newcomer", email, confirm: false });
+  await expect(page.getByText("Confirm your email to upload videos")).toBeVisible();
+
+  await page.getByTestId("new-video-input").setInputFiles(videoFile("Too soon.mp4"));
+  await expect(page.getByText("Confirm your email first")).toBeVisible();
+  await expect(page.getByRole("article")).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Send the link again" }).click();
+  await expect(page.getByText(`Sent. Check ${email} for the link.`)).toBeVisible();
+
+  await page.goto(await confirmationLink(email));
+  await expect(page).toHaveURL(/\/projects$/);
+  await waitForDropZone(page);
+  await expect(page.getByText("Confirm your email to upload videos")).toHaveCount(0);
+  const card = await createProject(page, "Right on time.mp4");
+  await expect(card.getByText("Ready")).toBeVisible({ timeout: PROCESSING_TIMEOUT });
+});
 
 test("an uploaded video is validated and shows its thumbnail and duration", async ({ page }) => {
   await signUp(page, { name: "Uploader", email: uniqueEmail("upload") });

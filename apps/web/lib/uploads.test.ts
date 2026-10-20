@@ -6,10 +6,10 @@ import { createProject, deleteProject } from "./projects";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { completeUpload, getThumbnailUrl, signUploadParts, startUpload } from "./uploads";
+import { completeUpload, CONFIRM_EMAIL_FIRST, getThumbnailUrl, signUploadParts, startUpload } from "./uploads";
 
-const owner = { id: `test-up-owner-${randomUUID()}`, name: "Owner", email: `up-owner-${randomUUID()}@test.local` };
-const intruder = { id: `test-up-intruder-${randomUUID()}`, name: "Intruder", email: `up-intruder-${randomUUID()}@test.local` };
+const owner = { id: `test-up-owner-${randomUUID()}`, name: "Owner", email: `up-owner-${randomUUID()}@test.local`, emailVerified: true };
+const intruder = { id: `test-up-intruder-${randomUUID()}`, name: "Intruder", email: `up-intruder-${randomUUID()}@test.local`, emailVerified: true };
 const mp4 = { mimeType: "video/mp4" as const, sizeBytes: 11 };
 
 beforeAll(async () => {
@@ -115,6 +115,32 @@ describe("upload flow", () => {
     expect(await signUploadParts(intruder.id, id, [1])).toMatchObject({ ok: false, status: 404 });
     expect(await signUploadParts(owner.id, id, [2])).toMatchObject({ ok: false, status: 409 });
     expect(await signUploadParts(owner.id, id, [1])).toMatchObject({ ok: true });
+  });
+
+  it("signed part URLs take exactly the part's size, no more", async () => {
+    const { id } = await createProject(owner.id, "Exact");
+    await startUpload(owner.id, id, mp4);
+    const signed = await signUploadParts(owner.id, id, [1]);
+    if (!signed.ok) throw new Error("signing failed");
+    const url = signed.data.urls[0].url;
+    expect((await fetch(url, { method: "PUT", body: new Uint8Array(5 * MB) })).status).toBe(403);
+    expect((await fetch(url, { method: "PUT", body: smallFile })).status).toBe(200);
+  });
+
+  it("waits for a confirmed email before starting an upload", async () => {
+    const unconfirmed = { id: `test-up-unconfirmed-${randomUUID()}`, name: "New", email: `up-new-${randomUUID()}@test.local` };
+    await db.user.create({ data: unconfirmed });
+    try {
+      const { id } = await createProject(unconfirmed.id, "Too soon");
+      expect(await startUpload(unconfirmed.id, id, mp4)).toEqual({ ok: false, status: 403, error: CONFIRM_EMAIL_FIRST });
+      expect(await row(id)).toMatchObject({ status: "CREATED", sourceObjectKey: null });
+
+      await db.user.update({ where: { id: unconfirmed.id }, data: { emailVerified: true } });
+      expect((await startUpload(unconfirmed.id, id, mp4)).ok).toBe(true);
+    } finally {
+      await getStorage().deletePrefix(`users/${unconfirmed.id}/`);
+      await db.user.delete({ where: { id: unconfirmed.id } });
+    }
   });
 
   it("starting over drops the previous unfinished upload", async () => {

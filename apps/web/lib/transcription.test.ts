@@ -4,7 +4,7 @@ import { db } from "@fala/db";
 import { getCaptionTrack, retryTranscription } from "./transcription";
 import { getSourceUrl, startUpload } from "./uploads";
 
-const owner = { id: `test-tr-owner-${randomUUID()}`, name: "Owner", email: `tr-owner-${randomUUID()}@test.local` };
+const owner = { id: `test-tr-owner-${randomUUID()}`, name: "Owner", email: `tr-owner-${randomUUID()}@test.local`, emailVerified: true };
 const intruder = { id: `test-tr-intruder-${randomUUID()}`, name: "Intruder", email: `tr-intruder-${randomUUID()}@test.local` };
 
 beforeAll(async () => {

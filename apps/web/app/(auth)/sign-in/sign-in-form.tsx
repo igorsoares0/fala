@@ -88,6 +88,8 @@ export function SignInForm({ googleEnabled }: { googleEnabled: boolean }) {
             email: trimmedEmail,
             password,
             name: name.trim() || trimmedEmail.split("@")[0],
+            // Where the confirmation link (sent on sign-up) lands.
+            callbackURL: "/projects",
           });
     if (error) {
       setBusy(false);

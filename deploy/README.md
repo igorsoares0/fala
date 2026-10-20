@@ -38,7 +38,9 @@ New resource → the GitHub repo (`main`) → build pack **Dockerfile**:
   - `NODE_ENV=production`, `BETTER_AUTH_URL` and `APP_URL` = `https://your-domain`, a new `BETTER_AUTH_SECRET` (`openssl rand -base64 32`);
   - `DATABASE_URL`, `DIRECT_DATABASE_URL`, `R2_*`;
   - `PADDLE_ENV=production` and the production Paddle keys and prices (step 7);
-  - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, `HEALTH_TOKEN`.
+  - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, `HEALTH_TOKEN`;
+  - the client IP for the sign-in rate limit: nothing with Traefik alone (it sends a single `X-Forwarded-For`). With the Cloudflare proxy on (orange cloud), set `AUTH_IP_HEADER=cf-connecting-ip`, and only then: that header is safe only when the server accepts web traffic from Cloudflare's IPs alone (Hetzner firewall). For a longer proxy chain, list the proxies in `AUTH_TRUSTED_PROXIES` (comma-separated CIDRs).
+    After the first deploy, sign in once and search the web log for `could not determine a client IP`: if it's there, every visitor shares one rate-limit bucket and a few bad attempts lock everyone out — fix the setting above.
   - Mark **`NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`, `R2_ENDPOINT` and `APP_URL` as build variables**: they're baked in at build time (client bundle, security headers, sitemap). Changing them needs a rebuild, not just a restart.
 - Resource limits (Advanced): **1 CPU, 1.5 GB** memory.
 
@@ -74,7 +76,7 @@ This leaves about 1 CPU and 2 GB for Coolify, Traefik and builds. Builds also ru
 1. Web resource deploys, and the pre-deployment command prints "All migrations have been successfully applied".
 2. `https://your-domain` shows the landing page, and `/api/health` returns `{"ok":true}`.
 3. Worker log shows `worker.started`, and the deep health check says 1 live worker.
-4. Sign up, upload a short video, wait for "Ready", export, download.
+4. Sign up, open the confirmation email's link (uploads wait for it), upload a short video, wait for "Ready", export, download. The upload also proves R2 accepts the part URLs' signed sizes.
 5. Subscribe with a real card (refund it from Paddle afterwards), and check the plan changes after the webhook.
 6. A 20-minute export, to confirm the timings on this server.
 
