@@ -4,10 +4,10 @@ import { PLAN_KEYS, PLANS, PRESETS } from "@fala/shared";
 import { CaptionDemo } from "./caption-demo";
 
 export const metadata: Metadata = {
-  title: { absolute: "Fala — captions for short videos, in minutes" },
+  title: { absolute: "Supertitle — captions for short videos, in minutes" },
   description: "Upload a video, review the text, pick a style, export an MP4 with burned-in captions. No timeline to learn.",
   openGraph: {
-    title: "Fala — captions for short videos, in minutes",
+    title: "Supertitle — captions for short videos, in minutes",
     description: "Upload, review the text, pick a style, export. Word-by-word captions that land on time.",
     type: "website",
   },
@@ -22,7 +22,7 @@ const STEPS = [
 const FAQ = [
   {
     q: "Which languages work?",
-    a: "Fala detects the spoken language automatically and works with dozens of them, including English, Spanish, Portuguese, French, German, Hindi and Japanese.",
+    a: "Supertitle detects the spoken language automatically and works with dozens of them, including English, Spanish, Portuguese, French, German, Hindi and Japanese.",
   },
   {
     q: "What happens to my videos?",

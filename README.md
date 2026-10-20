@@ -1,4 +1,4 @@
-# Fala
+# Supertitle
 
 Web SaaS that turns short videos into captioned MP4s: upload → automatic transcription → text-based caption editor → style → export.
 
@@ -92,7 +92,7 @@ Plans and their limits live in `packages/shared/src/plans.ts`; usage is metered 
 Payments use **Paddle Billing**. The app learns about payments only from signed webhooks (`/api/webhooks/paddle`); the browser's checkout result is never trusted.
 
 1. In Paddle (sandbox first) create an **API key** and a **client-side token** (Developer tools → Authentication) and set `PADDLE_API_KEY` and `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN`.
-2. Create the "Fala Creator" and "Fala Pro" products with a monthly and a yearly price each, and set the four `PADDLE_PRICE_*` ids.
+2. Create the "Supertitle Creator" and "Supertitle Pro" products with a monthly and a yearly price each, and set the four `PADDLE_PRICE_*` ids.
 3. Locally, run `npm run dev` and, in another terminal, `npm run paddle:tunnel`: it opens a cloudflared tunnel and points the sandbox webhook destination at it. The first run prints `PADDLE_WEBHOOK_SECRET` for `.env`.
 4. In production, add a notification destination for `https://<your domain>/api/webhooks/paddle` with the subscription events, and use the production keys with `PADDLE_ENV="production"`.
 

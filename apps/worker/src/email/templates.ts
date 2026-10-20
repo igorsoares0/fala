@@ -17,7 +17,7 @@ type Content = {
   footer: string;
 };
 
-const ACCOUNT_FOOTER = "You're receiving this because of activity on your Fala account.";
+const ACCOUNT_FOOTER = "You're receiving this because of activity on your Supertitle account.";
 
 /** Builds the email for `template`. Missing data shows as an empty string, never "undefined". */
 export function renderEmail(template: EmailTemplate, data: EmailData, appUrl: string): RenderedEmail {
@@ -27,32 +27,32 @@ export function renderEmail(template: EmailTemplate, data: EmailData, appUrl: st
 
   const content: Record<EmailTemplate, () => Content> = {
     "reset-password": () => ({
-      subject: "Your Fala sign-in link",
+      subject: "Your Supertitle sign-in link",
       body: [name, "Use this link to choose a new password and sign in. It expires in 30 minutes.", "If you didn't ask for it, ignore this email: your password stays the same."],
       action: { label: "Choose a password", url: value("url") },
       footer: ACCOUNT_FOOTER,
     }),
     // Sent to addresses nobody has confirmed yet: no user-supplied text (such as the name) goes in.
     "confirm-email": () => ({
-      subject: "Confirm your email for Fala",
-      body: ["Hi,", "Confirm this address to start uploading videos to your new Fala account."],
+      subject: "Confirm your email for Supertitle",
+      body: ["Hi,", "Confirm this address to start uploading videos to your new Supertitle account."],
       action: { label: "Confirm email", url: value("url") },
-      footer: "You're receiving this because this address was used to create a Fala account. If it wasn't you, ignore it.",
+      footer: "You're receiving this because this address was used to create a Supertitle account. If it wasn't you, ignore it.",
     }),
     "verify-email": () => ({
-      subject: "Confirm your new email for Fala",
-      body: ["Hi,", "Confirm this address to use it for your Fala account. Until you do, your current email stays active."],
+      subject: "Confirm your new email for Supertitle",
+      body: ["Hi,", "Confirm this address to use it for your Supertitle account. Until you do, your current email stays active."],
       action: { label: "Confirm email", url: value("url") },
-      footer: "You're receiving this because someone asked to use this address for a Fala account. If it wasn't you, ignore it.",
+      footer: "You're receiving this because someone asked to use this address for a Supertitle account. If it wasn't you, ignore it.",
     }),
     welcome: () => ({
-      subject: "Welcome to Fala",
+      subject: "Welcome to Supertitle",
       body: [
         name,
         "Drop a video, review the captions, pick a style and export. That's all there is to it.",
         `Your Free plan includes ${value("minutes")} minutes a month.`,
       ],
-      action: { label: "Open Fala", url: app("/projects") },
+      action: { label: "Open Supertitle", url: app("/projects") },
       footer: ACCOUNT_FOOTER,
     }),
     "export-ready": () => ({
@@ -72,26 +72,26 @@ export function renderEmail(template: EmailTemplate, data: EmailData, appUrl: st
       footer: ACCOUNT_FOOTER,
     }),
     "subscription-started": () => ({
-      subject: `You're on Fala ${value("plan")}`,
+      subject: `You're on Supertitle ${value("plan")}`,
       body: [name, `Thanks for subscribing. ${value("plan")} is active: ${value("minutes")} minutes a month, videos up to ${value("maxMinutes")} minutes.`],
       action: { label: "Plan & usage", url: app("/billing") },
       footer: ACCOUNT_FOOTER,
     }),
     "subscription-changed": () => ({
       subject: `Your plan is now ${value("plan")}`,
-      body: [name, `Your Fala plan changed to ${value("plan")}: ${value("minutes")} minutes a month.`],
+      body: [name, `Your Supertitle plan changed to ${value("plan")}: ${value("minutes")} minutes a month.`],
       action: { label: "Plan & usage", url: app("/billing") },
       footer: ACCOUNT_FOOTER,
     }),
     "subscription-canceled": () => ({
-      subject: "Your Fala plan was canceled",
+      subject: "Your Supertitle plan was canceled",
       body: [name, `Your ${value("plan")} plan ends on ${value("endsOn")}. After that you're on Free; your projects stay.`],
       action: { label: "Plan & usage", url: app("/billing") },
       footer: ACCOUNT_FOOTER,
     }),
     "payment-failed": () => ({
-      subject: "Your Fala payment didn't go through",
-      body: [name, "We couldn't charge your card for your Fala plan. Your plan stays active while we try again — update your card to keep it."],
+      subject: "Your Supertitle payment didn't go through",
+      body: [name, "We couldn't charge your card for your Supertitle plan. Your plan stays active while we try again — update your card to keep it."],
       action: { label: "Update payment", url: app("/billing") },
       footer: ACCOUNT_FOOTER,
     }),
@@ -103,12 +103,12 @@ export function renderEmail(template: EmailTemplate, data: EmailData, appUrl: st
         "Open the project before then to keep it — that resets the clock.",
       ],
       action: { label: "Open the project", url: app(`/projects/${value("projectId")}`) },
-      footer: "Fala keeps original videos while you work on them, and removes them after 90 days without activity.",
+      footer: "Supertitle keeps original videos while you work on them, and removes them after 90 days without activity.",
     }),
     "account-deleted": () => ({
-      subject: "Your Fala account was deleted",
-      body: [name, "Your account, projects and subscription are gone. Stored files are removed within 7 days.", "Thanks for using Fala."],
-      footer: "You're receiving this because this address belonged to a Fala account.",
+      subject: "Your Supertitle account was deleted",
+      body: [name, "Your account, projects and subscription are gone. Stored files are removed within 7 days.", "Thanks for using Supertitle."],
+      footer: "You're receiving this because this address belonged to a Supertitle account.",
     }),
   };
 

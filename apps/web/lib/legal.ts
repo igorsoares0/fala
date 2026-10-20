@@ -1,15 +1,15 @@
 /**
- * Who runs Fala, for the Terms, Privacy and Refund pages. Fill these in before
+ * Who runs Supertitle, for the Terms, Privacy and Refund pages. Fill these in before
  * applying to Paddle: production refuses to start while a placeholder is left.
  */
 export const LEGAL = {
-  /** Person or company operating Fala. */
+  /** Person or company operating Supertitle. */
   operator: "[OPERATOR NAME]",
   /** Country whose law governs the Terms. */
-  country: "[COUNTRY]",
-  supportEmail: "[SUPPORT EMAIL]",
+  country: "Brazil",
+  supportEmail: "support@usesupertitle.com",
   /** Date the current versions of the policies took effect. */
-  effectiveDate: "[EFFECTIVE DATE]",
+  effectiveDate: "October 20, 2026",
 } as const;
 
 export function legalPlaceholders(): string[] {

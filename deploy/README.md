@@ -1,4 +1,4 @@
-# Deploying Fala (Hetzner + Coolify)
+# Deploying Supertitle (Hetzner + Coolify)
 
 Production runs on **one Hetzner server managed by Coolify** (e.g. a CX33: 4 vCPU, 8 GB) with two resources from this repo — the **web app** and the **worker** — plus **Neon** (Postgres) and **Cloudflare R2** (files). Do the steps in order.
 
@@ -21,21 +21,21 @@ Create an **A record** for the domain (and `www` if you want it) pointing at the
 
 ## 3. Storage (Cloudflare R2)
 - A private bucket (e.g. `fala`) and an API token with read/write on it.
-- **CORS:** allow `GET` and `PUT` from `https://your-domain`, header `Content-Type`.
+- **CORS:** allow `GET` and `PUT` from `https://usesupertitle.com`, header `Content-Type`.
 - **Lifecycle:** abort incomplete multipart uploads after 1 day.
 - `R2_ENDPOINT` is `https://<account-id>.r2.cloudflarestorage.com`.
 
 ## 4. Web app in Coolify
 New resource → the GitHub repo (`main`) → build pack **Dockerfile**:
 - Base directory `/`, Dockerfile location `apps/web/Dockerfile`, port **3000**.
-- Domain: `https://your-domain` (Coolify/Traefik issues the certificate).
+- Domain: `https://usesupertitle.com` (Coolify/Traefik issues the certificate).
 - Health check: path `/api/health`, port 3000.
 - **Pre-deployment command** (runs in the new image before it takes traffic):
   ```sh
   sh -c 'cd /migrate && DATABASE_URL="$DIRECT_DATABASE_URL" npx prisma migrate deploy'
   ```
 - **Environment variables** — everything in the root `.env.example`, with production values:
-  - `NODE_ENV=production`, `BETTER_AUTH_URL` and `APP_URL` = `https://your-domain`, a new `BETTER_AUTH_SECRET` (`openssl rand -base64 32`);
+  - `NODE_ENV=production`, `BETTER_AUTH_URL` and `APP_URL` = `https://usesupertitle.com`, a new `BETTER_AUTH_SECRET` (`openssl rand -base64 32`);
   - `DATABASE_URL`, `DIRECT_DATABASE_URL`, `R2_*`;
   - `PADDLE_ENV=production` and the production Paddle keys and prices (step 7);
   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, `HEALTH_TOKEN`;
@@ -56,25 +56,25 @@ New resource → same repo → build pack **Dockerfile**:
 This leaves about 1 CPU and 2 GB for Coolify, Traefik and builds. Builds also run on this server: a deploy during a long render is slower, and Coolify can build on another server later if that becomes a problem.
 
 ## 6. Email (Resend) and sign-in (Google)
-- **Resend:** add the domain, create the DNS records it shows (SPF, DKIM), wait for "Verified", create an API key → worker `RESEND_API_KEY`, `EMAIL_FROM="Fala <noreply@your-domain>"`.
-- **Google:** an OAuth client with redirect URI `https://your-domain/api/auth/callback/google`.
+- **Resend:** add the domain, create the DNS records it shows (SPF, DKIM), wait for "Verified", create an API key → worker `RESEND_API_KEY`, `EMAIL_FROM="Supertitle <noreply@usesupertitle.com>"`.
+- **Google:** an OAuth client with redirect URI `https://usesupertitle.com/api/auth/callback/google`.
 - **AssemblyAI:** a production key in the worker.
 
 ## 7. Paddle (production)
 - Fill `apps/web/lib/legal.ts` and deploy, so `/terms`, `/privacy` and `/refunds` are live; then apply for the live account (Paddle reviews the website).
-- Create the "Fala Creator" and "Fala Pro" products (monthly and yearly prices) → the four `PADDLE_PRICE_*`.
+- Create the "Supertitle Creator" and "Supertitle Pro" products (monthly and yearly prices) → the four `PADDLE_PRICE_*`.
 - API key + client-side token → `PADDLE_API_KEY`, `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` (rebuild after setting it).
-- Notification destination `https://your-domain/api/webhooks/paddle` with the subscription events → `PADDLE_WEBHOOK_SECRET`.
-- Checkout settings: default payment link `https://your-domain`.
+- Notification destination `https://usesupertitle.com/api/webhooks/paddle` with the subscription events → `PADDLE_WEBHOOK_SECRET`.
+- Checkout settings: default payment link `https://usesupertitle.com`.
 
 ## 8. Monitoring
-- Uptime monitor on `https://your-domain/api/health` (200 = app and database up).
-- A second one on `https://your-domain/api/health?deep=1&token=<HEALTH_TOKEN>`: 503 when no worker has reported in 3 minutes; the body shows queue depth and the oldest job's wait.
+- Uptime monitor on `https://usesupertitle.com/api/health` (200 = app and database up).
+- A second one on `https://usesupertitle.com/api/health?deep=1&token=<HEALTH_TOKEN>`: 503 when no worker has reported in 3 minutes; the body shows queue depth and the oldest job's wait.
 - Logs are JSON lines in each resource's log view; errors have `"level":"error"`.
 
 ## First deploy checklist
 1. Web resource deploys, and the pre-deployment command prints "All migrations have been successfully applied".
-2. `https://your-domain` shows the landing page, and `/api/health` returns `{"ok":true}`.
+2. `https://usesupertitle.com` shows the landing page, and `/api/health` returns `{"ok":true}`.
 3. Worker log shows `worker.started`, and the deep health check says 1 live worker.
 4. Sign up, open the confirmation email's link (uploads wait for it), upload a short video, wait for "Ready", export, download. The upload also proves R2 accepts the part URLs' signed sizes.
 5. Subscribe with a real card (refund it from Paddle afterwards), and check the plan changes after the webhook.

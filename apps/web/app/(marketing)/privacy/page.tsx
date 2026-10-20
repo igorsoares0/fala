@@ -8,7 +8,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage title="Privacy Policy">
       <p>
-        This policy explains what <strong>{LEGAL.operator}</strong> (&quot;we&quot;) collects when you use Fala and what we do with it.
+        This policy explains what <strong>{LEGAL.operator}</strong> (&quot;we&quot;) collects when you use Supertitle and what we do with it.
       </p>
       <h2>What we collect</h2>
       <ul>

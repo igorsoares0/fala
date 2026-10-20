@@ -26,7 +26,7 @@ export default function MarketingLayout({ children }: LayoutProps<"/">) {
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-[1120px] flex-wrap items-center gap-x-6 gap-y-2 px-6 py-8 text-[13px] text-muted min-[720px]:px-8">
           <span className="font-semibold text-text">
-            fala<span className="text-accent">.</span>
+            supertitle<span className="text-accent">.</span>
           </span>
           <Link href="/terms" className="hover:text-text">
             Terms

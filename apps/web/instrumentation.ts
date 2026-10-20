@@ -9,6 +9,6 @@ export async function register() {
   const { productionEnvProblems } = await import("./lib/env");
   const problems = productionEnvProblems();
   if (problems.length > 0) {
-    throw new Error(`Fala can't start: the production configuration is incomplete.\n  ${problems.join("\n  ")}`);
+    throw new Error(`Supertitle can't start: the production configuration is incomplete.\n  ${problems.join("\n  ")}`);
   }
 }

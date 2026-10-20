@@ -34,7 +34,7 @@ const dmSerif = localFont({
 });
 
 export const metadata: Metadata = {
-  title: { default: "Fala", template: "%s · Fala" },
+  title: { default: "Supertitle", template: "%s · Supertitle" },
   description: "Captioned short videos in minutes. Upload, review the text, pick a style, export.",
 };
 

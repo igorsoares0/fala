@@ -1,4 +1,4 @@
-# Fala worker without Coolify (with Coolify, see deploy/README.md — same image, same limits):
+# Supertitle worker without Coolify (with Coolify, see deploy/README.md — same image, same limits):
 #   cd deploy/worker && docker compose up -d --build
 # Sized to share a Hetzner CX33 (4 vCPU, 8 GB) with the web app: one render at a time,
 # 2 CPUs. Add servers (not concurrency) to grow.

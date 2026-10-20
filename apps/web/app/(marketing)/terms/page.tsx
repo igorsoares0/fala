@@ -10,12 +10,12 @@ export default function TermsPage() {
   return (
     <LegalPage title="Terms of Service">
       <p>
-        These terms govern your use of Fala, a service operated by <strong>{LEGAL.operator}</strong> (&quot;we&quot;). By creating an account you
+        These terms govern your use of Supertitle, a service operated by <strong>{LEGAL.operator}</strong> (&quot;we&quot;). By creating an account you
         agree to them.
       </p>
       <h2>The service</h2>
       <p>
-        Fala transcribes the speech in videos you upload, lets you edit the captions and style, and renders a video file with the captions burned in.
+        Supertitle transcribes the speech in videos you upload, lets you edit the captions and style, and renders a video file with the captions burned in.
         Transcription is automatic and can contain mistakes; you&apos;re responsible for reviewing captions before you publish them.
       </p>
       <h2>Your account</h2>
@@ -40,7 +40,7 @@ export default function TermsPage() {
         .
       </p>
       <h2>Acceptable use</h2>
-      <p>Don&apos;t use Fala to break the law, to infringe others&apos; rights, to process content you&apos;re not allowed to, or to overload or attack the service.</p>
+      <p>Don&apos;t use Supertitle to break the law, to infringe others&apos; rights, to process content you&apos;re not allowed to, or to overload or attack the service.</p>
       <h2>Retention</h2>
       <p>
         Exported files are kept for 30 days. The original video of a project you haven&apos;t opened for 90 days is removed (we email you a week

@@ -18,7 +18,7 @@ const envSchema = z.object({
   ASSEMBLYAI_BASE_URL: z.preprocess(emptyAsUndefined, z.url().optional()),
   EMAIL_PROVIDER: z.preprocess(emptyAsUndefined, z.enum(["resend", "log"]).optional()),
   RESEND_API_KEY: z.preprocess(emptyAsUndefined, z.string().optional()),
-  EMAIL_FROM: z.preprocess(emptyAsUndefined, z.string().default("Fala <onboarding@resend.dev>")),
+  EMAIL_FROM: z.preprocess(emptyAsUndefined, z.string().default("Supertitle <onboarding@resend.dev>")),
   APP_URL: z.preprocess(emptyAsUndefined, z.url().default("http://localhost:3000")),
   NODE_ENV: z.string().optional(),
 });
