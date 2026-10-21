@@ -4,7 +4,7 @@
  */
 export const LEGAL = {
   /** Person or company operating Supertitle. */
-  operator: "[OPERATOR NAME]",
+  operator: "Igor Soares Pinto",
   /** Country whose law governs the Terms. */
   country: "Brazil",
   supportEmail: "support@usesupertitle.com",
@@ -12,8 +12,8 @@ export const LEGAL = {
   effectiveDate: "October 20, 2026",
 } as const;
 
-export function legalPlaceholders(): string[] {
-  return Object.entries(LEGAL)
+export function legalPlaceholders(legal: Record<string, string> = LEGAL): string[] {
+  return Object.entries(legal)
     .filter(([, value]) => /^\[.*\]$/.test(value))
     .map(([key]) => key);
 }

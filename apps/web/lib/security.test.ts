@@ -5,6 +5,7 @@ import { afterAll, describe, expect, it } from "vitest";
 import { db } from "@fala/db";
 import { authIpAddressOptions } from "./auth-config";
 import { productionEnvProblems } from "./env";
+import { legalPlaceholders } from "./legal";
 import { RATE_LIMITS, takeToken } from "./rate-limit";
 
 const root = path.resolve(import.meta.dirname, "..");
@@ -89,15 +90,23 @@ describe("production configuration", () => {
   };
 
   it("names what's missing or wrong, never the values", () => {
-    const problems = productionEnvProblems({ ...complete, PADDLE_ENV: "sandbox", APP_URL: "http://fala.example", R2_SECRET_ACCESS_KEY: "" });
+    const problems = productionEnvProblems({ ...complete, PADDLE_ENV: "live", APP_URL: "http://fala.example", R2_SECRET_ACCESS_KEY: "" });
     expect(problems.join("\n")).toMatch(/PADDLE_ENV/);
     expect(problems.join("\n")).toMatch(/APP_URL: must be https/);
     expect(problems.join("\n")).toMatch(/R2_SECRET_ACCESS_KEY/);
     expect(problems.join("\n")).not.toContain("very-secret-value");
   });
 
-  it("holds production back while the legal pages still have placeholders", () => {
-    expect(productionEnvProblems(complete).some((problem) => problem.startsWith("lib/legal.ts"))).toBe(true);
+  it("accepts the Paddle sandbox, for going live before Paddle approves the account", () => {
+    expect(productionEnvProblems({ ...complete, PADDLE_ENV: "sandbox" }).some((problem) => problem.startsWith("PADDLE_ENV"))).toBe(false);
+  });
+
+  it("is satisfied by a complete configuration with the legal pages filled in", () => {
+    expect(productionEnvProblems(complete)).toEqual([]);
+  });
+
+  it("spots legal placeholders, which hold production back", () => {
+    expect(legalPlaceholders({ operator: "[OPERATOR NAME]", country: "Brazil" })).toEqual(["operator"]);
   });
 });
 

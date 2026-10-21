@@ -18,7 +18,9 @@ const productionSchema = z.object({
   R2_ACCESS_KEY_ID: nonEmpty,
   R2_SECRET_ACCESS_KEY: nonEmpty,
   R2_BUCKET_NAME: nonEmpty,
-  PADDLE_ENV: z.literal("production"),
+  // Sandbox is allowed so the site can go live before Paddle approves the live account
+  // (Paddle reviews the live website); startup logs a warning while it's on.
+  PADDLE_ENV: z.enum(["sandbox", "production"]),
   PADDLE_API_KEY: nonEmpty,
   NEXT_PUBLIC_PADDLE_CLIENT_TOKEN: nonEmpty,
   PADDLE_WEBHOOK_SECRET: nonEmpty,

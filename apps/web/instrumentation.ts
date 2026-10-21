@@ -11,4 +11,8 @@ export async function register() {
   if (problems.length > 0) {
     throw new Error(`Supertitle can't start: the production configuration is incomplete.\n  ${problems.join("\n  ")}`);
   }
+  if (process.env.PADDLE_ENV === "sandbox") {
+    // Same JSON-line shape as lib/log.ts (which is server-only and can't load here).
+    console.error(JSON.stringify({ time: new Date().toISOString(), level: "warn", event: "billing.paddle_sandbox", detail: "checkouts take test cards only" }));
+  }
 }

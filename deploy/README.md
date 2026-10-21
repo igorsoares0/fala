@@ -29,7 +29,7 @@ Create an **A record** for the domain (and `www` if you want it) pointing at the
 New resource → the GitHub repo (`main`) → build pack **Dockerfile**:
 - Base directory `/`, Dockerfile location `apps/web/Dockerfile`, port **3000**.
 - Domain: `https://usesupertitle.com` (Coolify/Traefik issues the certificate).
-- Health check: path `/api/health`, port 3000.
+- Health check: leave Coolify's own **disabled**. It probes with curl/wget, which the slim image doesn't have, so it would mark the app unhealthy; the Dockerfile's `HEALTHCHECK` (node fetching `/api/health`) already covers it.
 - **Pre-deployment command** (runs in the new image before it takes traffic):
   ```sh
   sh -c 'cd /migrate && DATABASE_URL="$DIRECT_DATABASE_URL" npx prisma migrate deploy'
@@ -37,7 +37,7 @@ New resource → the GitHub repo (`main`) → build pack **Dockerfile**:
 - **Environment variables** — everything in the root `.env.example`, with production values:
   - `NODE_ENV=production`, `BETTER_AUTH_URL` and `APP_URL` = `https://usesupertitle.com`, a new `BETTER_AUTH_SECRET` (`openssl rand -base64 32`);
   - `DATABASE_URL`, `DIRECT_DATABASE_URL`, `R2_*`;
-  - `PADDLE_ENV=production` and the production Paddle keys and prices (step 7);
+  - `PADDLE_ENV=production` and the production Paddle keys and prices (step 7). Until Paddle approves the live account, use `PADDLE_ENV=sandbox` with the sandbox keys and prices (the log warns `billing.paddle_sandbox` at startup);
   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`, `HEALTH_TOKEN`;
   - the client IP for the sign-in rate limit: nothing with Traefik alone (it sends a single `X-Forwarded-For`). With the Cloudflare proxy on (orange cloud), set `AUTH_IP_HEADER=cf-connecting-ip`, and only then: that header is safe only when the server accepts web traffic from Cloudflare's IPs alone (Hetzner firewall). For a longer proxy chain, list the proxies in `AUTH_TRUSTED_PROXIES` (comma-separated CIDRs).
     After the first deploy, sign in once and search the web log for `could not determine a client IP`: if it's there, every visitor shares one rate-limit bucket and a few bad attempts lock everyone out — fix the setting above.
