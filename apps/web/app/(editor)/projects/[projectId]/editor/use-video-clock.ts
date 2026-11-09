@@ -5,6 +5,9 @@ import { useEditorStore } from "./editor-store";
  * Mirrors the <video> clock into the store: every animation frame while playing,
  * and on seek/pause/end otherwise. Captions never run on a timer of their own
  * (spec §9.3), so pausing, seeking and speed changes can't drift.
+ *
+ * Playback also stops here at the end of a trimmed video: the element knows nothing
+ * about the trim, so it would play on into the part the export leaves out.
  */
 export function useVideoClock(video: HTMLVideoElement | null) {
   const store = useEditorStore();
@@ -17,6 +20,13 @@ export function useVideoClock(video: HTMLVideoElement | null) {
     let frame = 0;
     const read = () => setClock(Math.round(video.currentTime * 1000));
     const tick = () => {
+      const { trim, durationMs } = store.getState();
+      // An untrimmed end is left to the element, which knows its real length better than we do.
+      if (trim.endMs < durationMs && video.currentTime * 1000 >= trim.endMs) {
+        video.pause();
+        video.currentTime = trim.endMs / 1000;
+        return;
+      }
       read();
       frame = requestAnimationFrame(tick);
     };

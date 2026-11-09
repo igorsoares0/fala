@@ -10,6 +10,7 @@ export * from "./segment";
 export * from "./caption-edits";
 export * from "./caption-render";
 export * from "./caption-timeline";
+export * from "./trim";
 export * from "./export";
 export * from "./plans";
 export * from "./email";

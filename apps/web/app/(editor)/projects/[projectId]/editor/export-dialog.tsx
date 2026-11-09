@@ -8,7 +8,9 @@ import {
   formatTimecode,
   isActiveExport,
   isPresetModified,
+  overlapsTrim,
   PRESETS,
+  trimLengthMs,
   type ExportResolution,
 } from "@fala/shared";
 import { accentButton, outlineButton, smallCreamButton } from "@/components/ui";
@@ -98,8 +100,9 @@ function ConfigStage({
   const { start, maxResolution } = useExports();
   const presetKey = useEditor((state) => state.presetKey);
   const styleConfig = useEditor((state) => state.styleConfig);
-  const blocks = useEditor((state) => state.track.blocks.length);
-  const durationMs = useEditor((state) => state.durationMs);
+  // Only what the trim keeps is rendered.
+  const blocks = useEditor((state) => state.track.blocks.filter((block) => overlapsTrim(block, state.trim)).length);
+  const durationMs = useEditor((state) => trimLengthMs(state.trim));
   const options = resolutionOptions(width, height, maxResolution);
   const [resolution, setResolution] = useState<ExportResolution>(options.findLast((option) => option.disabled === null)?.value ?? 720);
   const [busy, setBusy] = useState<"saving" | null>(null);

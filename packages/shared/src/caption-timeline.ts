@@ -33,7 +33,17 @@ type Change = { atMs: number; state: OverlayState | null; previousIndex?: number
 export function captionFrames(
   track: Pick<CaptionTrack, "words" | "blocks">,
   style: CaptionStyle,
-  { durationMs, fps = OVERLAY_TRANSITION_FPS }: { durationMs: number; fps?: number },
+  {
+    durationMs,
+    fromMs = 0,
+    fps = OVERLAY_TRANSITION_FPS,
+  }: {
+    /** Where the timeline ends, in source time: the video's length, or the trim's end. */
+    durationMs: number;
+    /** Where it starts, in source time (the trim's start). Frames come back re-based, so this moment is 0. */
+    fromMs?: number;
+    fps?: number;
+  },
 ): OverlayFrame[] {
   // 1. Every moment the picture changes: a block appears or ends, or the spoken word moves on.
   const changes: Change[] = [];
@@ -81,5 +91,10 @@ export function captionFrames(
     if (result.length > 0 && overlayStateKey(result.at(-1)!.state) === overlayStateKey(frame.state)) continue;
     result.push(frame);
   }
-  return result;
+  if (fromMs <= 0) return result;
+
+  // 4. A trimmed start: the picture showing at `fromMs` opens the timeline, and everything shifts to start at 0.
+  let first = 0;
+  while (first + 1 < result.length && result[first + 1].startMs <= fromMs) first++;
+  return result.slice(first).map((frame) => ({ ...frame, startMs: Math.max(0, frame.startMs - fromMs) }));
 }

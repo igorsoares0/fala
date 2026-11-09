@@ -6,6 +6,7 @@ import {
   exportErrorRef,
   exportFileName,
   exportSnapshotSchema,
+  isTrimmed,
   type ExportResolution,
   type ExportStatus,
 } from "@fala/shared";
@@ -13,6 +14,7 @@ import { getStorage } from "@fala/storage";
 import { ACTIVE_NOW } from "./activity";
 import { RATE_LIMITED, takeToken } from "./rate-limit";
 import { parseProjectStyle } from "./style";
+import { parseProjectTrim } from "./trim";
 
 export const SOURCE_REMOVED = "The original video was removed after 90 days without activity, so this project can't be exported again. Its captions are kept.";
 
@@ -83,7 +85,7 @@ export type CreateExportResult =
   | { ok: false; status: 403 | 404 | 409 | 429; error: string; reason?: "not-ready" | "unsaved" | "plan" | "busy" | "rate-limited" };
 
 /**
- * Freezes the project's current captions and style and queues the render.
+ * Freezes the project's current captions, style and trim and queues the render.
  * `captionVersion` is the caption version the editor has saved: if the server has
  * a different one, the snapshot wouldn't be what the user is looking at.
  * While a render is queued or running, asking again returns that one.
@@ -102,6 +104,8 @@ export async function createExport(
       width: true,
       height: true,
       durationMs: true,
+      trimStartMs: true,
+      trimEndMs: true,
       captionTrack: { select: { language: true, words: true, blocks: true, version: true } },
       style: { select: { presetKey: true, configuration: true } },
     },
@@ -130,6 +134,7 @@ export async function createExport(
   }
 
   const style = parseProjectStyle(project.style);
+  const trim = parseProjectTrim(project, durationMs);
   const snapshot = exportSnapshotSchema.parse({
     sourceObjectKey,
     captionVersion,
@@ -139,6 +144,8 @@ export async function createExport(
     width,
     height,
     durationMs,
+    // Untrimmed projects render exactly as before: no `trim` at all.
+    ...(isTrimmed(trim, durationMs) ? { trim } : {}),
   });
 
   try {

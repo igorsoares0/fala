@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { captionTrackSchema } from "./captions";
 import { captionStyleSchema, presetKeySchema } from "./style";
+import { trimSchema } from "./trim";
 
 /** Export resolutions offered to the user: the output's short side in px (720p, 1080p). */
 export const EXPORT_RESOLUTIONS = [720, 1080] as const;
@@ -40,6 +41,8 @@ export const exportSnapshotSchema = z.object({
   width: z.int().min(1),
   height: z.int().min(1),
   durationMs: z.int().min(1),
+  /** The part of the source to render, in source time. Absent: the whole video. */
+  trim: trimSchema.optional(),
 });
 
 export type ExportSnapshot = z.infer<typeof exportSnapshotSchema>;

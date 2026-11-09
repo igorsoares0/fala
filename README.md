@@ -58,6 +58,10 @@ Google sign-in is optional locally: set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECR
 - **Prisma lives in `packages/db`** (not a root `prisma/`), so web and worker import the same generated client.
 - **Captions are one JSON document per project (`CaptionTrack`: `words` + `blocks`) instead of a `CaptionBlock` table.** The editor works on word timings plus blocks as word-index ranges, edits and undoes them as a whole, and "Words per block" re-segments every block, so each save rewrites the set anyway. The document is validated with `captionTrackSchema` on read and write, and `version` guards concurrent saves. The provider's original output stays untouched in `Transcript`.
 
+## Trim
+
+The editor can cut the start and the end of a video (no cuts in the middle). It's non-destructive: the project stores `trimStartMs` / `trimEndMs` in source time (both null = the whole video), and the original file, the transcript and the captions never change. The preview plays only the kept range, and an export freezes the trim in its snapshot: FFmpeg seeks with `-ss`/`-t` and the caption overlay is re-based to start at zero (`captionFrames` with `fromMs`). Trimming doesn't change usage: minutes are counted when the whole upload is transcribed.
+
 ## Uploads and processing
 
 1. The browser creates the project, then asks `POST /api/projects/:id/uploads/presign` for a 15-minute URL signed for that object key and Content-Type.

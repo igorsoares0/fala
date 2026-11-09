@@ -1,3 +1,4 @@
+import { trimLengthMs, type Trim } from "@fala/shared";
 import { runCommand } from "./run";
 import type { Band } from "./overlay";
 
@@ -14,6 +15,7 @@ export async function encodeExport({
   width,
   height,
   durationMs,
+  trim,
   outputPath,
   signal,
   onProgress,
@@ -24,14 +26,17 @@ export async function encodeExport({
   band: Band;
   width: number;
   height: number;
+  /** Length of the output: the trimmed range when there's one, else the whole source. */
   durationMs: number;
+  /** The part of the source to keep. Absent: all of it. */
+  trim?: Trim;
   outputPath: string;
   signal?: AbortSignal;
   /** Fraction of the video encoded, 0–1. */
   onProgress?: (fraction: number) => void;
 }) {
   let pending = "";
-  await runCommand(ffmpegPath, encodeArgs({ sourcePath, overlayListPath, band, width, height, outputPath }), {
+  await runCommand(ffmpegPath, encodeArgs({ sourcePath, overlayListPath, band, width, height, trim, outputPath }), {
     timeoutMs: renderTimeoutMs(durationMs),
     signal,
     onStdout: (chunk) => {
@@ -57,6 +62,7 @@ export function encodeArgs({
   band,
   width,
   height,
+  trim,
   outputPath,
 }: {
   sourcePath: string;
@@ -64,8 +70,12 @@ export function encodeArgs({
   band: Band;
   width: number;
   height: number;
+  trim?: Trim;
   outputPath: string;
 }): string[] {
+  // Before `-i`, so FFmpeg seeks in the source and the output's clock starts at 0, where the
+  // overlay's does. Re-encoding makes the cut frame-accurate, for video and audio alike.
+  const range = trim ? ["-ss", seconds(trim.startMs), "-t", seconds(trimLengthMs(trim))] : [];
   const filter = [
     // The source is auto-rotated on input, so width × height are display dimensions.
     `[0:v]scale=${width}:${height}:flags=lanczos,setsar=1[base]`,
@@ -79,6 +89,7 @@ export function encodeArgs({
     "-progress",
     "pipe:1",
     "-nostats",
+    ...range,
     "-i",
     sourcePath,
     "-f",
@@ -111,3 +122,5 @@ export function encodeArgs({
     outputPath,
   ];
 }
+
+const seconds = (ms: number) => (ms / 1000).toFixed(3);

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, memo, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, memo, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import {
   activeBlockIndex,
   activeWordIndex,
@@ -10,9 +10,11 @@ import {
   formatTimecode,
   isNoSpaceLanguage,
   NUDGE_STEP_MS,
+  overlapsTrim,
   type CaptionBlock,
   type CaptionTrack,
   type TranscriptWord,
+  type Trim,
 } from "@fala/shared";
 import { useEditor, useEditorStore } from "./editor-store";
 import { FindReplace } from "./find-replace";
@@ -24,6 +26,8 @@ import { FindReplace } from "./find-replace";
  */
 export function CaptionsPanel({ className = "" }: { className?: string }) {
   const track = useEditor((state) => state.track);
+  // Dragging a trim handle changes every row's timecode: let the list catch up between pointer moves.
+  const trim = useDeferredValue(useEditor((state) => state.trim));
   // A number, not the clock: the list re-renders when the active block changes, not on every video frame.
   const active = useEditor((state) => activeBlockIndex(state.track.blocks, state.timeMs));
   const selectedId = useEditor((state) => state.selectedId);
@@ -83,6 +87,7 @@ export function CaptionsPanel({ className = "" }: { className?: string }) {
             key={block.id}
             track={track}
             block={block}
+            trim={trim}
             isActive={index === active}
             isSelected={block.id === selectedId}
             isEditing={block.id === editingId}
@@ -107,6 +112,8 @@ const nudgeButton =
 type BlockRowProps = {
   track: CaptionTrack;
   block: CaptionBlock;
+  /** The part of the video the export keeps: timecodes count from its start. */
+  trim: Trim;
   isActive: boolean;
   isSelected: boolean;
   isEditing: boolean;
@@ -122,6 +129,7 @@ type BlockRowProps = {
 function sameRow(previous: BlockRowProps, next: BlockRowProps) {
   if (
     previous.block !== next.block ||
+    previous.trim !== next.trim ||
     previous.isActive !== next.isActive ||
     previous.isSelected !== next.isSelected ||
     previous.isEditing !== next.isEditing ||
@@ -143,12 +151,16 @@ function sameRow(previous: BlockRowProps, next: BlockRowProps) {
  * per-row subscriptions alone would cost more than a video frame. Only the active
  * row follows the clock (for the karaoke), through <SpokenWords>.
  */
-const BlockRow = memo(function BlockRow({ track, block, isActive, isSelected, isEditing, isLast, matched, rowRef }: BlockRowProps) {
+const BlockRow = memo(function BlockRow({ track, block, trim, isActive, isSelected, isEditing, isLast, matched, rowRef }: BlockRowProps) {
   const store = useEditorStore();
   const words = blockWords(track, block);
   const joiner = isNoSpaceLanguage(track.language) ? "" : " ";
   const flag = blockFlag(track, block);
   const editor = () => store.getState();
+  // Trimmed away entirely: it stays editable (the trim can be undone) but won't be in the video.
+  const isCut = !overlapsTrim(block, trim);
+  /** Source time as time in the finished video. */
+  const inVideo = (ms: number) => Math.min(trim.endMs, Math.max(trim.startMs, ms)) - trim.startMs;
 
   function choose() {
     editor().select(block.id);
@@ -164,8 +176,9 @@ const BlockRow = memo(function BlockRow({ track, block, isActive, isSelected, is
       aria-current={isActive ? "true" : undefined}
       data-selected={isSelected || undefined}
       data-testid="caption-block"
+      data-cut={isCut || undefined}
       // Off-screen rows skip layout and paint: long videos have thousands of blocks.
-      className={`flex cursor-pointer flex-col gap-1.5 rounded-[10px] border px-3.5 pt-3 pb-3.5 transition-colors [contain-intrinsic-size:auto_84px] [content-visibility:auto] ${
+      className={`flex cursor-pointer flex-col gap-1.5 rounded-[10px] border px-3.5 pt-3 pb-3.5 transition-colors [contain-intrinsic-size:auto_84px] [content-visibility:auto] ${isCut ? "opacity-45" : ""} ${
         isSelected ? "border-[rgba(236,230,218,.16)] bg-panel-2" : isActive ? "border-transparent bg-panel-1" : "border-transparent hover:bg-panel-1"
       }`}
     >
@@ -176,10 +189,10 @@ const BlockRow = memo(function BlockRow({ track, block, isActive, isSelected, is
             event.stopPropagation();
             choose();
           }}
-          aria-label={`Play from ${formatTimecode(block.startMs)}`}
+          aria-label={isCut ? "Trimmed out of the video" : `Play from ${formatTimecode(inVideo(block.startMs))}`}
           className={`font-mono text-[11.5px] tabular-nums ${isActive ? "text-accent" : "text-muted"}`}
         >
-          {formatTimecode(block.startMs)} → {formatTimecode(block.endMs)}
+          {isCut ? "trimmed out" : `${formatTimecode(inVideo(block.startMs))} → ${formatTimecode(inVideo(block.endMs))}`}
         </button>
         {flag && (
           <span className="inline-flex items-center gap-1.5 font-mono text-[10.5px] text-warning">

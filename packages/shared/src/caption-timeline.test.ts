@@ -80,4 +80,42 @@ describe("captionFrames", () => {
     expect(frames[1].startMs).toBe(300);
     expect(frames.every((frame) => frame.startMs < 1800)).toBe(true);
   });
+
+  it("re-bases a trimmed range to start at zero, opening with the picture that was showing", () => {
+    // Kept: 700–2100 of the source. "b" is already spoken at the cut; "d" starts 100 ms before the end.
+    const frames = captionFrames(track, still, { fromMs: 700, durationMs: 2100 });
+    expect(frames.map((frame) => [frame.startMs, overlayStateKey(frame.state)])).toEqual([
+      [0, "0:1"],
+      [300, "empty"],
+      [800, "1:0"],
+      [1300, "1:1"],
+    ]);
+  });
+
+  it("shows in a trimmed range exactly what the preview shows at the same source time", () => {
+    const fromMs = 450;
+    const frames = captionFrames(track, still, { fromMs, durationMs: 2200 });
+    expect(frames[0].startMs).toBe(0);
+    for (let timeMs = fromMs; timeMs < 2200; timeMs += 50) {
+      const block = activeBlockIndex(track.blocks, timeMs);
+      const state = at(frames, timeMs - fromMs).state;
+      if (block < 0) expect(state).toBeNull();
+      else expect(state).toEqual({ blockIndex: block, activeIndex: activeWordIndex(track.words, track.blocks[block], timeMs) });
+    }
+  });
+
+  it("keeps a pop that the cut lands in the middle of", () => {
+    // "b" pops from 500 to 620; the cut at 560 opens on an in-between picture.
+    const frames = captionFrames(track, pop, { fromMs: 560, durationMs, fps: 30 });
+    expect(frames[0].startMs).toBe(0);
+    expect(frames[0].state).toMatchObject({ blockIndex: 0, activeIndex: 1, transition: { previousIndex: 0 } });
+    expect(frames.map((frame) => frame.startMs)).toEqual([...frames.map((frame) => frame.startMs)].sort((a, b) => a - b));
+    expect(at(frames, 620 - 560).state).toEqual({ blockIndex: 0, activeIndex: 1 });
+  });
+
+  it("opens empty when the cut lands in a gap", () => {
+    const frames = captionFrames(track, still, { fromMs: 1200, durationMs });
+    expect(frames[0]).toEqual({ startMs: 0, state: null });
+    expect(frames[1]).toMatchObject({ startMs: 300, state: { blockIndex: 1, activeIndex: 0 } });
+  });
 });

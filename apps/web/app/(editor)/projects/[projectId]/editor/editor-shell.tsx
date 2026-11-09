@@ -63,8 +63,8 @@ export function EditorShell({ name, width, height, posterSrc, exports, maxResolu
 function useRestoreDraft() {
   const store = useEditorStore();
   useEffect(() => {
-    const { projectId, version, restoreDraft } = store.getState();
-    const draft = readDraft(projectId, version);
+    const { projectId, version, trim, durationMs, restoreDraft } = store.getState();
+    const draft = readDraft(projectId, version, { trim, durationMs });
     if (draft) restoreDraft(draft);
   }, [store]);
 }

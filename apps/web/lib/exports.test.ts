@@ -4,6 +4,7 @@ import { db } from "@fala/db";
 import { editBlockText, exportSnapshotSchema, type CaptionTrack } from "@fala/shared";
 import { saveCaptions } from "./captions";
 import { createExport, exportDownloadUrl, getExport, listExports, retryExport } from "./exports";
+import { saveTrim } from "./trim";
 
 const owner = { id: `test-exp-owner-${randomUUID()}`, name: "Owner", email: `exp-owner-${randomUUID()}@test.local` };
 const intruder = { id: `test-exp-intruder-${randomUUID()}`, name: "Intruder", email: `exp-intruder-${randomUUID()}@test.local` };
@@ -69,6 +70,28 @@ describe("createExport", () => {
     await saveCaptions(owner.id, id, { baseVersion: 1, ...editBlockText(track, 0, "Changed after render") });
     const after = await db.export.findUniqueOrThrow({ where: { id: row.id } });
     expect(exportSnapshotSchema.parse(after.snapshot).track).toEqual(track);
+  });
+
+  it("freezes the trim too, and leaves it out when the whole video is kept", async () => {
+    const id = await readyProject();
+    const whole = await render(owner.id, id);
+    if (!whole.ok) throw new Error("not created");
+    const wholeRow = await db.export.findUniqueOrThrow({ where: { id: whole.export.id } });
+    expect(exportSnapshotSchema.parse(wholeRow.snapshot).trim).toBeUndefined();
+    await db.export.update({ where: { id: whole.export.id }, data: { status: "SUCCEEDED" } });
+
+    // The fixture's video is exactly as long as the shortest trim allowed: use a longer one.
+    await db.project.update({ where: { id }, data: { durationMs: 5000 } });
+    expect(await saveTrim(owner.id, id, { startMs: 1200, endMs: 4000 })).toMatchObject({ ok: true });
+    const trimmed = await render(owner.id, id);
+    if (!trimmed.ok) throw new Error("not created");
+    const row = await db.export.findUniqueOrThrow({ where: { id: trimmed.export.id } });
+    expect(exportSnapshotSchema.parse(row.snapshot)).toMatchObject({ durationMs: 5000, trim: { startMs: 1200, endMs: 4000 } });
+
+    // Trimming afterwards doesn't touch the frozen snapshot.
+    await saveTrim(owner.id, id, { startMs: 0, endMs: 2000 });
+    const after = await db.export.findUniqueOrThrow({ where: { id: row.id } });
+    expect(exportSnapshotSchema.parse(after.snapshot).trim).toEqual({ startMs: 1200, endMs: 4000 });
   });
 
   it("is owner-only and needs a READY project", async () => {

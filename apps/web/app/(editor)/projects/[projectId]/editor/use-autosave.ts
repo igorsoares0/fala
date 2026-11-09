@@ -1,12 +1,13 @@
 import { useEffect } from "react";
-import { captionTrackSchema, projectStyleInputSchema, type CaptionTrack } from "@fala/shared";
+import { captionTrackSchema, clampTrim, projectStyleInputSchema, trimSchema, type CaptionTrack, type Trim } from "@fala/shared";
 import { saveCaptionsAction } from "@/lib/caption-actions";
 import { useSaveStatus, type SaveEntry, type SaveSource } from "@/lib/save-status";
 import { saveProjectStyleAction } from "@/lib/style-actions";
+import { saveTrimAction } from "@/lib/trim-actions";
 import { useEditorStore, type EditorDocument, type EditorState, type EditorStore } from "./editor-store";
 
 /**
- * Autosave (handoff "Autosave", FR-07). Two channels — style and captions — each
+ * Autosave (handoff "Autosave", FR-07). Three channels — style, captions and trim — each
  * debounced and serialized: one request in flight, and whatever changed meanwhile is
  * sent next, so an older save never lands last.
  *
@@ -17,6 +18,7 @@ import { useEditorStore, type EditorDocument, type EditorState, type EditorStore
 
 const STYLE_DEBOUNCE_MS = 600;
 const CAPTIONS_DEBOUNCE_MS = 900;
+const TRIM_DEBOUNCE_MS = 600;
 const MAX_RETRY_DELAY_MS = 30_000;
 /** How long an export waits for pending edits to reach the server. */
 const FLUSH_TIMEOUT_MS = 20_000;
@@ -164,12 +166,19 @@ function sameCaptions(a: Pick<CaptionTrack, "words" | "blocks">, b: Pick<Caption
 
 // ---- Drafts in localStorage ------------------------------------------------------------
 
-type Draft = EditorDocument & { baseVersion: number };
+/** `trim` is missing in drafts written before trimming existed. */
+type Draft = Omit<EditorDocument, "trim"> & { trim?: Trim; baseVersion: number };
 
 const draftKey = (projectId: string) => `fala:editor-draft:${projectId}`;
 
 function writeDraft(state: EditorState) {
-  const draft: Draft = { baseVersion: state.version, track: state.track, presetKey: state.presetKey, styleConfig: state.styleConfig };
+  const draft: Draft = {
+    baseVersion: state.version,
+    track: state.track,
+    presetKey: state.presetKey,
+    styleConfig: state.styleConfig,
+    trim: state.trim,
+  };
   try {
     localStorage.setItem(draftKey(state.projectId), JSON.stringify(draft));
   } catch {
@@ -183,8 +192,15 @@ function clearDraft(projectId: string) {
   } catch {}
 }
 
-/** A draft saved on top of the version the server still has, or null (missing, invalid or outdated). */
-export function readDraft(projectId: string, serverVersion: number): EditorDocument | null {
+/**
+ * A draft saved on top of the version the server still has, or null (missing, invalid or
+ * outdated). `current` is the trim the server has, kept when the draft carries none.
+ */
+export function readDraft(
+  projectId: string,
+  serverVersion: number,
+  current: { trim: Trim; durationMs: number },
+): EditorDocument | null {
   let raw: unknown;
   try {
     raw = JSON.parse(localStorage.getItem(draftKey(projectId)) ?? "null");
@@ -198,7 +214,13 @@ export function readDraft(projectId: string, serverVersion: number): EditorDocum
     clearDraft(projectId);
     return null;
   }
-  return { track: track.data, presetKey: style.data.presetKey, styleConfig: style.data.style };
+  const trim = trimSchema.safeParse(draft.trim);
+  return {
+    track: track.data,
+    presetKey: style.data.presetKey,
+    styleConfig: style.data.style,
+    trim: trim.success ? clampTrim(trim.data, current.durationMs) : current.trim,
+  };
 }
 
 // ---- The hook ------------------------------------------------------------------------------
@@ -246,21 +268,35 @@ export function useAutosave() {
       },
     });
 
+    const trim: Channel = createChannel({
+      source: "trim",
+      debounceMs: TRIM_DEBOUNCE_MS,
+      report,
+      onSettled: () => settle(),
+      snapshot: () => [state().trim],
+      send: async () => {
+        const { projectId, trim: range } = state();
+        const result = await saveTrimAction(projectId, range);
+        return result.ok ? { kind: "saved" } : { kind: "error", message: result.error };
+      },
+    });
+
+    const channels = [style, captions, trim];
+
     /** Keep the local draft in step: gone once everything is saved, current otherwise. */
     function settle() {
-      if (style.isDirty() || captions.isDirty()) writeDraft(state());
+      if (channels.some((channel) => channel.isDirty())) writeDraft(state());
       else clearDraft(state().projectId);
     }
 
     // Before an export freezes the project: send everything now and wait for the server to have it.
     store.setState({
       flushSaves: async () => {
-        style.flushNow();
-        captions.flushNow();
+        for (const channel of channels) channel.flushNow();
         const deadline = Date.now() + FLUSH_TIMEOUT_MS;
         while (Date.now() < deadline) {
-          if (style.isStuck() || captions.isStuck()) return false;
-          if (!style.isDirty() && !captions.isDirty()) return true;
+          if (channels.some((channel) => channel.isStuck())) return false;
+          if (!channels.some((channel) => channel.isDirty())) return true;
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
         return false;
@@ -270,9 +306,11 @@ export function useAutosave() {
     const unsubscribe = (store as EditorStore).subscribe((next, previous) => {
       const trackChanged = next.track !== previous.track;
       const styleChanged = next.presetKey !== previous.presetKey || next.styleConfig !== previous.styleConfig;
+      const trimChanged = next.trim !== previous.trim;
       if (trackChanged) captions.schedule();
       if (styleChanged) style.schedule();
-      if (trackChanged || styleChanged) writeDraft(next);
+      if (trimChanged) trim.schedule();
+      if (trackChanged || styleChanged || trimChanged) writeDraft(next);
     });
 
     // Leaving with unsynced work: let the browser ask (the draft survives either way).
@@ -287,10 +325,10 @@ export function useAutosave() {
       store.setState({ flushSaves: async () => true });
       window.removeEventListener("beforeunload", onBeforeUnload);
       // Navigating away inside the app with a change still waiting: send it now.
-      if (style.isDirty()) style.flushNow();
-      if (captions.isDirty()) captions.flushNow();
-      style.dispose();
-      captions.dispose();
+      for (const channel of channels) {
+        if (channel.isDirty()) channel.flushNow();
+        channel.dispose();
+      }
     };
   }, [store, report]);
 }

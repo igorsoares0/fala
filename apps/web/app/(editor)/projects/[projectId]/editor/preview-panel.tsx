@@ -5,6 +5,7 @@ import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
 import { activeBlockIndex, activeWordIndex, blockWords, formatTimecode } from "@fala/shared";
 import { CaptionSample } from "@/components/caption-sample";
 import { useEditor } from "./editor-store";
+import { TrimHandles, TrimSummary, TrimToggle } from "./trim-controls";
 import { useVideoClock } from "./use-video-clock";
 
 /** Video with the caption overlay, the playback bar and the transport controls (handoff §3, preview column). */
@@ -22,11 +23,14 @@ export function PreviewPanel({
   const projectId = useEditor((state) => state.projectId);
   const togglePlay = useEditor((state) => state.togglePlay);
   const playing = useEditor((state) => state.playing);
-  const atStart = useEditor((state) => state.timeMs === 0);
+  const atStart = useEditor((state) => state.timeMs <= state.trim.startMs);
+  const trimMode = useEditor((state) => state.trimMode);
   const [video, setVideo] = useState<HTMLVideoElement | null>(null);
   useVideoClock(video);
 
   const aspect = width && height ? width / height : 9 / 16;
+  // Trimming adds a row under the bar: the frame gives up that much height.
+  const frame = frameWidth(aspect, trimMode ? 250 : 210);
 
   return (
     <section
@@ -34,12 +38,15 @@ export function PreviewPanel({
       aria-label="Preview"
     >
       <div className="flex w-full max-w-[440px] flex-col items-center gap-3">
-        <span className="w-full truncate font-mono text-[11px] text-muted" style={{ maxWidth: frameWidth(aspect) }}>
-          YOUR VIDEO · {width}×{height}
-        </span>
+        <div className="flex w-full items-center justify-between gap-3 font-mono text-[11px] text-muted" style={{ maxWidth: frame }}>
+          <span className="truncate">
+            YOUR VIDEO · {width}×{height}
+          </span>
+          <TrimToggle />
+        </div>
         <div
           className="relative overflow-hidden rounded-[14px] bg-black shadow-thumb [container-type:inline-size]"
-          style={{ aspectRatio: aspect, width: frameWidth(aspect) }}
+          style={{ aspectRatio: aspect, width: frame }}
           onClick={togglePlay}
           data-testid="preview-frame"
         >
@@ -64,6 +71,7 @@ export function PreviewPanel({
         </div>
         <div className="flex w-full flex-col gap-3">
           <PlaybackBar />
+          {trimMode && <TrimSummary />}
           <Controls />
         </div>
       </div>
@@ -71,9 +79,20 @@ export function PreviewPanel({
   );
 }
 
-/** The frame fills the column but never makes the editor scroll: 210px leaves room for the label and controls. */
-function frameWidth(aspect: number) {
-  return `min(100%, calc((var(--preview-height, 100vh) - 210px) * ${aspect}))`;
+/** The frame fills the column but never makes the editor scroll: `reservedPx` leaves room for the label and controls. */
+function frameWidth(aspect: number, reservedPx: number) {
+  return `min(100%, calc((var(--preview-height, 100vh) - ${reservedPx}px) * ${aspect}))`;
+}
+
+/**
+ * The stretch of source time the playback bar spans: the part the export keeps — so the
+ * bar reads like the finished video — or the whole video while trimming.
+ */
+function usePlaybackWindow() {
+  const durationMs = useEditor((state) => state.durationMs);
+  const trim = useEditor((state) => state.trim);
+  const trimMode = useEditor((state) => state.trimMode);
+  return trimMode ? { fromMs: 0, toMs: durationMs } : { fromMs: trim.startMs, toMs: trim.endMs };
 }
 
 /** The active block's words over the video, styled by the shared caption contract. */
@@ -97,59 +116,79 @@ function CaptionOverlay() {
   );
 }
 
-/** Not an edit timeline: a seek bar with a tick at every block start. */
+/** Not an edit timeline: a seek bar with a tick at every block start, and the trim handles while trimming. */
 function PlaybackBar() {
-  const durationMs = useEditor((state) => state.durationMs);
+  const { fromMs, toMs } = usePlaybackWindow();
+  const trim = useEditor((state) => state.trim);
+  const trimMode = useEditor((state) => state.trimMode);
   const timeMs = useEditor((state) => state.timeMs);
   const seek = useEditor((state) => state.seek);
   const trackRef = useRef<HTMLDivElement>(null);
-  const progress = Math.min(timeMs, durationMs) / durationMs;
+  const spanMs = toMs - fromMs;
+  const elapsedMs = Math.min(spanMs, Math.max(0, timeMs - fromMs));
+  const progress = elapsedMs / spanMs;
+  // While trimming the bar spans the whole video, and the kept part sits somewhere inside it.
+  const keptFrom = (trim.startMs - fromMs) / spanMs;
+  const keptTo = (trim.endMs - fromMs) / spanMs;
 
   function seekToPointer(event: PointerEvent<HTMLDivElement>) {
     const rect = trackRef.current?.getBoundingClientRect();
     if (!rect) return;
-    seek(((event.clientX - rect.left) / rect.width) * durationMs);
+    seek(fromMs + ((event.clientX - rect.left) / rect.width) * spanMs);
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     const step = event.shiftKey ? 5000 : 1000;
     if (event.key === "ArrowLeft") seek(timeMs - step);
     else if (event.key === "ArrowRight") seek(timeMs + step);
-    else if (event.key === "Home") seek(0);
-    else if (event.key === "End") seek(durationMs);
+    else if (event.key === "Home") seek(fromMs);
+    else if (event.key === "End") seek(toMs);
     else return;
     event.preventDefault();
   }
 
   return (
-    <div
-      ref={trackRef}
-      role="slider"
-      tabIndex={0}
-      aria-label="Playback position"
-      aria-valuemin={0}
-      aria-valuemax={durationMs}
-      aria-valuenow={timeMs}
-      aria-valuetext={`${formatTimecode(timeMs)} of ${formatTimecode(durationMs)}`}
-      onPointerDown={(event) => {
-        event.currentTarget.setPointerCapture(event.pointerId);
-        seekToPointer(event);
-      }}
-      onPointerMove={(event) => {
-        if (event.currentTarget.hasPointerCapture(event.pointerId)) seekToPointer(event);
-      }}
-      onKeyDown={onKeyDown}
-      className="group relative flex h-4 cursor-pointer touch-none items-center rounded"
-    >
-      <div className="relative h-1 w-full rounded-full bg-[rgba(236,230,218,.15)]">
-        {/* Fill and playhead move with transforms, which need no layout: in a long video's
-            editor, a layout on every frame would cost more than the frame itself. */}
-        <div className="absolute inset-0 origin-left rounded-full bg-text" style={{ transform: `scaleX(${progress})` }} />
-        <BlockTicks />
+    <div className="relative">
+      <div
+        ref={trackRef}
+        role="slider"
+        tabIndex={0}
+        aria-label="Playback position"
+        aria-valuemin={0}
+        aria-valuemax={spanMs}
+        aria-valuenow={elapsedMs}
+        aria-valuetext={`${formatTimecode(elapsedMs)} of ${formatTimecode(spanMs)}`}
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          seekToPointer(event);
+        }}
+        onPointerMove={(event) => {
+          if (event.currentTarget.hasPointerCapture(event.pointerId)) seekToPointer(event);
+        }}
+        onKeyDown={onKeyDown}
+        className="group relative flex h-4 cursor-pointer touch-none items-center rounded"
+      >
+        <div className="relative h-1 w-full rounded-full bg-[rgba(236,230,218,.15)]">
+          {trimMode && (
+            <div
+              data-testid="trim-kept"
+              className="absolute inset-y-0 rounded-full bg-[rgba(236,230,218,.3)]"
+              style={{ left: `${keptFrom * 100}%`, right: `${(1 - keptTo) * 100}%` }}
+            />
+          )}
+          {/* Fill and playhead move with transforms, which need no layout: in a long video's
+              editor, a layout on every frame would cost more than the frame itself. */}
+          <div
+            className="absolute inset-0 origin-left rounded-full bg-text"
+            style={{ transform: `translateX(${keptFrom * 100}%) scaleX(${Math.max(0, progress - keptFrom)})` }}
+          />
+          <BlockTicks fromMs={fromMs} toMs={toMs} />
+        </div>
+        <span aria-hidden className="pointer-events-none absolute inset-x-0 top-1/2" style={{ transform: `translateX(${progress * 100}%)` }}>
+          <span className="absolute top-0 left-0 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-[0_0_0_3px_var(--color-ink)]" />
+        </span>
       </div>
-      <span aria-hidden className="pointer-events-none absolute inset-x-0 top-1/2" style={{ transform: `translateX(${progress * 100}%)` }}>
-        <span className="absolute top-0 left-0 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent shadow-[0_0_0_3px_var(--color-ink)]" />
-      </span>
+      {trimMode && <TrimHandles trackRef={trackRef} />}
     </div>
   );
 }
@@ -157,13 +196,12 @@ function PlaybackBar() {
 /**
  * A tick at every block start, drawn as one SVG path: a long video has thousands of
  * blocks, and as many elements here would weigh on every layout. Re-renders only when
- * the blocks or the active block change.
+ * the blocks, the active block or the bar's window change.
  */
-const BlockTicks = memo(function BlockTicks() {
-  const durationMs = useEditor((state) => state.durationMs);
+const BlockTicks = memo(function BlockTicks({ fromMs, toMs }: { fromMs: number; toMs: number }) {
   const blocks = useEditor((state) => state.track.blocks);
   const active = useEditor((state) => activeBlockIndex(state.track.blocks, state.timeMs));
-  const ticks = useMemo(() => blocks.map((block) => tickPath(block.startMs, durationMs)).join(""), [blocks, durationMs]);
+  const ticks = useMemo(() => blocks.map((block) => tickPath(block.startMs, fromMs, toMs)).join(""), [blocks, fromMs, toMs]);
   return (
     <svg
       aria-hidden
@@ -173,17 +211,18 @@ const BlockTicks = memo(function BlockTicks() {
     >
       <path d={ticks} stroke="rgba(236,230,218,.35)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
       {active >= 0 && (
-        <path d={tickPath(blocks[active].startMs, durationMs)} stroke="var(--color-accent)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
+        <path d={tickPath(blocks[active].startMs, fromMs, toMs)} stroke="var(--color-accent)" strokeWidth={1} vectorEffect="non-scaling-stroke" />
       )}
     </svg>
   );
 });
 
-/** A vertical tick at `ms`, in the 1000-wide viewBox of <BlockTicks>. */
-const tickPath = (ms: number, durationMs: number) => `M${((Math.min(ms, durationMs) / durationMs) * 1000).toFixed(2)} 0V8`;
+/** A vertical tick at `ms`, in the 1000-wide viewBox of <BlockTicks>; nothing for a block that starts outside the bar. */
+const tickPath = (ms: number, fromMs: number, toMs: number) =>
+  ms < fromMs || ms > toMs ? "" : `M${(((ms - fromMs) / (toMs - fromMs)) * 1000).toFixed(2)} 0V8`;
 
 function Controls() {
-  const durationMs = useEditor((state) => state.durationMs);
+  const { fromMs, toMs } = usePlaybackWindow();
   const timeMs = useEditor((state) => state.timeMs);
   const playing = useEditor((state) => state.playing);
   const rate = useEditor((state) => state.rate);
@@ -196,7 +235,7 @@ function Controls() {
   return (
     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
       <span className="font-mono text-xs whitespace-nowrap text-muted tabular-nums" data-testid="playback-time">
-        <span className="text-text">{formatTimecode(timeMs)}</span> / {formatTimecode(durationMs)}
+        <span className="text-text">{formatTimecode(Math.min(toMs, Math.max(fromMs, timeMs)) - fromMs)}</span> / {formatTimecode(toMs - fromMs)}
       </span>
       <div className="flex items-center gap-2">
         <button type="button" onClick={prevBlock} aria-label="Previous block" className={`${round} size-[34px] text-text hover:bg-panel-1`}>

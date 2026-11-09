@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db, enqueueJob, releaseUsage, type ExportStatus } from "@fala/db";
 import { ACTIVE_NOW } from "./activity";
 import { parseProjectStyle } from "./style";
+import { parseProjectTrim } from "./trim";
 
 /**
  * Project data access. Every function takes the owner's `userId` and scopes the
@@ -16,6 +17,8 @@ const projectSummarySelect = {
   status: true,
   errorCode: true,
   durationMs: true,
+  trimStartMs: true,
+  trimEndMs: true,
   width: true,
   height: true,
   thumbnailObjectKey: true,
@@ -53,7 +56,7 @@ function findProjects(userId: string) {
 const captionSampleSchema = z.array(z.string()).max(20);
 
 /** Object keys stay on the server; the UI only needs to know a thumbnail exists. */
-function toSummary({ thumbnailObjectKey, captionSample, style, exports, ...project }: ProjectRow) {
+function toSummary({ thumbnailObjectKey, captionSample, style, exports, trimStartMs, trimEndMs, ...project }: ProjectRow) {
   const sample = captionSampleSchema.safeParse(captionSample);
   return {
     ...project,
@@ -61,6 +64,8 @@ function toSummary({ thumbnailObjectKey, captionSample, style, exports, ...proje
     hasThumbnail: thumbnailObjectKey !== null,
     captionSample: sample.success && sample.data.length > 0 ? sample.data : null,
     style: parseProjectStyle(style),
+    /** The part of the video the export keeps; null until the video has a known length. */
+    trim: project.durationMs ? parseProjectTrim({ trimStartMs, trimEndMs }, project.durationMs) : null,
   };
 }
 

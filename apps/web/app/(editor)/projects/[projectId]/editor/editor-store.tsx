@@ -5,7 +5,10 @@ import { createStore, useStore, type StoreApi } from "zustand";
 import {
   activeBlockIndex,
   editBlockText,
+  fullTrim,
+  isTrimmed,
   mergeWithNext,
+  moveTrimEdge,
   nudgeBlock,
   PRESETS,
   replaceMatches,
@@ -15,6 +18,8 @@ import {
   type CaptionTrack,
   type PresetKey,
   type ProjectStyleInput,
+  type Trim,
+  type TrimEdge,
 } from "@fala/shared";
 import { emptyHistory, recordChange, redoChange, undoChange, type History } from "@/lib/editor-history";
 
@@ -23,7 +28,7 @@ import { emptyHistory, recordChange, redoChange, undoChange, type History } from
  * server's data. Playback time always comes from the <video> element (see
  * use-video-clock.ts); actions that move playback go through the element.
  *
- * The editable document is { track, presetKey, styleConfig }. Every change to it goes
+ * The editable document is { track, presetKey, styleConfig, trim }. Every change to it goes
  * through `change()`, which records an undo step; autosave watches the same fields.
  */
 
@@ -31,6 +36,8 @@ export const PLAYBACK_RATES = [1, 1.25, 1.5, 0.75] as const;
 
 /** Within this long after a block starts, "previous" goes to the block before it. */
 const RESTART_WINDOW_MS = 400;
+/** This close to the end of the kept range, Play starts it over (like a video that ended). */
+const AT_END_MS = 50;
 
 export type EditorInit = {
   projectId: string;
@@ -39,9 +46,11 @@ export type EditorInit = {
   /** Stored caption-track version; every save must be based on it (optimistic concurrency). */
   version: number;
   style: ProjectStyleInput;
+  /** The part of the video the export keeps, in source time. Playback stays inside it. */
+  trim: Trim;
 };
 
-export type EditorDocument = { track: CaptionTrack; presetKey: PresetKey; styleConfig: CaptionStyle };
+export type EditorDocument = { track: CaptionTrack; presetKey: PresetKey; styleConfig: CaptionStyle; trim: Trim };
 
 export type Toast = { id: number; message: string; action?: "undo" | "redo" };
 
@@ -55,6 +64,8 @@ export type EditorState = Omit<EditorInit, "style"> &
     editingId: string | null;
     findOpen: boolean;
     drawerOpen: boolean;
+    /** Trimming: the playback bar shows the whole video with a handle at each end of the kept range. */
+    trimMode: boolean;
     history: History<EditorDocument>;
     toast: Toast | null;
 
@@ -80,6 +91,10 @@ export type EditorState = Omit<EditorInit, "style"> &
     updateStyle: (patch: Partial<CaptionStyle>) => void;
     restorePreset: () => void;
 
+    setTrimEdge: (edge: TrimEdge, timeMs: number) => void;
+    resetTrim: () => void;
+    setTrimMode: (open: boolean) => void;
+
     undo: () => void;
     redo: () => void;
     restoreDraft: (document: EditorDocument) => void;
@@ -99,13 +114,19 @@ export function createEditorStore({ style, ...init }: EditorInit) {
       track: state.track,
       presetKey: state.presetKey,
       styleConfig: state.styleConfig,
+      trim: state.trim,
     });
 
     /** Applies an edit to the document and records the previous state as an undo step. */
     const change = (label: string, edit: (document: EditorDocument) => EditorDocument, coalesceKey?: string) => {
       const before = documentOf(get());
       const after = edit(before);
-      if (after.track === before.track && after.presetKey === before.presetKey && after.styleConfig === before.styleConfig) {
+      if (
+        after.track === before.track &&
+        after.presetKey === before.presetKey &&
+        after.styleConfig === before.styleConfig &&
+        after.trim === before.trim
+      ) {
         return false;
       }
       set({ ...after, history: recordChange(get().history, label, before, Date.now(), coalesceKey) });
@@ -123,7 +144,13 @@ export function createEditorStore({ style, ...init }: EditorInit) {
         durationMs,
         language: document.track.language,
       });
-      return { track: { ...document.track, blocks }, presetKey, styleConfig };
+      return { ...document, track: { ...document.track, blocks }, presetKey, styleConfig };
+    };
+
+    /** After the kept range changed under the playhead (undo, a restored draft): bring it back inside. */
+    const keepPlayheadInTrim = () => {
+      const { timeMs, trim, seek } = get();
+      if (timeMs < trim.startMs || timeMs > trim.endMs) seek(timeMs);
     };
 
     let toastId = 0;
@@ -133,7 +160,7 @@ export function createEditorStore({ style, ...init }: EditorInit) {
       ...init,
       presetKey: style.presetKey,
       styleConfig: style.style,
-      timeMs: 0,
+      timeMs: init.trim.startMs,
       playing: false,
       rate: 1,
       video: null,
@@ -141,12 +168,18 @@ export function createEditorStore({ style, ...init }: EditorInit) {
       editingId: null,
       findOpen: false,
       drawerOpen: false,
+      trimMode: false,
       history: emptyHistory<EditorDocument>(),
       toast: null,
 
       attachVideo: (video) => {
         // A new element (e.g. after the layout changes) keeps the chosen speed.
-        if (video) video.playbackRate = get().rate;
+        if (video) {
+          video.playbackRate = get().rate;
+          // A trimmed video opens on the first frame it keeps.
+          const { timeMs } = get();
+          if (timeMs > 0 && video.currentTime * 1000 < timeMs) video.currentTime = timeMs / 1000;
+        }
         set({ video });
       },
       reloadSource: () => {
@@ -169,8 +202,8 @@ export function createEditorStore({ style, ...init }: EditorInit) {
       setPlaying: (playing) => set({ playing }),
 
       seek: (timeMs) => {
-        const clamped = Math.min(Math.max(0, Math.round(timeMs)), get().durationMs);
-        const { video } = get();
+        const { video, trim } = get();
+        const clamped = Math.min(Math.max(trim.startMs, Math.round(timeMs)), trim.endMs);
         if (video) video.currentTime = clamped / 1000;
         set({ timeMs: clamped });
       },
@@ -178,8 +211,11 @@ export function createEditorStore({ style, ...init }: EditorInit) {
       togglePlay: () => {
         const { video } = get();
         if (!video) return;
-        if (video.paused) void video.play().catch(() => {});
-        else video.pause();
+        if (!video.paused) return video.pause();
+        // At the end of the kept range (or somehow outside it): play it again from its start.
+        const { timeMs, trim, seek } = get();
+        if (video.ended || timeMs >= trim.endMs - AT_END_MS || timeMs < trim.startMs) seek(trim.startMs);
+        void video.play().catch(() => {});
       },
 
       prevBlock: () => {
@@ -189,7 +225,7 @@ export function createEditorStore({ style, ...init }: EditorInit) {
         // Like a music player: first back to the start of the current block, then to the one before.
         if (current >= 0 && timeMs - blocks[current].startMs > RESTART_WINDOW_MS) return seek(blocks[current].startMs);
         const reference = current >= 0 ? blocks[current].startMs : timeMs;
-        seek(blocks.findLast((block) => block.startMs < reference)?.startMs ?? 0);
+        seek(blocks.findLast((block) => block.startMs < reference)?.startMs ?? get().trim.startMs);
       },
 
       nextBlock: () => {
@@ -260,21 +296,43 @@ export function createEditorStore({ style, ...init }: EditorInit) {
       restorePreset: () =>
         void change("restore preset", (document) => withStyle(document, document.presetKey, PRESETS[document.presetKey].style)),
 
+      setTrimEdge: (edge, timeMs) => {
+        const { durationMs, video } = get();
+        const moved = change(
+          "trim",
+          (document) => ({ ...document, trim: moveTrimEdge(document.trim, edge, timeMs, durationMs) }),
+          `trim:${edge}`,
+        );
+        if (!moved) return;
+        // Show the frame the cut lands on.
+        video?.pause();
+        const { trim, seek } = get();
+        seek(edge === "start" ? trim.startMs : trim.endMs);
+      },
+      resetTrim: () => {
+        const { durationMs } = get();
+        change("trim", (document) => (isTrimmed(document.trim, durationMs) ? { ...document, trim: fullTrim(durationMs) } : document));
+      },
+      setTrimMode: (trimMode) => set({ trimMode }),
+
       undo: () => {
         const step = undoChange(get().history, documentOf(get()));
         if (!step) return;
         set({ ...step.state, history: step.history, editingId: null });
+        keepPlayheadInTrim();
         get().showToast(`Undone: ${step.label}`, "redo");
       },
       redo: () => {
         const step = redoChange(get().history, documentOf(get()));
         if (!step) return;
         set({ ...step.state, history: step.history, editingId: null });
+        keepPlayheadInTrim();
         get().showToast(`Redone: ${step.label}`, "undo");
       },
 
       restoreDraft: (document) => {
         set({ ...document });
+        keepPlayheadInTrim();
         get().showToast("Restored changes that hadn't synced");
       },
       setVersion: (version) => set({ version }),

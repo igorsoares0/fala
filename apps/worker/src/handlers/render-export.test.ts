@@ -64,6 +64,7 @@ async function queuedExport({
   height = HEIGHT,
   captions = track,
   presetKey = "bold" as ExportSnapshot["presetKey"],
+  trim = undefined as ExportSnapshot["trim"],
 } = {}) {
   const project = await db.project.create({
     data: { userId, name: "Render test", status: "READY", durationMs, width, height },
@@ -79,6 +80,7 @@ async function queuedExport({
     width,
     height,
     durationMs,
+    ...(trim ? { trim } : {}),
   };
   const created = await db.export.create({
     data: { projectId: project.id, version: 1, resolution: 720, snapshot: snapshot as unknown as Prisma.InputJsonValue },
@@ -141,6 +143,31 @@ describe("RENDER_EXPORT", () => {
     expect(whitePixels(speaking)).toBeGreaterThan(100);
     // …and between blocks there's no caption at all.
     const gap = frameAt(output, 1.6);
+    expect(highlightPixels(gap)).toBe(0);
+    expect(whitePixels(gap)).toBe(0);
+  });
+
+  it("renders only the trimmed range, with the captions shifted to match", { timeout: 120_000 }, async () => {
+    // Kept: 0.5 s – 1.5 s of the source.
+    const { projectId, exportId, jobId } = await queuedExport({ trim: { startMs: 500, endMs: 1500 } });
+    await run();
+    expect(await db.job.findUniqueOrThrow({ where: { id: jobId } })).toMatchObject({ status: "SUCCEEDED" });
+
+    const done = await db.export.findUniqueOrThrow({ where: { id: exportId } });
+    expect(done).toMatchObject({ status: "SUCCEEDED", width: WIDTH, height: HEIGHT });
+    expect(Math.abs(done.durationMs! - 1000)).toBeLessThanOrEqual(500);
+
+    const output = path.join(dir, `${exportId}.mp4`);
+    await storage.downloadToFile(exportKey(userId, projectId, exportId), output);
+    const probe = await probeFile(config.ffprobePath, output);
+    expect(probe.streams).toMatchObject(expect.arrayContaining([expect.objectContaining({ codec_type: "audio", codec_name: "aac" })]));
+
+    // 0.45 s into the output is 0.95 s of the source: "two" is being spoken.
+    const speaking = frameAt(output, 0.45);
+    expect(highlightPixels(speaking)).toBeGreaterThan(200);
+    expect(whitePixels(speaking)).toBeGreaterThan(100);
+    // 0.9 s is 1.4 s of the source: the block ended at 1.3 s.
+    const gap = frameAt(output, 0.9);
     expect(highlightPixels(gap)).toBe(0);
     expect(whitePixels(gap)).toBe(0);
   });

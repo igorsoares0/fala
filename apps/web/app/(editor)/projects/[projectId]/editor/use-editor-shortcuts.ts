@@ -3,7 +3,7 @@ import { useEditorStore } from "./editor-store";
 
 /**
  * Editor keyboard (handoff "Keyboard"): Space play/pause · ←/→ previous/next block ·
- * Esc close find / cancel edit / deselect · Ctrl/Cmd+Z undo · Ctrl/Cmd+Shift+Z or Ctrl+Y
+ * Esc close find / cancel edit / leave trimming / deselect · Ctrl/Cmd+Z undo · Ctrl/Cmd+Shift+Z or Ctrl+Y
  * redo · Ctrl/Cmd+F find & replace. Ignored while typing (fields keep their own undo),
  * except Ctrl/Cmd+F, which always opens find instead of the browser's.
  */
@@ -39,13 +39,14 @@ export function useEditorShortcuts() {
       if (event.key === "Escape") {
         if (editor.findOpen) editor.setFindOpen(false);
         else if (editor.editingId) editor.startEditing(null);
+        else if (editor.trimMode) editor.setTrimMode(false);
         else if (editor.selectedId) editor.select(null);
         else return;
         event.preventDefault();
         return;
       }
 
-      // The playback slider uses the arrows itself.
+      // The playback slider and the trim handles use the arrows themselves.
       if (target?.closest("[role='slider']")) return;
       if (event.key === " ") {
         // Space on a focused button would also "click" it.

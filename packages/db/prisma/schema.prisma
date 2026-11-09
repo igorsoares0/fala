@@ -108,6 +108,9 @@ model Project {
   sourceSizeBytes    BigInt?
   thumbnailObjectKey String?
   durationMs         Int?
+  /// The part of the video the export keeps, in source ms (`Trim` in @fala/shared). Both null: the whole video.
+  trimStartMs        Int?
+  trimEndMs          Int?
   width              Int?
   height             Int?
   sourceMimeType     String?

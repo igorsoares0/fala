@@ -6,6 +6,7 @@ import {
   exportErrorCodeSchema,
   exportKey,
   exportSnapshotSchema,
+  trimLengthMs,
   type ExportSnapshot,
   type JobPayload,
 } from "@fala/shared";
@@ -33,7 +34,7 @@ const OVERLAY_SHARE = 30;
 const ENCODE_END = 95;
 const PROGRESS_WRITE_MS = 1_000;
 
-/** Output may differ from the source by this much (frame rounding, audio priming). */
+/** Output may differ from the expected length by this much (frame rounding, audio priming). */
 const DURATION_TOLERANCE_MS = 500;
 
 /**
@@ -57,6 +58,8 @@ export const renderExport: JobHandler<Payload> = {
     if (!parsed.success) throw new JobError("RENDER_FAILED", "Invalid export snapshot", { retryable: false });
     const snapshot: ExportSnapshot = parsed.data;
     const { width, height } = exportDimensions(snapshot.width, snapshot.height, record.resolution);
+    // A trimmed project renders only the kept range; the output is that long.
+    const expectedMs = snapshot.trim ? trimLengthMs(snapshot.trim) : snapshot.durationMs;
 
     await db.export.updateMany({
       where: stillRendering(payload),
@@ -79,6 +82,7 @@ export const renderExport: JobHandler<Payload> = {
         width,
         height,
         durationMs: snapshot.durationMs,
+        trim: snapshot.trim,
         dir,
         chromiumPath: config.chromiumPath,
         signal,
@@ -93,7 +97,8 @@ export const renderExport: JobHandler<Payload> = {
           band: overlay.band,
           width,
           height,
-          durationMs: snapshot.durationMs,
+          durationMs: expectedMs,
+          trim: snapshot.trim,
           outputPath,
           signal,
           onProgress: (fraction) => progress.report(OVERLAY_SHARE + fraction * (ENCODE_END - OVERLAY_SHARE)),
@@ -112,10 +117,10 @@ export const renderExport: JobHandler<Payload> = {
       const output = await probeFile(config.ffprobePath, outputPath, signal);
       const video = output.streams.find((stream) => stream.codec_type === "video");
       const outputMs = Math.round(Number(output.format.duration ?? 0) * 1000);
-      if (video?.width !== width || video?.height !== height || Math.abs(outputMs - snapshot.durationMs) > DURATION_TOLERANCE_MS) {
+      if (video?.width !== width || video?.height !== height || Math.abs(outputMs - expectedMs) > DURATION_TOLERANCE_MS) {
         throw new JobError(
           "RENDER_FAILED",
-          `Unexpected output: ${video?.width}x${video?.height}, ${outputMs} ms (wanted ${width}x${height}, ${snapshot.durationMs} ms)`,
+          `Unexpected output: ${video?.width}x${video?.height}, ${outputMs} ms (wanted ${width}x${height}, ${expectedMs} ms)`,
           { retryable: true },
         );
       }

@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import { fullTrim } from "@fala/shared";
 import { requireUser } from "@/lib/dal";
 import { getUsage } from "@/lib/billing";
 import { listExports, SOURCE_REMOVED } from "@/lib/exports";
@@ -42,6 +43,7 @@ async function Editor({ params }: { params: PageProps<"/projects/[projectId]">["
         track={captions.track}
         version={captions.version}
         style={project.style}
+        trim={project.trim ?? fullTrim(project.durationMs)}
         width={project.width}
         height={project.height}
         posterSrc={thumbnailSrc(project)}

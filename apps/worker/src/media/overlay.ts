@@ -17,6 +17,7 @@ import {
   type CaptionTrack,
   type CssMap,
   type OverlayState,
+  type Trim,
 } from "@fala/shared";
 
 /**
@@ -74,6 +75,7 @@ export async function renderOverlay({
   width,
   height,
   durationMs,
+  trim,
   dir,
   chromiumPath,
   signal,
@@ -85,7 +87,10 @@ export async function renderOverlay({
   /** Output frame size in px. */
   width: number;
   height: number;
+  /** Length of the source video. */
   durationMs: number;
+  /** The part of the source being rendered; the pictures then cover only it, starting at 0. */
+  trim?: Trim;
   dir: string;
   chromiumPath?: string;
   signal?: AbortSignal;
@@ -94,7 +99,9 @@ export async function renderOverlay({
   /** Pages drawing in parallel (tests compare 1 with several). */
   pages?: number;
 }): Promise<OverlayResult> {
-  const frames = captionFrames(track, style, { durationMs });
+  const fromMs = trim?.startMs ?? 0;
+  const outputMs = (trim?.endMs ?? durationMs) - fromMs;
+  const frames = captionFrames(track, style, { fromMs, durationMs: fromMs + outputMs });
 
   // Each distinct picture is drawn once, named in order of first appearance.
   const files = new Map<string, string>();
@@ -130,7 +137,7 @@ export async function renderOverlay({
 
     const entries = frames.map((frame, index) => ({
       file: files.get(overlayStateKey(frame.state))!,
-      durationMs: (frames[index + 1]?.startMs ?? durationMs) - frame.startMs,
+      durationMs: (frames[index + 1]?.startMs ?? outputMs) - frame.startMs,
     }));
     const listPath = path.join(dir, "overlay.ffconcat");
     await writeFile(listPath, concatList(entries));
