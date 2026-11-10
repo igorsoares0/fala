@@ -13,19 +13,22 @@ export const CAPTION_FONT_FAMILY: Record<CaptionStyle["font"], string> = {
  * Static caption overlay: renders `words` in `style` with `activeIndex` as the
  * spoken word. Must sit inside a positioned element with `container-type: inline-size`.
  * The CSS comes from @fala/shared, which the export renderer uses too.
+ * `tall` is for a full-screen vertical frame (`isTallFrame`), where "bottom" sits higher.
  */
 export function CaptionSample({
   style,
   words,
   activeIndex = -1,
+  tall = false,
 }: {
   style: CaptionStyle;
   words: string[];
   activeIndex?: number;
+  tall?: boolean;
 }) {
   const fontFamily = CAPTION_FONT_FAMILY[style.font];
   return (
-    <div style={captionBoxStyle(style) as CSSProperties} aria-hidden>
+    <div style={captionBoxStyle(style, tall) as CSSProperties} aria-hidden>
       {words.map((word, index) => (
         <span
           key={index}

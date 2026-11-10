@@ -1,14 +1,14 @@
 import { create } from "zustand";
 
 /**
- * Save state of everything the editor persists (project name, style, captions, trim), so
+ * Save state of everything the editor persists (project name, style, captions, trim, frame), so
  * the header shows one indicator. Only ever changed in the browser.
  *
  * offline: couldn't reach the server — changes are kept in this browser and retried.
  * conflict: another tab saved newer captions — this one must reload.
  */
 export type SaveState = "saved" | "saving" | "offline" | "error" | "conflict";
-export type SaveSource = "name" | "style" | "captions" | "trim";
+export type SaveSource = "name" | "style" | "captions" | "trim" | "frame";
 
 export type SaveEntry = { state: SaveState; retry?: () => void; error?: string };
 

@@ -1,13 +1,24 @@
 import { useEffect } from "react";
-import { captionTrackSchema, clampTrim, projectStyleInputSchema, trimSchema, type CaptionTrack, type Trim } from "@fala/shared";
+import {
+  captionTrackSchema,
+  clampTrim,
+  frameSchema,
+  normalizeFrame,
+  projectStyleInputSchema,
+  trimSchema,
+  type CaptionTrack,
+  type Frame,
+  type Trim,
+} from "@fala/shared";
 import { saveCaptionsAction } from "@/lib/caption-actions";
+import { saveFrameAction } from "@/lib/frame-actions";
 import { useSaveStatus, type SaveEntry, type SaveSource } from "@/lib/save-status";
 import { saveProjectStyleAction } from "@/lib/style-actions";
 import { saveTrimAction } from "@/lib/trim-actions";
 import { useEditorStore, type EditorDocument, type EditorState, type EditorStore } from "./editor-store";
 
 /**
- * Autosave (handoff "Autosave", FR-07). Three channels — style, captions and trim — each
+ * Autosave (handoff "Autosave", FR-07). Four channels — style, captions, trim and frame — each
  * debounced and serialized: one request in flight, and whatever changed meanwhile is
  * sent next, so an older save never lands last.
  *
@@ -19,6 +30,7 @@ import { useEditorStore, type EditorDocument, type EditorState, type EditorStore
 const STYLE_DEBOUNCE_MS = 600;
 const CAPTIONS_DEBOUNCE_MS = 900;
 const TRIM_DEBOUNCE_MS = 600;
+const FRAME_DEBOUNCE_MS = 600;
 const MAX_RETRY_DELAY_MS = 30_000;
 /** How long an export waits for pending edits to reach the server. */
 const FLUSH_TIMEOUT_MS = 20_000;
@@ -166,8 +178,8 @@ function sameCaptions(a: Pick<CaptionTrack, "words" | "blocks">, b: Pick<Caption
 
 // ---- Drafts in localStorage ------------------------------------------------------------
 
-/** `trim` is missing in drafts written before trimming existed. */
-type Draft = Omit<EditorDocument, "trim"> & { trim?: Trim; baseVersion: number };
+/** `trim` and `frame` are missing in drafts written before those existed. */
+type Draft = Omit<EditorDocument, "trim" | "frame"> & { trim?: Trim; frame?: Frame; baseVersion: number };
 
 const draftKey = (projectId: string) => `fala:editor-draft:${projectId}`;
 
@@ -178,6 +190,7 @@ function writeDraft(state: EditorState) {
     presetKey: state.presetKey,
     styleConfig: state.styleConfig,
     trim: state.trim,
+    frame: state.frame,
   };
   try {
     localStorage.setItem(draftKey(state.projectId), JSON.stringify(draft));
@@ -194,12 +207,12 @@ function clearDraft(projectId: string) {
 
 /**
  * A draft saved on top of the version the server still has, or null (missing, invalid or
- * outdated). `current` is the trim the server has, kept when the draft carries none.
+ * outdated). `current` is what the server has, kept for whatever the draft doesn't carry.
  */
 export function readDraft(
   projectId: string,
   serverVersion: number,
-  current: { trim: Trim; durationMs: number },
+  current: { trim: Trim; frame: Frame; durationMs: number },
 ): EditorDocument | null {
   let raw: unknown;
   try {
@@ -215,11 +228,13 @@ export function readDraft(
     return null;
   }
   const trim = trimSchema.safeParse(draft.trim);
+  const frame = frameSchema.safeParse(draft.frame);
   return {
     track: track.data,
     presetKey: style.data.presetKey,
     styleConfig: style.data.style,
     trim: trim.success ? clampTrim(trim.data, current.durationMs) : current.trim,
+    frame: frame.success ? normalizeFrame(frame.data) : current.frame,
   };
 }
 
@@ -281,7 +296,20 @@ export function useAutosave() {
       },
     });
 
-    const channels = [style, captions, trim];
+    const frame: Channel = createChannel({
+      source: "frame",
+      debounceMs: FRAME_DEBOUNCE_MS,
+      report,
+      onSettled: () => settle(),
+      snapshot: () => [state().frame],
+      send: async () => {
+        const { projectId, frame: shape } = state();
+        const result = await saveFrameAction(projectId, shape);
+        return result.ok ? { kind: "saved" } : { kind: "error", message: result.error };
+      },
+    });
+
+    const channels = [style, captions, trim, frame];
 
     /** Keep the local draft in step: gone once everything is saved, current otherwise. */
     function settle() {
@@ -309,8 +337,10 @@ export function useAutosave() {
       const trimChanged = next.trim !== previous.trim;
       if (trackChanged) captions.schedule();
       if (styleChanged) style.schedule();
+      const frameChanged = next.frame !== previous.frame;
       if (trimChanged) trim.schedule();
-      if (trackChanged || styleChanged || trimChanged) writeDraft(next);
+      if (frameChanged) frame.schedule();
+      if (trackChanged || styleChanged || trimChanged || frameChanged) writeDraft(next);
     });
 
     // Leaving with unsynced work: let the browser ask (the draft survives either way).

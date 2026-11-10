@@ -111,6 +111,9 @@ model Project {
   /// The part of the video the export keeps, in source ms (`Trim` in @fala/shared). Both null: the whole video.
   trimStartMs        Int?
   trimEndMs          Int?
+  /// The exported video's shape (`Frame` in @fala/shared): an aspect ratio to crop to, and where the crop sits (0–1). Null: as uploaded.
+  frameAspect        String?
+  frameFocus         Float?
   width              Int?
   height             Int?
   sourceMimeType     String?

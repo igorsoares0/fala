@@ -4,6 +4,7 @@ import { db } from "@fala/db";
 import { editBlockText, exportSnapshotSchema, type CaptionTrack } from "@fala/shared";
 import { saveCaptions } from "./captions";
 import { createExport, exportDownloadUrl, getExport, listExports, retryExport } from "./exports";
+import { saveFrame } from "./frame";
 import { saveTrim } from "./trim";
 
 const owner = { id: `test-exp-owner-${randomUUID()}`, name: "Owner", email: `exp-owner-${randomUUID()}@test.local` };
@@ -92,6 +93,26 @@ describe("createExport", () => {
     await saveTrim(owner.id, id, { startMs: 0, endMs: 2000 });
     const after = await db.export.findUniqueOrThrow({ where: { id: row.id } });
     expect(exportSnapshotSchema.parse(after.snapshot).trim).toEqual({ startMs: 1200, endMs: 4000 });
+  });
+
+  it("freezes the frame too, and leaves it out for the original", async () => {
+    const id = await readyProject();
+    const original = await render(owner.id, id);
+    if (!original.ok) throw new Error("not created");
+    const originalRow = await db.export.findUniqueOrThrow({ where: { id: original.export.id } });
+    expect(exportSnapshotSchema.parse(originalRow.snapshot).frame).toBeUndefined();
+    await db.export.update({ where: { id: original.export.id }, data: { status: "SUCCEEDED" } });
+
+    await saveFrame(owner.id, id, { aspect: "1:1", focus: 0.25 });
+    const square = await render(owner.id, id);
+    if (!square.ok) throw new Error("not created");
+    const row = await db.export.findUniqueOrThrow({ where: { id: square.export.id } });
+    // The snapshot keeps the source's size; the worker derives the crop from the frame.
+    expect(exportSnapshotSchema.parse(row.snapshot)).toMatchObject({ width: 1080, height: 1920, frame: { aspect: "1:1", focus: 0.25 } });
+
+    await saveFrame(owner.id, id, { aspect: "9:16", focus: 0.5 });
+    const after = await db.export.findUniqueOrThrow({ where: { id: row.id } });
+    expect(exportSnapshotSchema.parse(after.snapshot).frame).toEqual({ aspect: "1:1", focus: 0.25 });
   });
 
   it("is owner-only and needs a READY project", async () => {

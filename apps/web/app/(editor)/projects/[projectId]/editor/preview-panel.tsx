@@ -2,9 +2,10 @@
 
 import { memo, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent } from "react";
 import { Pause, Play, SkipBack, SkipForward } from "lucide-react";
-import { activeBlockIndex, activeWordIndex, blockWords, formatTimecode } from "@fala/shared";
+import { activeBlockIndex, activeWordIndex, blockWords, cropAxis, cropRect, FRAME_FORMATS, formatTimecode, isTallFrame } from "@fala/shared";
 import { CaptionSample } from "@/components/caption-sample";
 import { useEditor } from "./editor-store";
+import { SafeZoneGuide } from "./safe-zone-guide";
 import { TrimHandles, TrimSummary, TrimToggle } from "./trim-controls";
 import { useVideoClock } from "./use-video-clock";
 
@@ -25,12 +26,20 @@ export function PreviewPanel({
   const playing = useEditor((state) => state.playing);
   const atStart = useEditor((state) => state.timeMs <= state.trim.startMs);
   const trimMode = useEditor((state) => state.trimMode);
+  const frame = useEditor((state) => state.frame);
+  const showSafeZones = useEditor((state) => state.showSafeZones);
   const [video, setVideo] = useState<HTMLVideoElement | null>(null);
   useVideoClock(video);
 
-  const aspect = width && height ? width / height : 9 / 16;
+  // The preview shows the exported shape: the part of the picture the frame keeps.
+  const crop = width && height ? cropRect(width, height, frame) : null;
+  const axis = width && height ? cropAxis(width, height, frame) : null;
+  const aspect = crop ? crop.width / crop.height : 9 / 16;
+  const tall = crop ? isTallFrame(crop.width, crop.height) : false;
+  // `object-fit: cover` crops exactly like the export does; the focus slides it along the cut axis.
+  const objectPosition = axis === "x" ? `${frame.focus * 100}% 50%` : axis === "y" ? `50% ${frame.focus * 100}%` : undefined;
   // Trimming adds a row under the bar: the frame gives up that much height.
-  const frame = frameWidth(aspect, trimMode ? 250 : 210);
+  const frameCss = frameWidth(aspect, trimMode ? 250 : 210);
 
   return (
     <section
@@ -38,15 +47,16 @@ export function PreviewPanel({
       aria-label="Preview"
     >
       <div className="flex w-full max-w-[440px] flex-col items-center gap-3">
-        <div className="flex w-full items-center justify-between gap-3 font-mono text-[11px] text-muted" style={{ maxWidth: frame }}>
-          <span className="truncate">
-            YOUR VIDEO · {width}×{height}
+        <div className="flex w-full items-center justify-between gap-3 font-mono text-[11px] text-muted" style={{ maxWidth: frameCss }}>
+          <span className="truncate" data-testid="frame-label">
+            {axis ? `${FRAME_FORMATS[frame.aspect].label} · CROPPED FROM ` : "YOUR VIDEO · "}
+            {width}×{height}
           </span>
           <TrimToggle />
         </div>
         <div
           className="relative overflow-hidden rounded-[14px] bg-black shadow-thumb [container-type:inline-size]"
-          style={{ aspectRatio: aspect, width: frame }}
+          style={{ aspectRatio: aspect, width: frameCss }}
           onClick={togglePlay}
           data-testid="preview-frame"
         >
@@ -57,9 +67,11 @@ export function PreviewPanel({
             playsInline
             preload="metadata"
             className="absolute inset-0 size-full object-cover"
+            style={{ objectPosition }}
             data-testid="project-video"
           />
-          <CaptionOverlay />
+          <CaptionOverlay tall={tall} />
+          {tall && showSafeZones && <SafeZoneGuide />}
           {!playing && atStart && (
             <span
               aria-hidden
@@ -96,7 +108,7 @@ function usePlaybackWindow() {
 }
 
 /** The active block's words over the video, styled by the shared caption contract. */
-function CaptionOverlay() {
+function CaptionOverlay({ tall }: { tall: boolean }) {
   const track = useEditor((state) => state.track);
   const timeMs = useEditor((state) => state.timeMs);
   const style = useEditor((state) => state.styleConfig);
@@ -109,6 +121,7 @@ function CaptionOverlay() {
       <CaptionSample
         key={block.id}
         style={style}
+        tall={tall}
         words={blockWords(track, block).map((word) => word.text)}
         activeIndex={activeWordIndex(track.words, block, timeMs)}
       />

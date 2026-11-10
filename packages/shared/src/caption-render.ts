@@ -38,8 +38,14 @@ export function transformCss(transform: WordTransform): string {
 
 const round = (value: number) => Math.round(value * 10_000) / 10_000;
 
-/** The block's container: centered words, wrapped, at the style's position. */
-export function captionBoxStyle(style: CaptionStyle): CssMap {
+/** "Bottom" in a full-screen vertical frame: just above where the apps draw their own interface (SAFE_ZONE). */
+const TALL_BOTTOM = "27%";
+
+/**
+ * The block's container: centered words, wrapped, at the style's position.
+ * `tall` is `isTallFrame` of the frame it's drawn in.
+ */
+export function captionBoxStyle(style: CaptionStyle, tall = false): CssMap {
   const box: CssMap = {
     position: "absolute",
     left: "7%",
@@ -58,7 +64,7 @@ export function captionBoxStyle(style: CaptionStyle): CssMap {
   else if (style.pos === "mid") {
     box.top = "50%";
     box.transform = "translateY(-50%)";
-  } else box.bottom = "14%";
+  } else box.bottom = tall ? TALL_BOTTOM : "14%";
   return box;
 }
 

@@ -65,6 +65,7 @@ async function queuedExport({
   captions = track,
   presetKey = "bold" as ExportSnapshot["presetKey"],
   trim = undefined as ExportSnapshot["trim"],
+  frame = undefined as ExportSnapshot["frame"],
 } = {}) {
   const project = await db.project.create({
     data: { userId, name: "Render test", status: "READY", durationMs, width, height },
@@ -81,6 +82,7 @@ async function queuedExport({
     height,
     durationMs,
     ...(trim ? { trim } : {}),
+    ...(frame ? { frame } : {}),
   };
   const created = await db.export.create({
     data: { projectId: project.id, version: 1, resolution: 720, snapshot: snapshot as unknown as Prisma.InputJsonValue },
@@ -105,6 +107,17 @@ function highlightPixels(rgb: Buffer): number {
     if (rgb[i] > 225 && Math.abs(rgb[i + 1] - 212) < 25 && rgb[i + 2] < 60) count++;
   }
   return count;
+}
+
+function averageColor(rgb: Buffer) {
+  let red = 0;
+  let blue = 0;
+  for (let i = 0; i < rgb.length; i += 3) {
+    red += rgb[i];
+    blue += rgb[i + 2];
+  }
+  const pixels = rgb.length / 3;
+  return { red: red / pixels, blue: blue / pixels };
 }
 
 /** Bright, near-white pixels: caption text. */
@@ -170,6 +183,42 @@ describe("RENDER_EXPORT", () => {
     const gap = frameAt(output, 0.9);
     expect(highlightPixels(gap)).toBe(0);
     expect(whitePixels(gap)).toBe(0);
+  });
+
+  it("crops to the project's frame, keeping the part its focus points at", { timeout: 120_000 }, async () => {
+    // A landscape clip, red on the left half and blue on the right.
+    const split = path.join(dir, "split.mp4");
+    execFileSync(config.ffmpegPath, [
+      "-v", "error",
+      "-f", "lavfi", "-i", "color=c=red:s=320x360:r=30:d=2",
+      "-f", "lavfi", "-i", "color=c=blue:s=320x360:r=30:d=2",
+      "-f", "lavfi", "-i", "sine=frequency=440:duration=2",
+      "-filter_complex", "[0:v][1:v]hstack[v]",
+      "-map", "[v]", "-map", "2:a",
+      "-c:v", "libx264", "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", "-y", split,
+    ]);
+    const landscape = { source: split, width: 640, height: 360 };
+
+    const render = async (focus: number) => {
+      // The render before this one left its "export ready" email in the queue.
+      await db.job.deleteMany({});
+      const { projectId, exportId, jobId } = await queuedExport({ ...landscape, frame: { aspect: "9:16", focus } });
+      await run();
+      expect(await db.job.findUniqueOrThrow({ where: { id: jobId } })).toMatchObject({ status: "SUCCEEDED" });
+      // 360 × 9/16 = 202.5: the even width that fits, never upscaled to 720p.
+      expect(await db.export.findUniqueOrThrow({ where: { id: exportId } })).toMatchObject({ status: "SUCCEEDED", width: 202, height: 360 });
+      const output = path.join(dir, `${exportId}.mp4`);
+      await storage.downloadToFile(exportKey(userId, projectId, exportId), output);
+      // A frame from the gap after the captions, so every pixel is the video's own.
+      return averageColor(frameAt(output, 1.6));
+    };
+
+    const right = await render(1);
+    expect(right.blue).toBeGreaterThan(150);
+    expect(right.red).toBeLessThan(60);
+    const left = await render(0);
+    expect(left.red).toBeGreaterThan(150);
+    expect(left.blue).toBeLessThan(60);
   });
 
   it("renders a 20-minute video with thousands of caption words", { timeout: 300_000 }, async () => {

@@ -62,6 +62,12 @@ Google sign-in is optional locally: set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECR
 
 The editor can cut the start and the end of a video (no cuts in the middle). It's non-destructive: the project stores `trimStartMs` / `trimEndMs` in source time (both null = the whole video), and the original file, the transcript and the captions never change. The preview plays only the kept range, and an export freezes the trim in its snapshot: FFmpeg seeks with `-ss`/`-t` and the caption overlay is re-based to start at zero (`captionFrames` with `fromMs`). Trimming doesn't change usage: minutes are counted when the whole upload is transcribed.
 
+## Formats and safe zones
+
+A project exports as uploaded ("Original") or cropped to 9:16, 4:5, 1:1 or 16:9 — a ratio rather than a platform, since Stories, Reels, Shorts and TikTok all take the same 9:16 file. The crop always fills the frame (no bars), and "Framing" slides it along the axis it cuts. Like the trim it's non-destructive: the project stores `frameAspect` / `frameFocus` (null = original), the preview shows the crop with `object-fit: cover`, and the export freezes the frame in its snapshot and applies `crop` before `scale` in FFmpeg. The geometry lives in `packages/shared/src/frame.ts` (`cropRect`).
+
+In a full-screen vertical frame (`isTallFrame`), the editor can show where the apps draw their own interface (the "Safe zones" toggle, off by default), and the "Bottom" caption position sits above it. The zones in `SAFE_ZONE` are a cautious approximation: no platform publishes exact numbers for regular posts, so adjust them there if the apps change.
+
 ## Uploads and processing
 
 1. The browser creates the project, then asks `POST /api/projects/:id/uploads/presign` for a 15-minute URL signed for that object key and Content-Type.

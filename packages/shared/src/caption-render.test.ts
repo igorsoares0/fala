@@ -8,6 +8,7 @@ import {
   popEasing,
   transformCss,
 } from "./caption-render";
+import { SAFE_ZONE } from "./frame";
 import { PRESETS } from "./style";
 
 const bold = PRESETS.bold.style;
@@ -24,6 +25,15 @@ describe("caption CSS", () => {
     expect(captionBoxStyle({ ...bold, pos: "mid" })).toMatchObject({ top: "50%", transform: "translateY(-50%)" });
     expect(captionBoxStyle({ ...bold, pos: "top" })).toMatchObject({ top: "13%" });
     expect(captionBoxStyle({ ...bold, pos: "bottom" })).toMatchObject({ bottom: "14%" });
+  });
+
+  it("lifts the bottom position in a full-screen vertical frame, clear of the apps' interface", () => {
+    const bottom = captionBoxStyle({ ...bold, pos: "bottom" }, true);
+    expect(bottom).toMatchObject({ bottom: "27%" });
+    expect(Number.parseFloat(String(bottom.bottom)) / 100).toBeGreaterThan(SAFE_ZONE.bottom);
+    // Top and middle already are.
+    expect(captionBoxStyle({ ...bold, pos: "top" }, true)).toMatchObject({ top: "13%" });
+    expect(captionBoxStyle({ ...bold, pos: "mid" }, true)).toMatchObject({ top: "50%" });
   });
 
   it("boxes the spoken word with legible text and pops it", () => {

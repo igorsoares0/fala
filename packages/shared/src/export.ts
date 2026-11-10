@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { captionTrackSchema } from "./captions";
+import { frameSchema } from "./frame";
 import { captionStyleSchema, presetKeySchema } from "./style";
 import { trimSchema } from "./trim";
 
@@ -43,6 +44,8 @@ export const exportSnapshotSchema = z.object({
   durationMs: z.int().min(1),
   /** The part of the source to render, in source time. Absent: the whole video. */
   trim: trimSchema.optional(),
+  /** The shape to crop the source to. Absent: as uploaded. */
+  frame: frameSchema.optional(),
 });
 
 export type ExportSnapshot = z.infer<typeof exportSnapshotSchema>;

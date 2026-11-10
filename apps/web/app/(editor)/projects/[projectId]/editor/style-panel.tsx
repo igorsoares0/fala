@@ -15,8 +15,17 @@ import { useEditor } from "./editor-store";
 
 const PREVIEW_WORDS = ["It's", "the", "rhythm"];
 
-/** Presets and adjustments (FR-09, handoff §3 style panel). Every change shows in the preview at once and autosaves. */
-export function StylePanel({ onClose, className = "" }: { onClose?: () => void; className?: string }) {
+/** Format, presets and adjustments (FR-09, handoff §3 style panel). Every change shows in the preview at once and autosaves. */
+export function StylePanel({
+  onClose,
+  className = "",
+  children,
+}: {
+  onClose?: () => void;
+  className?: string;
+  /** Shown above the presets: the format section. */
+  children?: React.ReactNode;
+}) {
   const presetKey = useEditor((state) => state.presetKey);
   const style = useEditor((state) => state.styleConfig);
   const applyPreset = useEditor((state) => state.applyPreset);
@@ -48,6 +57,8 @@ export function StylePanel({ onClose, className = "" }: { onClose?: () => void; 
           )}
         </div>
       </div>
+
+      {children}
 
       <div role="radiogroup" aria-label="Preset" className="grid grid-cols-2 gap-2.5">
         {PRESET_KEYS.map((key) => {
@@ -159,7 +170,7 @@ export function StylePanel({ onClose, className = "" }: { onClose?: () => void; 
 
 const fieldLabel = "text-[13px] font-semibold text-text";
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+export function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-2">
       <span className={fieldLabel} aria-hidden>
@@ -171,7 +182,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /** Segmented control (or chip grid) built as a radio group. */
-function Choice<T extends string>({
+export function Choice<T extends string>({
   label,
   value,
   options,
@@ -255,7 +266,7 @@ function Swatches({
   );
 }
 
-function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
+export function Toggle({ label, checked, onChange }: { label: string; checked: boolean; onChange: (checked: boolean) => void }) {
   return (
     <label
       className={`flex cursor-pointer items-center justify-between gap-2 rounded-[9px] border px-3 py-2 text-[13px] transition-colors has-focus-visible:outline-2 ${
@@ -269,7 +280,7 @@ function Toggle({ label, checked, onChange }: { label: string; checked: boolean;
   );
 }
 
-function Range({
+export function Range({
   label,
   min,
   max,

@@ -9,6 +9,7 @@ import {
   isTrimmed,
   mergeWithNext,
   moveTrimEdge,
+  normalizeFrame,
   nudgeBlock,
   PRESETS,
   replaceMatches,
@@ -16,6 +17,8 @@ import {
   splitBlock,
   type CaptionStyle,
   type CaptionTrack,
+  type Frame,
+  type FrameAspect,
   type PresetKey,
   type ProjectStyleInput,
   type Trim,
@@ -28,7 +31,7 @@ import { emptyHistory, recordChange, redoChange, undoChange, type History } from
  * server's data. Playback time always comes from the <video> element (see
  * use-video-clock.ts); actions that move playback go through the element.
  *
- * The editable document is { track, presetKey, styleConfig, trim }. Every change to it goes
+ * The editable document is { track, presetKey, styleConfig, trim, frame }. Every change to it goes
  * through `change()`, which records an undo step; autosave watches the same fields.
  */
 
@@ -48,9 +51,14 @@ export type EditorInit = {
   style: ProjectStyleInput;
   /** The part of the video the export keeps, in source time. Playback stays inside it. */
   trim: Trim;
+  /** The shape the export is cropped to. */
+  frame: Frame;
 };
 
-export type EditorDocument = { track: CaptionTrack; presetKey: PresetKey; styleConfig: CaptionStyle; trim: Trim };
+export type EditorDocument = { track: CaptionTrack; presetKey: PresetKey; styleConfig: CaptionStyle; trim: Trim; frame: Frame };
+
+/** Remembers, per browser, that the safe-zone guide was switched on. */
+export const SAFE_ZONES_STORAGE_KEY = "fala:safe-zones";
 
 export type Toast = { id: number; message: string; action?: "undo" | "redo" };
 
@@ -66,6 +74,8 @@ export type EditorState = Omit<EditorInit, "style"> &
     drawerOpen: boolean;
     /** Trimming: the playback bar shows the whole video with a handle at each end of the kept range. */
     trimMode: boolean;
+    /** Show where the apps' interface covers a full-screen vertical video. Off until asked for: it's a guide, not part of the picture. */
+    showSafeZones: boolean;
     history: History<EditorDocument>;
     toast: Toast | null;
 
@@ -95,6 +105,10 @@ export type EditorState = Omit<EditorInit, "style"> &
     resetTrim: () => void;
     setTrimMode: (open: boolean) => void;
 
+    setFrameAspect: (aspect: FrameAspect) => void;
+    setFrameFocus: (focus: number) => void;
+    setShowSafeZones: (show: boolean) => void;
+
     undo: () => void;
     redo: () => void;
     restoreDraft: (document: EditorDocument) => void;
@@ -115,6 +129,7 @@ export function createEditorStore({ style, ...init }: EditorInit) {
       presetKey: state.presetKey,
       styleConfig: state.styleConfig,
       trim: state.trim,
+      frame: state.frame,
     });
 
     /** Applies an edit to the document and records the previous state as an undo step. */
@@ -125,7 +140,8 @@ export function createEditorStore({ style, ...init }: EditorInit) {
         after.track === before.track &&
         after.presetKey === before.presetKey &&
         after.styleConfig === before.styleConfig &&
-        after.trim === before.trim
+        after.trim === before.trim &&
+        after.frame === before.frame
       ) {
         return false;
       }
@@ -169,6 +185,7 @@ export function createEditorStore({ style, ...init }: EditorInit) {
       findOpen: false,
       drawerOpen: false,
       trimMode: false,
+      showSafeZones: false,
       history: emptyHistory<EditorDocument>(),
       toast: null,
 
@@ -314,6 +331,29 @@ export function createEditorStore({ style, ...init }: EditorInit) {
         change("trim", (document) => (isTrimmed(document.trim, durationMs) ? { ...document, trim: fullTrim(durationMs) } : document));
       },
       setTrimMode: (trimMode) => set({ trimMode }),
+
+      setFrameAspect: (aspect) =>
+        void change("format", (document) =>
+          // A new shape starts centered: the old focus was chosen for another crop.
+          document.frame.aspect === aspect ? document : { ...document, frame: normalizeFrame({ aspect, focus: 0.5 }) },
+        ),
+      setFrameFocus: (focus) =>
+        void change(
+          "framing",
+          (document) => {
+            const frame = normalizeFrame({ ...document.frame, focus });
+            return frame.focus === document.frame.focus ? document : { ...document, frame };
+          },
+          "frame:focus",
+        ),
+      setShowSafeZones: (showSafeZones) => {
+        set({ showSafeZones });
+        try {
+          localStorage.setItem(SAFE_ZONES_STORAGE_KEY, showSafeZones ? "on" : "off");
+        } catch {
+          // Storage blocked: the choice just lasts for this visit.
+        }
+      },
 
       undo: () => {
         const step = undoChange(get().history, documentOf(get()));

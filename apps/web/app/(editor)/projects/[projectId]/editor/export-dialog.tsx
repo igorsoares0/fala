@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import {
+  cropRect,
   EXPORT_RESOLUTIONS,
   exportDimensions,
+  FRAME_FORMATS,
   formatBytes,
   formatTimecode,
   isActiveExport,
@@ -103,7 +105,10 @@ function ConfigStage({
   // Only what the trim keeps is rendered.
   const blocks = useEditor((state) => state.track.blocks.filter((block) => overlapsTrim(block, state.trim)).length);
   const durationMs = useEditor((state) => trimLengthMs(state.trim));
-  const options = resolutionOptions(width, height, maxResolution);
+  const frame = useEditor((state) => state.frame);
+  // Sizes are those of the shape being exported, not of the source.
+  const crop = width && height ? cropRect(width, height, frame) : null;
+  const options = resolutionOptions(crop?.width ?? null, crop?.height ?? null, maxResolution);
   const [resolution, setResolution] = useState<ExportResolution>(options.findLast((option) => option.disabled === null)?.value ?? 720);
   const [busy, setBusy] = useState<"saving" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -155,6 +160,7 @@ function ConfigStage({
         <span className="text-text">
           {PRESETS[presetKey].name}
           {isPresetModified(presetKey, styleConfig) ? " (edited)" : ""} · {blocks} {blocks === 1 ? "block" : "blocks"} · {formatTimecode(durationMs)}
+          {frame.aspect !== "original" && ` · ${FRAME_FORMATS[frame.aspect].label}`}
         </span>
         <span className="text-muted">We freeze this version. You can keep editing while it renders.</span>
       </div>

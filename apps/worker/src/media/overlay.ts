@@ -11,6 +11,7 @@ import {
   captionWordStyle,
   IDENTITY_TRANSFORM,
   interpolateTransform,
+  isTallFrame,
   overlayStateKey,
   transformCss,
   type CaptionStyle,
@@ -116,7 +117,7 @@ export async function renderOverlay({
 
   const context = await (await getBrowser(chromiumPath)).newContext({ viewport: { width, height }, deviceScaleFactor: 1 });
   try {
-    const boxCss = captionBoxStyle(style);
+    const boxCss = captionBoxStyle(style, isTallFrame(width, height));
     const html = await pageHtml(style, width, height);
     const workers = Math.max(1, Math.min(pageCount, Math.ceil(pictures.length / PICTURES_PER_PAGE_MIN)));
     const pages = await Promise.all(Array.from({ length: workers }, () => openRenderPage(context, html, style)));

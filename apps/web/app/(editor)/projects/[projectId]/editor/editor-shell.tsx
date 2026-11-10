@@ -5,8 +5,9 @@ import { SaveIndicator } from "@/components/save-indicator";
 import { EditorHeader } from "../editor-header";
 import { ProjectNameInput } from "../project-name-input";
 import { CaptionsPanel } from "./captions-panel";
-import { EditorStoreProvider, useEditor, useEditorStore, type EditorInit } from "./editor-store";
+import { EditorStoreProvider, SAFE_ZONES_STORAGE_KEY, useEditor, useEditorStore, type EditorInit } from "./editor-store";
 import { ExportDialog } from "./export-dialog";
+import { FormatSection } from "./format-section";
 import { EditorHeaderControls, UndoRedo } from "./header-controls";
 import { PreviewPanel } from "./preview-panel";
 import { StylePanel } from "./style-panel";
@@ -63,9 +64,21 @@ export function EditorShell({ name, width, height, posterSrc, exports, maxResolu
 function useRestoreDraft() {
   const store = useEditorStore();
   useEffect(() => {
-    const { projectId, version, trim, durationMs, restoreDraft } = store.getState();
-    const draft = readDraft(projectId, version, { trim, durationMs });
+    const { projectId, version, trim, frame, durationMs, restoreDraft } = store.getState();
+    const draft = readDraft(projectId, version, { trim, frame, durationMs });
     if (draft) restoreDraft(draft);
+  }, [store]);
+}
+
+/** The safe-zone guide is off by default; it comes back on for someone who switched it on before, in this browser. */
+function useRememberedSafeZones() {
+  const store = useEditorStore();
+  useEffect(() => {
+    try {
+      if (localStorage.getItem(SAFE_ZONES_STORAGE_KEY) === "on") store.setState({ showSafeZones: true });
+    } catch {
+      // Storage blocked: the guide just starts off.
+    }
   }, [store]);
 }
 
@@ -73,6 +86,7 @@ function EditorLayout({ width, height, posterSrc }: { width: number | null; heig
   // Autosave subscribes first, so a restored draft is saved right away.
   useAutosave();
   useRestoreDraft();
+  useRememberedSafeZones();
   useEditorShortcuts();
   const [tab, setTab] = useState<"captions" | "style">("captions");
   const drawerOpen = useEditor((state) => state.drawerOpen);
@@ -139,7 +153,9 @@ function EditorLayout({ width, height, posterSrc }: { width: number | null; heig
           // ≥1100px: third column.
           "min-[1100px]:order-3 min-[1100px]:flex min-[1100px]:w-[310px] min-[1100px]:shrink-0 min-[1100px]:border-l min-[1100px]:border-line",
         ].join(" ")}
-      />
+      >
+        <FormatSection width={width} height={height} />
+      </StylePanel>
     </main>
   );
 }

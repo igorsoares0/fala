@@ -2,6 +2,8 @@ import { stat } from "node:fs/promises";
 import path from "node:path";
 import { db, enqueueEmail } from "@fala/db";
 import {
+  cropAxis,
+  cropRect,
   exportDimensions,
   exportErrorCodeSchema,
   exportKey,
@@ -57,7 +59,11 @@ export const renderExport: JobHandler<Payload> = {
     const parsed = exportSnapshotSchema.safeParse(record.snapshot);
     if (!parsed.success) throw new JobError("RENDER_FAILED", "Invalid export snapshot", { retryable: false });
     const snapshot: ExportSnapshot = parsed.data;
-    const { width, height } = exportDimensions(snapshot.width, snapshot.height, record.resolution);
+    // A project with a frame renders only that part of the picture; the export size follows its shape.
+    const crop = snapshot.frame && cropAxis(snapshot.width, snapshot.height, snapshot.frame)
+      ? cropRect(snapshot.width, snapshot.height, snapshot.frame)
+      : undefined;
+    const { width, height } = exportDimensions(crop?.width ?? snapshot.width, crop?.height ?? snapshot.height, record.resolution);
     // A trimmed project renders only the kept range; the output is that long.
     const expectedMs = snapshot.trim ? trimLengthMs(snapshot.trim) : snapshot.durationMs;
 
@@ -99,6 +105,7 @@ export const renderExport: JobHandler<Payload> = {
           height,
           durationMs: expectedMs,
           trim: snapshot.trim,
+          crop,
           outputPath,
           signal,
           onProgress: (fraction) => progress.report(OVERLAY_SHARE + fraction * (ENCODE_END - OVERLAY_SHARE)),

@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import { db, enqueueJob, releaseUsage, type ExportStatus } from "@fala/db";
 import { ACTIVE_NOW } from "./activity";
+import { parseProjectFrame } from "./frame";
 import { parseProjectStyle } from "./style";
 import { parseProjectTrim } from "./trim";
 
@@ -19,6 +20,8 @@ const projectSummarySelect = {
   durationMs: true,
   trimStartMs: true,
   trimEndMs: true,
+  frameAspect: true,
+  frameFocus: true,
   width: true,
   height: true,
   thumbnailObjectKey: true,
@@ -56,7 +59,17 @@ function findProjects(userId: string) {
 const captionSampleSchema = z.array(z.string()).max(20);
 
 /** Object keys stay on the server; the UI only needs to know a thumbnail exists. */
-function toSummary({ thumbnailObjectKey, captionSample, style, exports, trimStartMs, trimEndMs, ...project }: ProjectRow) {
+function toSummary({
+  thumbnailObjectKey,
+  captionSample,
+  style,
+  exports,
+  trimStartMs,
+  trimEndMs,
+  frameAspect,
+  frameFocus,
+  ...project
+}: ProjectRow) {
   const sample = captionSampleSchema.safeParse(captionSample);
   return {
     ...project,
@@ -66,6 +79,8 @@ function toSummary({ thumbnailObjectKey, captionSample, style, exports, trimStar
     style: parseProjectStyle(style),
     /** The part of the video the export keeps; null until the video has a known length. */
     trim: project.durationMs ? parseProjectTrim({ trimStartMs, trimEndMs }, project.durationMs) : null,
+    /** The shape the export is cropped to. */
+    frame: parseProjectFrame({ frameAspect, frameFocus }),
   };
 }
 

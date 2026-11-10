@@ -1,10 +1,10 @@
-import { trimLengthMs, type Trim } from "@fala/shared";
+import { trimLengthMs, type Rect, type Trim } from "@fala/shared";
 import { runCommand } from "./run";
 import type { Band } from "./overlay";
 
 /**
- * Burns the caption overlay into the video (spec §10.2): scales the source to the
- * export size, composites the overlay pictures in their band and encodes an MP4
+ * Burns the caption overlay into the video (spec §10.2): crops the source to the
+ * project's frame when it has one, scales it to the export size, composites the overlay pictures in their band and encodes an MP4
  * that plays everywhere (H.264 + AAC, moov atom first).
  */
 export async function encodeExport({
@@ -16,6 +16,7 @@ export async function encodeExport({
   height,
   durationMs,
   trim,
+  crop,
   outputPath,
   signal,
   onProgress,
@@ -30,13 +31,15 @@ export async function encodeExport({
   durationMs: number;
   /** The part of the source to keep. Absent: all of it. */
   trim?: Trim;
+  /** The part of the picture to keep, in source pixels. Absent: all of it. */
+  crop?: Rect;
   outputPath: string;
   signal?: AbortSignal;
   /** Fraction of the video encoded, 0–1. */
   onProgress?: (fraction: number) => void;
 }) {
   let pending = "";
-  await runCommand(ffmpegPath, encodeArgs({ sourcePath, overlayListPath, band, width, height, trim, outputPath }), {
+  await runCommand(ffmpegPath, encodeArgs({ sourcePath, overlayListPath, band, width, height, trim, crop, outputPath }), {
     timeoutMs: renderTimeoutMs(durationMs),
     signal,
     onStdout: (chunk) => {
@@ -63,6 +66,7 @@ export function encodeArgs({
   width,
   height,
   trim,
+  crop,
   outputPath,
 }: {
   sourcePath: string;
@@ -71,14 +75,17 @@ export function encodeArgs({
   width: number;
   height: number;
   trim?: Trim;
+  crop?: Rect;
   outputPath: string;
 }): string[] {
   // Before `-i`, so FFmpeg seeks in the source and the output's clock starts at 0, where the
   // overlay's does. Re-encoding makes the cut frame-accurate, for video and audio alike.
   const range = trim ? ["-ss", seconds(trim.startMs), "-t", seconds(trimLengthMs(trim))] : [];
+  // Cropped before scaling, so the kept part is scaled once, from the source's own pixels.
+  const cropFilter = crop ? `crop=${crop.width}:${crop.height}:${crop.x}:${crop.y},` : "";
   const filter = [
-    // The source is auto-rotated on input, so width × height are display dimensions.
-    `[0:v]scale=${width}:${height}:flags=lanczos,setsar=1[base]`,
+    // The source is auto-rotated on input, so width × height (and the crop) are in display dimensions.
+    `[0:v]${cropFilter}scale=${width}:${height}:flags=lanczos,setsar=1[base]`,
     `[1:v]format=rgba[captions]`,
     `[base][captions]overlay=x=${band.x}:y=${band.y}:eof_action=pass:format=auto,format=yuv420p[out]`,
   ].join(";");

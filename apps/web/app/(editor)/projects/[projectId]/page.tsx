@@ -44,6 +44,7 @@ async function Editor({ params }: { params: PageProps<"/projects/[projectId]">["
         version={captions.version}
         style={project.style}
         trim={project.trim ?? fullTrim(project.durationMs)}
+        frame={project.frame}
         width={project.width}
         height={project.height}
         posterSrc={thumbnailSrc(project)}

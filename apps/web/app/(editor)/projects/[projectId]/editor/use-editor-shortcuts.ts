@@ -1,11 +1,17 @@
 import { useEffect } from "react";
 import { useEditorStore } from "./editor-store";
 
+/** Inputs you don't type in: the editor's undo applies while one has the focus. */
+const UNDOLESS_INPUT_TYPES = ["checkbox", "radio", "range"];
+
 /**
  * Editor keyboard (handoff "Keyboard"): Space play/pause · ←/→ previous/next block ·
  * Esc close find / cancel edit / leave trimming / deselect · Ctrl/Cmd+Z undo · Ctrl/Cmd+Shift+Z or Ctrl+Y
  * redo · Ctrl/Cmd+F find & replace. Ignored while typing (fields keep their own undo),
  * except Ctrl/Cmd+F, which always opens find instead of the browser's.
+ *
+ * Toggles and sliders aren't typing: they have no undo of their own, so undo/redo work
+ * with the focus on them too. They do keep their own Space and arrows.
  */
 export function useEditorShortcuts() {
   const store = useEditorStore();
@@ -16,7 +22,8 @@ export function useEditorShortcuts() {
       // A modal (export, unsynced changes) owns the keyboard while it's open.
       if (document.querySelector("[aria-modal='true']")) return;
       const target = event.target as HTMLElement | null;
-      const typing = Boolean(target?.closest("input, textarea, select, [contenteditable='true']"));
+      const field = target?.closest("input, textarea, select, [contenteditable='true']") ?? null;
+      const typing = field !== null && !(field instanceof HTMLInputElement && UNDOLESS_INPUT_TYPES.includes(field.type));
       const editor = store.getState();
       const command = event.metaKey || event.ctrlKey;
       const key = event.key.toLowerCase();
@@ -35,6 +42,8 @@ export function useEditorShortcuts() {
         event.preventDefault();
         return;
       }
+      // Every other key belongs to the focused control (Space on a toggle, arrows on a slider).
+      if (field) return;
 
       if (event.key === "Escape") {
         if (editor.findOpen) editor.setFindOpen(false);
