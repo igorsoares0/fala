@@ -1,8 +1,8 @@
 # Web app image (Next.js standalone server). Build from the repo root:
 #   docker build -f apps/web/Dockerfile \
 #     --build-arg NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=… --build-arg R2_ENDPOINT=… .
-# The image also carries the Prisma CLI and migrations in /migrate, so the deploy can
-# run them first: cd /migrate && DATABASE_URL="$DIRECT_DATABASE_URL" npx prisma migrate deploy
+# The image also carries the Prisma CLI and migrations in /migrate: the container applies
+# pending migrations on start (docker-entrypoint.sh), before the server takes traffic.
 
 # Manifests of the web app and the packages it uses only (not the worker).
 FROM node:24-bookworm-slim AS manifests
@@ -31,7 +31,7 @@ ENV NEXT_PUBLIC_PADDLE_CLIENT_TOKEN=$NEXT_PUBLIC_PADDLE_CLIENT_TOKEN \
 # client only connects on a query, so a placeholder URL keeps the build offline.
 RUN cd apps/web && DATABASE_URL=postgresql://build@localhost/build npx next build
 
-# Prisma CLI + migrations only, for the pre-deploy migration step.
+# Prisma CLI + migrations only, applied by docker-entrypoint.sh on start.
 FROM node:24-bookworm-slim AS migrate
 WORKDIR /migrate
 RUN npm init -y >/dev/null && npm install --omit=dev --no-audit --no-fund prisma@7.10.0 dotenv@17 && npm cache clean --force
@@ -49,6 +49,7 @@ COPY --from=build --chown=node:node /app/apps/web/.next/static apps/web/.next/st
 COPY --from=migrate --chown=node:node /migrate /migrate
 USER node
 EXPOSE 3000
+COPY --chmod=755 apps/web/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
   CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/api/health').then((r) => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
-CMD ["node", "apps/web/server.js"]
+CMD ["docker-entrypoint.sh"]
