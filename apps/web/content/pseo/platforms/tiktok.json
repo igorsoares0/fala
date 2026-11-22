@@ -1,0 +1,70 @@
+{
+  "slug": "tiktok",
+  "status": "published",
+  "title": "Add Captions to TikTok Videos",
+  "metaDescription": "Add burned-in captions to TikTok videos in your browser: an automatic word-by-word transcript, five caption styles and a 9:16 export.",
+  "h1": "Add captions to TikTok videos",
+  "primaryKeyword": "add captions to tiktok video",
+  "intro": "Upload your video, review the automatic transcript and export a 9:16 MP4 with the captions burned in, ready to post. The editor can show roughly where TikTok's interface covers the frame, so your captions stay readable.",
+  "summary": "Burned-in captions in 9:16, placed clear of TikTok's interface.",
+  "platform": "TikTok",
+  "specs": {
+    "aspectRatio": "9:16 vertical (wider videos get black bars)",
+    "maxLength": "60 minutes uploaded, 10 recorded in the app",
+    "resolution": "1080 × 1920"
+  },
+  "safeZone": {
+    "description": "On a full-screen vertical video, TikTok draws its own interface over the top, the bottom and the right edge of the frame. Turn on Safe zones in the editor to see roughly where that happens; the Bottom caption position already sits above it.",
+    "screenshot": "TODO(igor): screenshot of the editor with Safe zones turned on, on a 9:16 video"
+  },
+  "nativeComparison": [
+    {
+      "aspect": "Styling",
+      "native": "Limited to the look the app offers.",
+      "burnedIn": "Five presets, each adjustable: font, size, colors, highlight and position."
+    },
+    {
+      "aspect": "Sound off",
+      "native": "Shown or hidden depending on the app and the viewer's settings.",
+      "burnedIn": "Always visible, because the text is part of the picture."
+    },
+    {
+      "aspect": "Other platforms",
+      "native": "Stay on TikTok. Post the file elsewhere and they don't come along.",
+      "burnedIn": "Travel with the file to Reels, Shorts or anywhere else you post it."
+    }
+  ],
+  "recommendedPreset": {
+    "preset": "bold",
+    "reason": "Big uppercase words with a highlight box on the word being spoken are easy to follow on a phone, even with the sound off."
+  },
+  "presetPreview": "TODO(igor): preview video of the Bold Highlight preset on a 9:16 clip",
+  "previewFrame": "9:16",
+  "faq": [
+    {
+      "question": "Can I export in 9:16?",
+      "answer": "Yes. Export as uploaded or cropped to 9:16, and slide the framing to keep the subject in view. The crop fills the frame, with no black bars."
+    },
+    {
+      "question": "Will TikTok's buttons cover my captions?",
+      "answer": "Turn on Safe zones in the editor to see roughly where TikTok's interface sits on a full-screen video. The Bottom caption position sits above it."
+    },
+    {
+      "question": "How long can my video be?",
+      "answer": "Up to {plan.free.maxVideoMinutes} minutes on {plan.free.name}, {plan.creator.maxVideoMinutes} minutes on {plan.creator.name} and {plan.pro.maxVideoMinutes} minutes on {plan.pro.name}."
+    },
+    {
+      "question": "Can I cut the start or the end before exporting?",
+      "answer": "Yes. Trim the start and the end of the video in the editor. Your original upload and its captions are kept, so you can change the trim later."
+    }
+  ],
+  "related": [
+    "instagram-reels",
+    "youtube-shorts",
+    "burn-in-subtitles"
+  ],
+  "cta": {
+    "heading": "Caption your TikTok video now",
+    "text": "Upload it, check the text, export a 9:16 MP4. The free plan has no watermark."
+  }
+}

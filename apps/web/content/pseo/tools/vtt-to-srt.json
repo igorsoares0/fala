@@ -1,0 +1,53 @@
+{
+  "slug": "vtt-to-srt",
+  "status": "published",
+  "title": "VTT to SRT Converter (Free, In Your Browser)",
+  "metaDescription": "Convert WebVTT subtitles to SRT for free, in your browser. Paste the text or drop a .vtt file; nothing is uploaded and no account is needed.",
+  "h1": "VTT to SRT converter",
+  "primaryKeyword": "vtt to srt",
+  "intro": "Turn a WebVTT (.vtt) file into SubRip (.srt) for editors, players and platforms that expect SRT. Drop the file or paste its text: it's converted on your device and never uploaded.",
+  "summary": "Turn WebVTT into .srt subtitles, on your device, without an account.",
+  "formats": [
+    {
+      "heading": "WebVTT",
+      "paragraphs": [
+        "WebVTT (.vtt) starts with a WEBVTT line and can hold more than captions: notes, styling blocks, regions and per-cue settings such as position and alignment. Times use a dot, and the hours are optional (01:02.345)."
+      ]
+    },
+    {
+      "heading": "SRT",
+      "paragraphs": [
+        "SubRip (.srt) is simpler and more widely accepted: numbered cues, full times with a comma (00:01:02,345), and the text. Most video editors and players read it."
+      ]
+    },
+    {
+      "heading": "What the converter changes",
+      "paragraphs": [
+        "It drops the WEBVTT header, NOTE, STYLE and REGION blocks, cue ids and cue settings, writes every time in full with a comma, and numbers the cues from 1. The text of each cue, line breaks included, stays as it was."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Is anything uploaded?",
+      "answer": "No. The converter runs in your browser: the .vtt file is read on your device and the .srt file is created there."
+    },
+    {
+      "question": "What happens to positioning and styling?",
+      "answer": "SRT has no equivalent for WebVTT's cue settings, STYLE blocks or regions, so they're removed. The timing and the text are kept."
+    },
+    {
+      "question": "Why does it say my file isn't WebVTT?",
+      "answer": "A WebVTT file must start with a WEBVTT line. If yours starts with a number and a time like 00:00:01,000, it's already an SRT file; use the SRT to VTT converter to go the other way."
+    },
+    {
+      "question": "Are formatting tags kept?",
+      "answer": "Yes. Text is copied as it is, tags included. SRT players understand simple ones like <i> and <b>; others may show WebVTT-only tags as plain text."
+    }
+  ],
+  "related": ["srt-to-vtt", "burn-in-subtitles", "linkedin-video"],
+  "cta": {
+    "heading": "Want captions viewers can't switch off?",
+    "text": "Supertitle burns captions into the video itself, so they show on every player, platform and phone."
+  }
+}

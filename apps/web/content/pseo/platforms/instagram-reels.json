@@ -1,0 +1,70 @@
+{
+  "slug": "instagram-reels",
+  "status": "published",
+  "title": "Add Captions to Instagram Reels Automatically",
+  "metaDescription": "Add captions to Instagram Reels automatically: word-by-word transcript, styles that highlight the spoken word, and a 9:16 MP4 ready to post.",
+  "h1": "Add captions to Instagram Reels automatically",
+  "primaryKeyword": "add captions to reels",
+  "intro": "Supertitle listens to your Reel, writes the captions word by word and burns them into a 9:16 MP4. You review the text, pick a style that fits your feed, and post the file straight to Instagram.",
+  "summary": "Automatic word-by-word captions, burned into a 9:16 Reel.",
+  "platform": "Instagram Reels",
+  "specs": {
+    "aspectRatio": "9:16 (anything from 1.91:1 to 9:16 is accepted)",
+    "maxLength": "20 minutes; Reels over 3 minutes aren't recommended to new viewers",
+    "resolution": "1080 × 1920 (at least 720p)"
+  },
+  "safeZone": {
+    "description": "Instagram lays its own buttons, account name and post text over a Reel, mostly along the bottom and the right edge, with a little at the top. With Safe zones on, the editor shades roughly where that happens on a full-screen vertical video, and the Bottom caption position keeps your captions above it.",
+    "screenshot": "TODO(igor): screenshot of the editor with Safe zones turned on, on a 9:16 Reel"
+  },
+  "nativeComparison": [
+    {
+      "aspect": "Look",
+      "native": "Set by Instagram, with little say over font or color.",
+      "burnedIn": "Your choice of five presets, each with adjustable font, colors, highlight and position."
+    },
+    {
+      "aspect": "Silent autoplay",
+      "native": "Depend on what Instagram generates and on each viewer's settings.",
+      "burnedIn": "On screen for everyone, sound on or off."
+    },
+    {
+      "aspect": "Reposting",
+      "native": "Belong to the post on Instagram, not to your video file.",
+      "burnedIn": "Part of the file, so the same MP4 works on TikTok, Shorts or a story."
+    }
+  ],
+  "recommendedPreset": {
+    "preset": "word",
+    "reason": "The spoken word changes color in a heavy sans-serif near the bottom, which reads well over busy lifestyle footage without covering faces."
+  },
+  "presetPreview": "TODO(igor): preview video of the Word Highlight preset on a 9:16 Reel",
+  "previewFrame": "9:16",
+  "faq": [
+    {
+      "question": "Can I post the MP4 as a Reel directly?",
+      "answer": "Yes. Export in 9:16 and upload the file to Instagram like any other video. The captions are already in the picture."
+    },
+    {
+      "question": "My video is horizontal. Can it still be a Reel?",
+      "answer": "Yes. Choose the 9:16 format and slide the framing to keep the subject in view. The crop fills the frame, with no black bars."
+    },
+    {
+      "question": "Will the captions sit under Instagram's buttons?",
+      "answer": "Turn on Safe zones in the editor to see roughly where Instagram's interface sits. The Bottom caption position stays above it."
+    },
+    {
+      "question": "Can I caption Reels in languages other than English?",
+      "answer": "Yes. Supertitle detects the spoken language automatically, among dozens, and writes the captions in that language."
+    }
+  ],
+  "related": [
+    "tiktok",
+    "youtube-shorts",
+    "captions-ai"
+  ],
+  "cta": {
+    "heading": "Caption your next Reel",
+    "text": "Upload it, check the words, export a 9:16 MP4 that's ready for Instagram."
+  }
+}

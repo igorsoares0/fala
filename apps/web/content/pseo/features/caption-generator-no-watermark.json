@@ -1,0 +1,74 @@
+{
+  "slug": "caption-generator-no-watermark",
+  "status": "published",
+  "title": "Free Caption Generator With No Watermark",
+  "metaDescription": "Generate captions for free and export without a watermark: {plan.free.monthlyMinutes} minutes of video a month, word-by-word timing and five styles. No card needed.",
+  "h1": "A free caption generator with no watermark",
+  "primaryKeyword": "caption generator no watermark",
+  "intro": "Supertitle's free plan exports clean MP4s: no logo, no badge, no end screen. You get {plan.free.monthlyMinutes} minutes of video a month, automatic word-by-word captions and all five caption styles.",
+  "summary": "Free captioned exports with no logo or badge on the video.",
+  "sampleExport": "TODO(igor): a short sample MP4 exported on the free plan",
+  "competitorWatermarks": [
+    {
+      "competitor": "Submagic",
+      "policy": "TODO(igor): confirm Submagic's free-trial export policy (sources disagree: watermarked vs. export blocked)"
+    },
+    {
+      "competitor": "Captions.ai",
+      "policy": "None on the free plan"
+    },
+    {
+      "competitor": "CapCut",
+      "policy": "None on your own footage; premium assets and some template endings add one"
+    },
+    {
+      "competitor": "VEED",
+      "policy": "Yes, free exports are watermarked"
+    }
+  ],
+  "competitorsCheckedOn": "November 2026",
+  "sections": [
+    {
+      "heading": "What you get for free",
+      "paragraphs": [
+        "Every feature works on the free plan: automatic transcription in dozens of languages, the text editor, all five styles, trimming and cropping to 9:16, 4:5, 1:1 or 16:9.",
+        "The limits are about volume and quality, not branding: {plan.free.monthlyMinutes} minutes of video a month, videos up to {plan.free.maxVideoMinutes} minutes, and {plan.free.maxResolution} exports."
+      ]
+    },
+    {
+      "heading": "When you need more",
+      "paragraphs": [
+        "{plan.creator.name} is {plan.creator.monthlyUsd} a month for {plan.creator.monthlyMinutes} minutes, videos up to {plan.creator.maxVideoMinutes} minutes and {plan.creator.maxResolution} exports. {plan.pro.name} is {plan.pro.monthlyUsd} a month for {plan.pro.monthlyMinutes} minutes and videos up to {plan.pro.maxVideoMinutes} minutes. Paying yearly saves 25%.",
+        "Upgrading never adds or removes a watermark, because there isn't one to remove."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Is there really no watermark on the free plan?",
+      "answer": "Yes. Free exports have no logo, badge or end screen. No plan adds a watermark."
+    },
+    {
+      "question": "Do I need a card to start?",
+      "answer": "No. Create an account and start on the free plan. You only enter payment details if you upgrade."
+    },
+    {
+      "question": "What happens when I use my free minutes?",
+      "answer": "Your projects stay. New videos need minutes left, so they wait until your minutes renew next month, or until you switch plans."
+    },
+    {
+      "question": "Which languages are supported?",
+      "answer": "Dozens. Supertitle detects the spoken language automatically and writes the captions in that language."
+    }
+  ],
+  "related": [
+    "veed",
+    "submagic",
+    "tiktok",
+    "burn-in-subtitles"
+  ],
+  "cta": {
+    "heading": "Export your first video without a watermark",
+    "text": "Start on the free plan: no card, and nothing added to your video."
+  }
+}

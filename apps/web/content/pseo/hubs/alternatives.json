@@ -1,0 +1,30 @@
+{
+  "slug": "alternatives",
+  "status": "published",
+  "navLabel": "Alternatives",
+  "title": "Supertitle Alternatives & Comparisons",
+  "metaDescription": "Fair comparisons of Supertitle and other caption tools: price, free plan limits, watermarks, and how each one has you edit captions.",
+  "h1": "Supertitle compared with other caption tools",
+  "primaryKeyword": "caption tool alternatives",
+  "intro": "Each comparison covers price, free plan limits, watermarks and how you edit the captions, and says plainly where the other tool is the better pick. Supertitle does one job: burned-in captions for short videos, edited as text in your browser.",
+  "faq": [
+    {
+      "question": "What does Supertitle do?",
+      "answer": "It adds burned-in captions to short videos. You upload a video, review the automatic word-by-word transcript, pick one of five styles and export an MP4."
+    },
+    {
+      "question": "Is there a free plan?",
+      "answer": "Yes. Free includes {plan.free.monthlyMinutes} minutes of video a month, videos up to {plan.free.maxVideoMinutes} minutes and {plan.free.maxResolution} exports. No plan adds a watermark, Free included."
+    },
+    {
+      "question": "Does Supertitle translate captions?",
+      "answer": "No. Captions are written in the language spoken in the video. Supertitle detects dozens of languages automatically, but it doesn't translate."
+    }
+  ],
+  "related": [
+    "captions-for",
+    "styles",
+    "caption-generator-no-watermark",
+    "tools"
+  ]
+}

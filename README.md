@@ -51,6 +51,11 @@ Google sign-in is optional locally: set `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECR
 | `npm run test:e2e` | Playwright against a production build on port 3100 plus a worker, using `fala_test` and `fala-test` (first run: `npx playwright install chromium` in `apps/web`) |
 | `npm run db:migrate` | Create/apply Prisma migrations on the dev database |
 | `npm run eval:transcription` | Runs the real transcription provider over `fixtures/eval` and prints WER, detected language and model (needs `ASSEMBLYAI_API_KEY`; costs a few cents) |
+| `npm run pseo:pending` | Lists every `TODO(igor): …` marker in the pSEO content, by page (those pages stay noindex and out of the sitemap) |
+
+## pSEO pages
+
+The marketing pages for search (`docs/PSEO_PLAN.md`) are built from one JSON file per page in `apps/web/content/pseo/<type>/<slug>.json`, registered in `apps/web/lib/pseo/content.ts` and validated against `lib/pseo/schema.ts` when the module loads: a missing or empty field fails `next build`, naming the file and the field. Plan numbers are written as tokens (`{plan.free.monthlyMinutes}`) and filled from `PLANS`. A value that still needs input is written `TODO(igor): <what>`; the page is then built with `noindex` and left out of the sitemap. Templates live in `apps/web/app/(marketing)/_pseo/`; the SRT/VTT converters (`lib/pseo/subtitles.ts`) run in the browser.
 
 ## Decisions that differ from the spec
 

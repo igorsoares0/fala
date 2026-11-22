@@ -1,0 +1,29 @@
+{
+  "slug": "captions-for",
+  "status": "published",
+  "navLabel": "Captions by platform",
+  "title": "Captions for TikTok, Reels, Shorts & More",
+  "metaDescription": "Burned-in captions for each short-video platform: the right crop, where the app's interface covers the frame, and a caption style that fits.",
+  "h1": "Captions for every short-video platform",
+  "primaryKeyword": "captions for social video",
+  "intro": "Every platform crops, covers and plays your video a little differently. These guides cover the export format, where the app's interface sits over the frame, and which caption style reads best there.",
+  "faq": [
+    {
+      "question": "Can I use one video on several platforms?",
+      "answer": "Yes. Burned-in captions are part of the picture, so they stay on the video wherever you post it. You can also export the same project again in another format, such as 9:16 or 1:1."
+    },
+    {
+      "question": "Which formats can I export?",
+      "answer": "As uploaded, or cropped to 9:16, 4:5, 1:1 or 16:9. The crop always fills the frame, with no black bars, and you can slide the framing to keep the subject in view."
+    },
+    {
+      "question": "Do the captions show with the sound off?",
+      "answer": "Yes. They're burned into the video, so viewers see them without turning anything on, on any device."
+    }
+  ],
+  "related": [
+    "styles",
+    "burn-in-subtitles",
+    "alternatives"
+  ]
+}

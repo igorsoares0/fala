@@ -1,0 +1,66 @@
+{
+  "slug": "veed",
+  "status": "published",
+  "title": "VEED Alternative for Fast Burned-In Captions",
+  "metaDescription": "A single-purpose VEED alternative: upload, review the captions, export an MP4 with them burned in. Free exports have no watermark.",
+  "h1": "A VEED alternative for fast, burned-in captions",
+  "primaryKeyword": "veed alternative",
+  "intro": "Supertitle is a single-purpose tool: upload a video, review the automatic captions, pick a style and download the MP4. There's nothing else on the screen, and exports on the free plan carry no watermark.",
+  "summary": "Single-purpose and fast, with no watermark on free exports.",
+  "competitor": "VEED",
+  "verdict": "Pick Supertitle if burned-in captions are what you came for and you want to get from upload to MP4 quickly, without a watermark on the free plan. Stay with VEED if you need a complete online video editor, or captions as separate subtitle files.",
+  "comparisonTable": {
+    "startingPaidPrice": "$25/month (Creator)",
+    "freeTierLimits": "720p exports and a small monthly auto-subtitle allowance",
+    "freeWatermark": "Yes",
+    "limitsCountedBy": "AI credits per seat; subtitles unlimited up to 50 hours a month (fair use)",
+    "platform": "Browser, plus Android and iOS apps",
+    "editingModel": "Subtitle text list, with timing on a timeline"
+  },
+  "comparisonCheckedOn": "November 2026",
+  "whereTheyWin": [
+    "Full online editor: VEED covers cutting, text, music, recording and more in one place. Supertitle only does captions.",
+    "Subtitle files: VEED can give you captions as separate subtitle files. Supertitle exports an MP4 with the captions burned in, not SRT or VTT files."
+  ],
+  "switchingSteps": [
+    {
+      "title": "Upload once",
+      "text": "Drop the video in. The transcript is ready, word by word, in the language spoken."
+    },
+    {
+      "title": "Review, don't rebuild",
+      "text": "Read through the text and fix what's off. Splitting, merging and timing happen right in the document."
+    },
+    {
+      "title": "Download the MP4",
+      "text": "Pick one of five styles, adjust it if you like, and export. No watermark, on any plan."
+    }
+  ],
+  "faq": [
+    {
+      "question": "How fast is it?",
+      "answer": "Transcription starts as soon as the upload finishes, and you edit the text right after. For a short video, the whole job usually fits in a few minutes."
+    },
+    {
+      "question": "Can I download an SRT file?",
+      "answer": "No. Supertitle exports MP4 files with the captions burned in. To convert subtitle files you already have, use the free SRT to VTT and VTT to SRT converters."
+    },
+    {
+      "question": "Is there a watermark on free exports?",
+      "answer": "No. No plan adds a watermark, the free plan included."
+    },
+    {
+      "question": "What resolution are exports?",
+      "answer": "Up to {plan.free.maxResolution} on {plan.free.name} and up to {plan.creator.maxResolution} on {plan.creator.name} and {plan.pro.name}."
+    }
+  ],
+  "related": [
+    "submagic",
+    "caption-generator-no-watermark",
+    "youtube-shorts"
+  ],
+  "cta": {
+    "heading": "From upload to MP4 in minutes",
+    "text": "Caption your next video on the free plan. No watermark, no card."
+  }
+}

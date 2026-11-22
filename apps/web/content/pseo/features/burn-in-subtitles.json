@@ -1,0 +1,60 @@
+{
+  "slug": "burn-in-subtitles",
+  "status": "published",
+  "title": "Burn Subtitles Into Video Online (MP4)",
+  "metaDescription": "Burn subtitles into your video online: an automatic transcript, five caption styles and an MP4 with the text built into the picture. Nothing to install.",
+  "h1": "Burn subtitles into a video, online",
+  "primaryKeyword": "burn subtitles into video",
+  "intro": "Burned-in subtitles are part of the picture, so they show on every player and every platform, with no subtitle file to upload. Supertitle transcribes your video, lets you fix the text and exports an MP4 with the captions built in.",
+  "summary": "Captions built into the picture, exported as an MP4.",
+  "openVsClosed": [
+    {
+      "heading": "Open captions",
+      "paragraphs": [
+        "Open captions, also called burned-in or hardcoded subtitles, are drawn into the video frames. Nobody can switch them off, and they look the same everywhere the video plays."
+      ]
+    },
+    {
+      "heading": "Closed captions",
+      "paragraphs": [
+        "Closed captions live in a separate file or track, such as SRT or VTT, that the player shows over the video. Viewers can switch them off, and how they look depends on the player."
+      ]
+    }
+  ],
+  "beforeAfter": "TODO(igor): the same video frame twice, without and with burned-in captions",
+  "whyBurnedIn": {
+    "heading": "Why social platforms favor burned-in text",
+    "paragraphs": [
+      "Many people scroll with the sound off. Burned-in captions are visible without anyone turning them on.",
+      "Text in the picture travels with the video: repost the file on another platform and the captions are still there.",
+      "You choose the look, and it stays exactly as you set it: font, size, colors and position."
+    ]
+  },
+  "faq": [
+    {
+      "question": "Can I edit the text before burning it in?",
+      "answer": "Yes. The transcript opens as a document: fix words, split or merge captions and adjust their timing, then export."
+    },
+    {
+      "question": "Which video files work?",
+      "answer": "MP4, MOV and WEBM, up to {plan.pro.maxVideoMinutes} minutes depending on your plan. The export is an MP4, at up to {plan.free.maxResolution} on {plan.free.name} and {plan.creator.maxResolution} on paid plans."
+    },
+    {
+      "question": "Can I also download an SRT or VTT file?",
+      "answer": "No. Supertitle exports an MP4 with the captions burned in. If you have a subtitle file to convert, the free SRT to VTT converter runs in your browser."
+    },
+    {
+      "question": "Does burning in add a watermark?",
+      "answer": "No. No plan adds a watermark, the free plan included."
+    }
+  ],
+  "related": [
+    "tiktok",
+    "srt-to-vtt",
+    "caption-generator-no-watermark"
+  ],
+  "cta": {
+    "heading": "Burn captions into your next video",
+    "text": "Upload a video, check the text, pick a style and download the MP4."
+  }
+}

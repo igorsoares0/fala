@@ -1,0 +1,66 @@
+{
+  "slug": "submagic",
+  "status": "published",
+  "title": "Submagic Alternative Without Per-Video Caps",
+  "metaDescription": "Compare Supertitle and Submagic: plans counted in minutes of video instead of videos, no watermark on the free plan, and captions edited as text.",
+  "h1": "A Submagic alternative that counts minutes, not videos",
+  "primaryKeyword": "submagic alternative",
+  "intro": "Supertitle counts your plan in minutes of video, not in a number of videos, so five one-minute clips use the same allowance as one five-minute video. It does one job, burned-in captions, and the free plan exports without a watermark.",
+  "summary": "Plans counted in minutes, no watermark on Free, captions edited as text.",
+  "competitor": "Submagic",
+  "verdict": "Pick Supertitle if you mostly need accurate, styled captions on short videos, with limits counted in minutes and a free plan that exports without a watermark. Stay with Submagic if you rely on B-roll or on cutting long videos into clips: Supertitle doesn't do either.",
+  "comparisonTable": {
+    "startingPaidPrice": "$19/month (Starter)",
+    "freeTierLimits": "No free plan, only a free trial",
+    "freeWatermark": "TODO(igor): confirm whether Submagic's free-trial exports are watermarked (sources disagree: watermarked vs. export blocked)",
+    "limitsCountedBy": "Number of videos (15 a month on Starter)",
+    "platform": "TODO(igor): confirm where Submagic runs (its pricing page doesn't say: web app only, or mobile apps too?)",
+    "editingModel": "TODO(igor): confirm how captions are edited in Submagic (its pricing page doesn't describe the editor)"
+  },
+  "comparisonCheckedOn": "November 2026",
+  "whereTheyWin": [
+    "B-roll: Submagic can add B-roll footage to a video. Supertitle only adds captions.",
+    "Clipping: Submagic can cut a long video into short clips. Supertitle captions the video you upload, and can only trim its start and end."
+  ],
+  "switchingSteps": [
+    {
+      "title": "Upload your video",
+      "text": "Drop an MP4, MOV or WEBM file. Supertitle transcribes it word by word, in the language spoken."
+    },
+    {
+      "title": "Review the text",
+      "text": "Fix words, split or merge captions and adjust their timing in a document-style editor."
+    },
+    {
+      "title": "Pick a style and export",
+      "text": "Choose one of five presets, adjust it, and export an MP4 with the captions burned in."
+    }
+  ],
+  "faq": [
+    {
+      "question": "How are Supertitle's limits counted?",
+      "answer": "In minutes of video per month. A two-minute upload uses two minutes of your allowance, however many videos you make."
+    },
+    {
+      "question": "Is Supertitle free?",
+      "answer": "There's a free plan with {plan.free.monthlyMinutes} minutes of video a month, videos up to {plan.free.maxVideoMinutes} minutes and {plan.free.maxResolution} exports. No plan adds a watermark."
+    },
+    {
+      "question": "Can Supertitle add B-roll or cut clips like Submagic?",
+      "answer": "No. Supertitle adds captions. It can trim the start and the end of a video, but it doesn't add B-roll, remove silences or cut a long video into clips."
+    },
+    {
+      "question": "Which languages does it support?",
+      "answer": "Dozens. The spoken language is detected automatically and the captions are written in that language. Supertitle doesn't translate captions."
+    }
+  ],
+  "related": [
+    "caption-generator-no-watermark",
+    "captions-ai",
+    "tiktok"
+  ],
+  "cta": {
+    "heading": "Caption your next video in minutes",
+    "text": "Start on the free plan and export your first captioned MP4 without a watermark."
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "slug": "capcut",
+  "status": "published",
+  "title": "CapCut Alternative for Auto Captions (No Timeline)",
+  "metaDescription": "Auto captions without a video editor's timeline: Supertitle transcribes your video, you fix the text like a document, and it exports an MP4.",
+  "h1": "A CapCut alternative for auto captions, with no timeline",
+  "primaryKeyword": "capcut alternative for captions",
+  "intro": "If all you need from CapCut is the captions, Supertitle skips the rest of the editor. There's no timeline to learn: the transcript opens as text, you correct it, pick a style and export.",
+  "summary": "Auto captions edited as text, without a full editor's timeline.",
+  "competitor": "CapCut",
+  "verdict": "Pick Supertitle if captions are the only edit you make and you'd rather correct them as text than on a timeline. Stay with CapCut if you also cut, arrange and add effects to your videos: Supertitle isn't a video editor.",
+  "comparisonTable": {
+    "startingPaidPrice": "$19.99/month (Pro)",
+    "freeTierLimits": "TODO(igor): confirm whether auto captions are free in CapCut (sources say Pro-only or a small free allowance)",
+    "freeWatermark": "None on your own footage; premium assets and some template endings add one",
+    "limitsCountedBy": "AI credits (1,750 a month on Pro)",
+    "platform": "Desktop and mobile apps, and the web",
+    "editingModel": "Timeline"
+  },
+  "comparisonCheckedOn": "November 2026",
+  "whereTheyWin": [
+    "Full video editor: CapCut lets you cut and arrange clips, add music, transitions and effects. Supertitle only adds captions, and trims the start and end.",
+    "Several clips in one video: CapCut can combine many clips into one edit. Supertitle captions one uploaded video at a time."
+  ],
+  "switchingSteps": [
+    {
+      "title": "Export your edit as usual",
+      "text": "Finish the cut in your editor, then upload the MP4, MOV or WEBM to Supertitle."
+    },
+    {
+      "title": "Fix the captions as text",
+      "text": "No timeline: the words are a document. Correct them, split or merge captions, adjust their timing."
+    },
+    {
+      "title": "Pick a look and export",
+      "text": "Choose one of five presets, tweak it, and export an MP4 with the captions burned in."
+    }
+  ],
+  "faq": [
+    {
+      "question": "What does 'no timeline' mean?",
+      "answer": "You don't drag caption blocks along a track. The transcript is a list of captions you read top to bottom: open one to correct its text, and split, merge or retime captions from there."
+    },
+    {
+      "question": "Can I edit my video in Supertitle?",
+      "answer": "Only the start and the end: you can trim them, and crop the video to 9:16, 4:5, 1:1 or 16:9. For cuts, music or effects, use a video editor first."
+    },
+    {
+      "question": "Are captions word by word?",
+      "answer": "Yes. Supertitle transcribes every word with its timing, so styles like Bold Highlight can light up each word as it's spoken."
+    }
+  ],
+  "related": [
+    "veed",
+    "tiktok",
+    "styles",
+    "burn-in-subtitles"
+  ],
+  "cta": {
+    "heading": "Caption without the timeline",
+    "text": "Upload your finished edit and get captions you can fix as text. The free plan has no watermark."
+  }
+}

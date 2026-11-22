@@ -1,0 +1,53 @@
+{
+  "slug": "srt-to-vtt",
+  "status": "published",
+  "title": "SRT to VTT Converter (Free, In Your Browser)",
+  "metaDescription": "Convert SRT subtitles to WebVTT for free. Paste the text or drop a .srt file: it's converted in your browser and never uploaded.",
+  "h1": "SRT to VTT converter",
+  "primaryKeyword": "srt to vtt",
+  "intro": "Drop an .srt file or paste its text to get a WebVTT (.vtt) file. The conversion runs in your browser, so the file never leaves your device.",
+  "summary": "Turn .srt subtitles into WebVTT, in your browser, without uploading.",
+  "formats": [
+    {
+      "heading": "SRT",
+      "paragraphs": [
+        "SubRip (.srt) is the most common subtitle file. Each cue has a number, a start and an end time written like 00:00:01,000, and one or more lines of text."
+      ]
+    },
+    {
+      "heading": "WebVTT",
+      "paragraphs": [
+        "WebVTT (.vtt) is the subtitle format of web video players. The file starts with a WEBVTT line, times use a dot before the milliseconds (00:00:01.000), and cue numbers are optional."
+      ]
+    },
+    {
+      "heading": "What the converter changes",
+      "paragraphs": [
+        "It adds the WEBVTT header, writes the times with a dot, and drops the cue numbers. The text of each cue, line breaks included, stays as it was."
+      ]
+    }
+  ],
+  "faq": [
+    {
+      "question": "Is my file uploaded?",
+      "answer": "No. The file is read and converted in your browser, and the .vtt file is created on your device."
+    },
+    {
+      "question": "Are line breaks and special characters kept?",
+      "answer": "Yes. Each cue keeps its lines exactly as written, and the output is UTF-8."
+    },
+    {
+      "question": "Why was my file rejected?",
+      "answer": "Each cue needs a timing line such as 00:00:01,000 --> 00:00:02,500. The error message names the first cue that doesn't have one, so you can fix it and try again."
+    }
+  ],
+  "related": [
+    "vtt-to-srt",
+    "burn-in-subtitles",
+    "youtube-shorts"
+  ],
+  "cta": {
+    "heading": "Need the captions inside the video?",
+    "text": "Supertitle transcribes your video and exports an MP4 with the captions burned in, visible on every platform."
+  }
+}

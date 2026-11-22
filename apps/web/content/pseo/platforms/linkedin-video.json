@@ -1,0 +1,66 @@
+{
+  "slug": "linkedin-video",
+  "status": "published",
+  "title": "Add Captions to LinkedIn Videos",
+  "metaDescription": "Add clean, professional captions to LinkedIn videos: automatic transcript, calm caption styles, and an MP4 in 1:1, 16:9 or 4:5 for the feed.",
+  "h1": "Add captions to LinkedIn videos",
+  "primaryKeyword": "add captions to linkedin video",
+  "intro": "Videos in a professional feed often play without sound. Supertitle adds clean, readable captions to talks, demos and announcements, and exports the MP4 in a shape that suits the feed, such as square or widescreen.",
+  "summary": "Calm, readable captions for talks, demos and announcements.",
+  "platform": "LinkedIn",
+  "specs": {
+    "aspectRatio": "1:1, 4:5 or 16:9 (anything from 1:2.4 to 2.4:1 is accepted)",
+    "maxLength": "15 minutes",
+    "resolution": "1920 × 1080 or 1080 × 1080 (up to 4096 × 2304)"
+  },
+  "safeZone": {
+    "description": "In the feed, LinkedIn shows video with its own player controls and the post text around it. Supertitle's Safe zones guide is drawn for TikTok, Reels and Shorts, so it isn't a map of LinkedIn's interface. For feed videos, the Bottom position keeps captions low in the frame and away from faces; preview the post before you publish to check nothing covers them.",
+    "screenshot": "TODO(igor): screenshot of the editor with a 1:1 video and captions in the Bottom position"
+  },
+  "nativeComparison": [
+    {
+      "aspect": "Appearance",
+      "native": "Shown in the player's own caption style.",
+      "burnedIn": "A calm style of your choice, consistent with your brand colors."
+    },
+    {
+      "aspect": "Muted feed",
+      "native": "Visible only when the player shows captions.",
+      "burnedIn": "Readable as soon as the video starts, without sound."
+    },
+    {
+      "aspect": "Reuse",
+      "native": "Tied to the post on LinkedIn.",
+      "burnedIn": "The same file works in a newsletter, on your website or at an event."
+    }
+  ],
+  "recommendedPreset": {
+    "preset": "classic",
+    "reason": "Plain text on a dark bar reads like TV subtitles: easy on any background, and quiet enough for a professional audience."
+  },
+  "presetPreview": "TODO(igor): preview video of the Classic preset on a 1:1 LinkedIn video",
+  "previewFrame": "1:1",
+  "faq": [
+    {
+      "question": "Which format should I export for LinkedIn?",
+      "answer": "Supertitle exports as uploaded or cropped to 1:1, 4:5, 16:9 or 9:16. Square and widescreen are common choices for the feed."
+    },
+    {
+      "question": "Which style looks most professional?",
+      "answer": "Classic, with text on a dark bar, or Minimal, a serif face with a soft shadow. Both stay out of the way of what you're saying."
+    },
+    {
+      "question": "Can I caption a webinar recording?",
+      "answer": "Yes, up to {plan.pro.maxVideoMinutes} minutes on {plan.pro.name} ({plan.creator.maxVideoMinutes} on {plan.creator.name}, {plan.free.maxVideoMinutes} on {plan.free.name}). Trim the start and the end to keep only the part you want to share."
+    }
+  ],
+  "related": [
+    "burn-in-subtitles",
+    "youtube-shorts",
+    "styles"
+  ],
+  "cta": {
+    "heading": "Caption your next LinkedIn video",
+    "text": "Upload it, review the transcript, export a clean MP4 for the feed."
+  }
+}

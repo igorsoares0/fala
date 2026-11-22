@@ -1,0 +1,25 @@
+{
+  "slug": "tools",
+  "status": "published",
+  "navLabel": "Free tools",
+  "title": "Free Subtitle & Caption Tools",
+  "metaDescription": "Free subtitle tools that run in your browser: convert subtitle files without uploading them anywhere and without creating an account.",
+  "h1": "Free subtitle tools",
+  "primaryKeyword": "free subtitle tools",
+  "intro": "Small tools for subtitle files, free and without an account. They run in your browser, so your files never leave your device.",
+  "faq": [
+    {
+      "question": "Are these tools really free?",
+      "answer": "Yes. There's no sign-up and no limit on how many files you convert."
+    },
+    {
+      "question": "Are my files uploaded?",
+      "answer": "No. The conversion runs in your browser. The file is read on your device and the result is created there too."
+    },
+    {
+      "question": "Can Supertitle burn subtitles into my video?",
+      "answer": "Yes, from the video itself: Supertitle transcribes the speech, lets you fix the text and exports an MP4 with the captions burned in. It doesn't import subtitle files."
+    }
+  ],
+  "related": ["burn-in-subtitles", "alternatives", "captions-for"]
+}

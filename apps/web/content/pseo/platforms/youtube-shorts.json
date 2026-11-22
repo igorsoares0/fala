@@ -1,0 +1,66 @@
+{
+  "slug": "youtube-shorts",
+  "status": "published",
+  "title": "Add Captions to YouTube Shorts (Burned-In)",
+  "metaDescription": "Burn captions into YouTube Shorts so every viewer sees them, CC button or not. Automatic transcript, five styles and a 9:16 MP4 export.",
+  "h1": "Add burned-in captions to YouTube Shorts",
+  "primaryKeyword": "add captions to youtube shorts",
+  "intro": "Shorts viewers swipe fast, often with the sound low. Burned-in captions are on screen from the first frame, without anyone pressing CC. Supertitle transcribes your Short, lets you fix the text and exports a 9:16 MP4.",
+  "summary": "Captions on screen from the first frame, no CC button needed.",
+  "platform": "YouTube Shorts",
+  "specs": {
+    "aspectRatio": "9:16 vertical or 1:1 square",
+    "maxLength": "3 minutes",
+    "resolution": "1080 × 1920"
+  },
+  "safeZone": {
+    "description": "On a Short, YouTube places its controls, channel name and title over the video, toward the bottom and along the right side, and some of its interface near the top. The editor's Safe zones overlay shows roughly where that is on a full-screen vertical video; captions in the Bottom position are kept clear of it.",
+    "screenshot": "TODO(igor): screenshot of the editor with Safe zones turned on, on a 9:16 Short"
+  },
+  "nativeComparison": [
+    {
+      "aspect": "Turning them on",
+      "native": "Closed captions: viewers see them only if captions are switched on.",
+      "burnedIn": "Always on screen, for every viewer."
+    },
+    {
+      "aspect": "Style",
+      "native": "Shown in the player's caption style.",
+      "burnedIn": "Your preset and colors, exactly as in the preview."
+    },
+    {
+      "aspect": "Beyond YouTube",
+      "native": "Stay with the upload on YouTube.",
+      "burnedIn": "Go wherever the MP4 goes: Reels, TikTok, a website."
+    }
+  ],
+  "recommendedPreset": {
+    "preset": "podcast",
+    "reason": "Many Shorts are clips of someone talking. Clean Podcast shows a longer line and dims the words still to come, so viewers can read at the speed of the speaker."
+  },
+  "presetPreview": "TODO(igor): preview video of the Clean Podcast preset on a 9:16 Short",
+  "previewFrame": "9:16",
+  "faq": [
+    {
+      "question": "Why burn captions in if YouTube has its own?",
+      "answer": "YouTube's captions are closed: viewers have to turn them on. Burned-in captions show for everyone, and they look the way you styled them."
+    },
+    {
+      "question": "Can I turn a clip from a long video into a Short?",
+      "answer": "If you have the clip as a file, yes: upload it, trim the start and the end, and crop it to 9:16. Supertitle doesn't pick clips out of long videos for you."
+    },
+    {
+      "question": "What resolution is the export?",
+      "answer": "{plan.free.maxResolution} on {plan.free.name}, and up to {plan.creator.maxResolution} on {plan.creator.name} and {plan.pro.name}."
+    }
+  ],
+  "related": [
+    "tiktok",
+    "instagram-reels",
+    "caption-generator-no-watermark"
+  ],
+  "cta": {
+    "heading": "Make your next Short readable on mute",
+    "text": "Upload it, fix the text, export a 9:16 MP4 with the captions built in."
+  }
+}

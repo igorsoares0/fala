@@ -1,0 +1,36 @@
+{
+  "slug": "styles",
+  "status": "published",
+  "navLabel": "Caption styles",
+  "title": "Caption Styles for Short Videos",
+  "metaDescription": "Five caption styles for short videos, from bold word-by-word highlights to quiet TV-style subtitles. Each one is a starting point you can adjust.",
+  "h1": "Caption styles for short videos",
+  "primaryKeyword": "caption styles",
+  "intro": "Supertitle comes with five caption styles, from loud word-by-word highlights to quiet subtitles on a bar. Pick the one that fits your video, then adjust it: the export looks exactly like the preview.",
+  "presets": {
+    "bold": "Big uppercase words in the middle of the frame, with a highlight box on the word being spoken. Made for fast, punchy vertical videos.",
+    "word": "The spoken word changes color as it's said, in a heavy sans-serif near the bottom of the frame.",
+    "podcast": "Longer lines with the upcoming words dimmed, so viewers can read along. Suits interviews and podcast clips.",
+    "classic": "Plain text on a dark bar, like TV subtitles. Calm and readable on any background.",
+    "minimal": "A serif face with a soft shadow and no highlight. Quiet captions for polished, considered videos."
+  },
+  "faq": [
+    {
+      "question": "Can I change a style after picking it?",
+      "answer": "Yes. Each preset is a starting point: you can change the font, size, colors, highlight, position and more, and the preview updates as you go."
+    },
+    {
+      "question": "Does the exported video look like the preview?",
+      "answer": "Yes. The editor and the export draw the captions with the same fonts and the same rules, so the MP4 matches what you saw."
+    },
+    {
+      "question": "Which style works best with the sound off?",
+      "answer": "Styles that highlight the word being spoken, like Bold Highlight and Word Highlight, make it easy to follow along without audio. Classic is the calmest choice for longer talks."
+    },
+    {
+      "question": "How many words show at once?",
+      "answer": "Each preset has its own default, from a few words in Bold Highlight to a full line in Classic. You can change the words per caption in the editor."
+    }
+  ],
+  "related": ["captions-for", "burn-in-subtitles", "caption-generator-no-watermark"]
+}

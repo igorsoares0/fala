@@ -58,6 +58,7 @@ const nextConfig: NextConfig = {
   },
   experimental: {
     agentFeedback: true,
+    agentUpgrade: "security",
     // A full caption save of a 30-minute video (~12,000 words at most) is about 1–2 MB.
     serverActions: { bodySizeLimit: "4mb" },
   },

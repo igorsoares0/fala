@@ -1,0 +1,66 @@
+{
+  "slug": "captions-ai",
+  "status": "published",
+  "title": "Captions.ai Alternative That Works in the Browser",
+  "metaDescription": "A Captions.ai alternative that runs in your browser: no app to install, captions edited like a text document, and burned-in MP4 exports.",
+  "h1": "A Captions.ai alternative that runs in your browser",
+  "primaryKeyword": "captions ai alternative",
+  "intro": "Supertitle runs in any modern browser, on the computer where your videos already are. You fix the captions the way you'd edit a document, pick a style and export an MP4 with the text burned in.",
+  "summary": "Runs in the browser, with captions edited like a text document.",
+  "competitor": "Captions.ai",
+  "verdict": "Pick Supertitle if you edit on a computer and want a focused tool: upload in the browser, correct the text like a document and export. Stay with Captions.ai if you film and edit on your phone, or if you use its AI features beyond captions.",
+  "comparisonTable": {
+    "startingPaidPrice": "$9.99/month (Basic); a $4.99 Lite plan on Android only",
+    "freeTierLimits": "One caption template and 60–200 one-time AI credits",
+    "freeWatermark": "None",
+    "limitsCountedBy": "AI credits (200 a month on Basic)",
+    "platform": "iPhone and Android apps, and the web",
+    "editingModel": "TODO(igor): confirm how captions are edited in Captions.ai (its plan pages list a chat-based editor and traditional editing tools, not the caption editor itself)"
+  },
+  "comparisonCheckedOn": "November 2026",
+  "whereTheyWin": [
+    "Mobile app: Captions.ai is built around a phone app, so you can record and edit in the same place. Supertitle has no mobile app.",
+    "AI extras: Captions.ai offers AI features that go beyond captions. Supertitle only does captions."
+  ],
+  "switchingSteps": [
+    {
+      "title": "Open Supertitle in your browser",
+      "text": "Create a free account and drop in an MP4, MOV or WEBM file. Nothing to install."
+    },
+    {
+      "title": "Correct the transcript",
+      "text": "The captions open as text. Fix a word, split or merge a caption, or nudge its timing."
+    },
+    {
+      "title": "Style it and download",
+      "text": "Start from one of five presets, adjust it, and download an MP4 with the captions burned in."
+    }
+  ],
+  "faq": [
+    {
+      "question": "Do I need to install anything?",
+      "answer": "No. Supertitle runs in your browser. Upload the video, edit the captions and download the MP4 from the same tab."
+    },
+    {
+      "question": "Can I use Supertitle on my phone?",
+      "answer": "There's no mobile app. Supertitle is built for editing in a browser on a computer, where the text editor has room to work."
+    },
+    {
+      "question": "How do I fix a wrong word?",
+      "answer": "Open the caption and retype it, like editing a line in a document. You can also split or merge captions and adjust their timing, and the preview follows."
+    },
+    {
+      "question": "What does the free plan include?",
+      "answer": "{plan.free.monthlyMinutes} minutes of video a month, videos up to {plan.free.maxVideoMinutes} minutes and {plan.free.maxResolution} exports, with no watermark."
+    }
+  ],
+  "related": [
+    "capcut",
+    "instagram-reels",
+    "burn-in-subtitles"
+  ],
+  "cta": {
+    "heading": "Try it in your browser",
+    "text": "Upload a video and get editable captions in a few minutes, on the free plan."
+  }
+}
