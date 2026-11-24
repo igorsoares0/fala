@@ -73,7 +73,7 @@ describe("email templates", () => {
       expect(email.subject.length).toBeGreaterThan(5);
       expect(email.text).not.toContain("undefined");
       expect(email.text).not.toMatch(/\.mp4|X-Amz/);
-      expect(email.html).toContain("fala");
+      expect(email.html).toContain(">supertitle<");
     }
   });
 

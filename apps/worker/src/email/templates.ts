@@ -125,7 +125,7 @@ function toEmail({ subject, body, action, footer }: Content): RenderedEmail {
     : "";
   const html = `<!doctype html><html><body style="margin:0;background:#f4efe6;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif">
 <div style="max-width:520px;margin:0 auto;padding:32px 24px">
-<p style="margin:0 0 28px;font-size:22px;font-weight:800;letter-spacing:-0.03em;color:#12110f">fala<span style="color:#ff5a1f">.</span></p>
+<p style="margin:0 0 28px;font-size:22px;font-weight:800;letter-spacing:-0.03em;color:#12110f">supertitle<span style="color:#ff5a1f">.</span></p>
 ${paragraphs}${button}
 <p style="margin:32px 0 0;font-size:12px;line-height:1.5;color:#6b665d">${escape(footer)}</p>
 </div></body></html>`;
